@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DATA_ROOT = Path(
-    "/mnt/d/CyberSentinel_AI/datasets/CIC-IDS2017/MachineLearningCVE"
-)
+from cybersentinel_ai.ingestion.cicids2017 import get_dataset_root
+
+DATA_ROOT = get_dataset_root()
 OUTPUT_PATH = Path("docs/data_audit_cicids2017.json")
 
 

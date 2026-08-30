@@ -1,5 +1,4 @@
 from collections import Counter
-from pathlib import Path
 
 import pandas as pd
 
@@ -7,10 +6,9 @@ from cybersentinel_ai.features.splitting import (
     binary_split_for_file,
     to_binary_label,
 )
+from cybersentinel_ai.ingestion.cicids2017 import get_dataset_root
 
-DATA_ROOT = Path(
-    "/mnt/d/CyberSentinel_AI/datasets/CIC-IDS2017/MachineLearningCVE"
-)
+DATA_ROOT = get_dataset_root()
 
 
 def main() -> None:

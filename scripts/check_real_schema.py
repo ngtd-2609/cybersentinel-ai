@@ -1,12 +1,10 @@
-from pathlib import Path
 
 import pandas as pd
 
+from cybersentinel_ai.ingestion.cicids2017 import get_dataset_root
 from cybersentinel_ai.validation.schema import validate_cicids2017_schema
 
-DATA_ROOT = Path(
-    "/mnt/d/CyberSentinel_AI/datasets/CIC-IDS2017/MachineLearningCVE"
-)
+DATA_ROOT = get_dataset_root()
 
 
 def main() -> None:
