@@ -52,3 +52,9 @@ temp/
 # Local credentials
 *.pem
 *.key
+
+# Keep DVC metadata files in data directories
+!data/raw/*.dvc
+!data/interim/*.dvc
+!data/processed/*.dvc
+!data/external/*.dvc
