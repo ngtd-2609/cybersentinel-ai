@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterator
 from pathlib import Path
 
 import pandas as pd
@@ -22,8 +23,7 @@ def normalize_columns(columns) -> list[str]:
     return [str(col).strip() for col in columns]
 
 
-def read_cicids_csv(path: Path, **kwargs) -> pd.DataFrame:
-    df = pd.read_csv(path, **kwargs)
+def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = normalize_columns(df.columns)
 
     if "Label" in df.columns:
@@ -35,3 +35,19 @@ def read_cicids_csv(path: Path, **kwargs) -> pd.DataFrame:
         )
 
     return df
+
+
+def read_cicids_csv(path: Path, **kwargs) -> pd.DataFrame:
+    df = pd.read_csv(path, **kwargs)
+    return normalize_dataframe(df)
+
+
+def iter_cicids_csv(
+    path: Path,
+    chunksize: int = 100_000,
+    **kwargs,
+) -> Iterator[pd.DataFrame]:
+    reader = pd.read_csv(path, chunksize=chunksize, **kwargs)
+
+    for chunk in reader:
+        yield normalize_dataframe(chunk)
