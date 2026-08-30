@@ -7,7 +7,13 @@ authors = [
     { name = "Nguyễn Tùng Dương", email = "duong.nguyentung2609@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "joblib>=1.5.3",
+    "numpy>=2.5.2",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.0",
+]
 
 [project.scripts]
 cybersentinel-ai = "cybersentinel_ai:main"
