@@ -3,7 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from cybersentinel_ai.features.splitting import split_for_file
+from cybersentinel_ai.features.splitting import (
+    binary_split_for_file,
+    to_binary_label,
+)
 
 DATA_ROOT = Path(
     "/mnt/d/CyberSentinel_AI/datasets/CIC-IDS2017/MachineLearningCVE"
@@ -18,25 +21,26 @@ def main() -> None:
     }
 
     for path in sorted(DATA_ROOT.glob("*.csv")):
-        split = split_for_file(path)
+        split = binary_split_for_file(path)
 
         for chunk in pd.read_csv(path, usecols=[" Label"], chunksize=100_000):
-            labels = chunk[" Label"].astype(str).str.strip()
+            labels = chunk[" Label"].astype(str).map(to_binary_label)
             counts[split].update(labels.value_counts().to_dict())
 
     for split, labels in counts.items():
+        total = sum(labels.values())
+
         print(f"\n=== {split.upper()} ===")
-        print("rows:", sum(labels.values()))
-        print("labels:", len(labels))
+        print(f"rows: {total}")
 
         for label, count in labels.most_common():
-            print(f"{label}: {count}")
+            percentage = count / total * 100
+            print(f"{label}: {count} ({percentage:.2f}%)")
 
-    train_labels = set(counts["train"])
+        if set(labels) != {"BENIGN", "ATTACK"}:
+            raise ValueError(f"{split} does not contain both binary classes")
 
-    print("\n=== LABELS NOT PRESENT IN TRAIN ===")
-    print("validation:", sorted(set(counts["validation"]) - train_labels))
-    print("test:", sorted(set(counts["test"]) - train_labels))
+    print("\nPASS | All splits contain BENIGN and ATTACK")
 
 
 if __name__ == "__main__":
