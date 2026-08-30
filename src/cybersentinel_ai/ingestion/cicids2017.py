@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -7,8 +8,14 @@ DEFAULT_ROOT = Path(
 )
 
 
-def list_csv_files(root: Path = DEFAULT_ROOT) -> list[Path]:
-    return sorted(root.glob("*.csv"))
+def get_dataset_root() -> Path:
+    configured = os.getenv("CYBERSENTINEL_CICIDS2017_ROOT")
+    return Path(configured) if configured else DEFAULT_ROOT
+
+
+def list_csv_files(root: Path | None = None) -> list[Path]:
+    dataset_root = root if root is not None else get_dataset_root()
+    return sorted(dataset_root.glob("*.csv"))
 
 
 def normalize_columns(columns) -> list[str]:
