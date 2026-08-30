@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environment
+.venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Data
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+
+# Keep data directories in Git
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+
+# Model / generated artifacts
+artifacts/*
+!artifacts/.gitkeep
+
+# MLflow local runtime
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Logs / temporary
+*.log
+tmp/
+temp/
+
+# Local credentials
+*.pem
+*.key
