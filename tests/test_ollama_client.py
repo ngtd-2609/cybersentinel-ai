@@ -38,3 +38,38 @@ def test_empty_prompt():
 
     with pytest.raises(ValueError):
         client.generate("   ")
+
+
+def test_ollama_uses_environment_configuration(monkeypatch):
+    monkeypatch.setenv(
+        "CYBERSENTINEL_OLLAMA_URL",
+        "http://ollama.internal:11434",
+    )
+    monkeypatch.setenv(
+        "CYBERSENTINEL_OLLAMA_MODEL",
+        "custom-model",
+    )
+
+    client = OllamaClient()
+
+    assert client.base_url == "http://ollama.internal:11434"
+    assert client.model == "custom-model"
+
+
+def test_explicit_configuration_overrides_environment(monkeypatch):
+    monkeypatch.setenv(
+        "CYBERSENTINEL_OLLAMA_URL",
+        "http://environment:11434",
+    )
+    monkeypatch.setenv(
+        "CYBERSENTINEL_OLLAMA_MODEL",
+        "environment-model",
+    )
+
+    client = OllamaClient(
+        base_url="http://explicit:11434/",
+        model="explicit-model",
+    )
+
+    assert client.base_url == "http://explicit:11434"
+    assert client.model == "explicit-model"
