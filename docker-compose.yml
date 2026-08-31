@@ -8,6 +8,8 @@ services:
       - "8001:8000"
     environment:
       CYBERSENTINEL_DATABASE_URL: sqlite:////data/cybersentinel.db
+      CYBERSENTINEL_OLLAMA_URL: http://host.docker.internal:11434
+      CYBERSENTINEL_OLLAMA_MODEL: qwen3:4b
     volumes:
       - cybersentinel-data:/data
     restart: unless-stopped
