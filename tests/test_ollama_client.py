@@ -73,3 +73,34 @@ def test_explicit_configuration_overrides_environment(monkeypatch):
 
     assert client.base_url == "http://explicit:11434"
     assert client.model == "explicit-model"
+
+
+def test_strip_qwen_thinking_block():
+    from cybersentinel_ai.rag.ollama_client import strip_thinking
+
+    response = """
+<think>
+Internal reasoning that must not reach the API user.
+</think>
+
+1. Block source IP
+2. Investigate scan
+3. Review exposed ports
+"""
+
+    assert strip_thinking(response) == (
+        "1. Block source IP\n"
+        "2. Investigate scan\n"
+        "3. Review exposed ports"
+    )
+
+
+def test_ollama_timeout_from_environment(monkeypatch):
+    monkeypatch.setenv(
+        "CYBERSENTINEL_OLLAMA_TIMEOUT",
+        "240",
+    )
+
+    client = OllamaClient()
+
+    assert client.timeout == 240.0
