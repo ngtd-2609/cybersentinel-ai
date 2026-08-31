@@ -82,4 +82,6 @@ def test_dashboard_summary():
     assert data["average_risk_score"] > 0
     assert len(data["top_attack_types"]) >= 1
     assert len(data["top_threat_sources"]) >= 1
+    assert len(data["timeline"]) == 24
+    assert sum(point["total"] for point in data["timeline"]) >= 2
     assert len(data["recent_events"]) >= 2

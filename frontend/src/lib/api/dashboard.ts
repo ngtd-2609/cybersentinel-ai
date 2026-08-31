@@ -24,6 +24,15 @@ export interface DashboardThreatSource {
   max_risk_score: number;
 }
 
+export interface DashboardTimelinePoint {
+  time: string;
+  total: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
 export interface DashboardSummary {
   total_events: number;
   critical_alerts: number;
@@ -34,6 +43,7 @@ export interface DashboardSummary {
   average_risk_score: number;
   top_attack_types: DashboardAttackType[];
   top_threat_sources: DashboardThreatSource[];
+  timeline: DashboardTimelinePoint[];
   recent_events: DetectionEvent[];
 }
 

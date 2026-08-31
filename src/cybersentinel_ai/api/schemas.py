@@ -36,6 +36,15 @@ class DashboardThreatSource(BaseModel):
     max_risk_score: float
 
 
+class DashboardTimelinePoint(BaseModel):
+    time: datetime
+    total: int
+    critical: int
+    high: int
+    medium: int
+    low: int
+
+
 class DashboardSummary(BaseModel):
     total_events: int
     critical_alerts: int
@@ -46,4 +55,5 @@ class DashboardSummary(BaseModel):
     average_risk_score: float
     top_attack_types: list[DashboardAttackType]
     top_threat_sources: list[DashboardThreatSource]
+    timeline: list[DashboardTimelinePoint]
     recent_events: list[DetectionEventRead]

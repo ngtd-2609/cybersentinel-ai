@@ -2,33 +2,63 @@
 
 import {
   Area,
-  AreaChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-const data = [
-  { time: "00:00", events: 420, critical: 7 },
-  { time: "04:00", events: 610, critical: 12 },
-  { time: "08:00", events: 980, critical: 19 },
-  { time: "12:00", events: 1340, critical: 27 },
-  { time: "16:00", events: 1180, critical: 21 },
-  { time: "20:00", events: 1540, critical: 31 },
-  { time: "24:00", events: 1280, critical: 18 },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 
 export function SecurityEventsChart() {
+  const { data, isLoading, isError } = useDashboardSummary();
+
+  if (isLoading) {
+    return <Skeleton className="h-[290px] w-full rounded-xl" />;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="flex h-[290px] items-center justify-center text-sm text-red-600">
+        Unable to load security event timeline.
+      </div>
+    );
+  }
+
+  const chartData = data.timeline.map((point) => ({
+    ...point,
+    label: new Intl.DateTimeFormat("en", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(point.time)),
+  }));
+
   return (
     <div className="h-[290px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
+        <ComposedChart data={chartData}>
           <defs>
-            <linearGradient id="eventsGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.28} />
-              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+            <linearGradient
+              id="eventsGradient"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="5%"
+                stopColor="#06b6d4"
+                stopOpacity={0.28}
+              />
+              <stop
+                offset="95%"
+                stopColor="#06b6d4"
+                stopOpacity={0}
+              />
             </linearGradient>
           </defs>
 
@@ -39,42 +69,62 @@ export function SecurityEventsChart() {
           />
 
           <XAxis
-            dataKey="time"
+            dataKey="label"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "#94a3b8", fontSize: 12 }}
+            minTickGap={30}
+            tick={{
+              fill: "#94a3b8",
+              fontSize: 11,
+            }}
           />
 
           <YAxis
+            allowDecimals={false}
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "#94a3b8", fontSize: 12 }}
+            tick={{
+              fill: "#94a3b8",
+              fontSize: 11,
+            }}
           />
 
           <Tooltip
             contentStyle={{
               borderRadius: "12px",
               border: "1px solid #e2e8f0",
-              boxShadow: "0 10px 30px rgba(15,23,42,0.08)",
+              boxShadow:
+                "0 10px 30px rgba(15,23,42,0.08)",
             }}
           />
 
           <Area
             type="monotone"
-            dataKey="events"
+            dataKey="total"
+            name="Total Events"
             stroke="#06b6d4"
             strokeWidth={2}
             fill="url(#eventsGradient)"
           />
 
-          <Area
+          <Line
             type="monotone"
             dataKey="critical"
+            name="Critical"
             stroke="#ef4444"
             strokeWidth={2}
-            fill="transparent"
+            dot={false}
           />
-        </AreaChart>
+
+          <Line
+            type="monotone"
+            dataKey="high"
+            name="High"
+            stroke="#f97316"
+            strokeWidth={2}
+            dot={false}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
