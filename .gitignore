@@ -63,3 +63,14 @@ temp/
 !artifacts/*/
 artifacts/*/*
 !artifacts/*/*.dvc
+
+# Local application database
+cybersentinel.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Local environment files
+.env
+.env.*
+!.env.example
