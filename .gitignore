@@ -58,3 +58,8 @@ temp/
 !data/interim/*.dvc
 !data/processed/*.dvc
 !data/external/*.dvc
+
+# Allow DVC metadata for versioned production models
+!artifacts/*/
+artifacts/*/*
+!artifacts/*/*.dvc
