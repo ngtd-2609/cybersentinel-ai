@@ -78,3 +78,25 @@ def test_multiclass_split_masks_deterministic():
 
     for first_mask, second_mask in zip(first, second, strict=True):
         assert (first_mask == second_mask).all()
+
+
+def test_multiclass_split_keeps_rare_class_in_all_splits():
+    import pandas as pd
+
+    from cybersentinel_ai.features.splitting import multiclass_split_masks
+
+    df = pd.DataFrame(
+        {
+            "Feature": list(range(11)) + list(range(100, 120)),
+            "Label": ["Rare"] * 11 + ["Common"] * 20,
+        }
+    )
+
+    train, validation, test = multiclass_split_masks(df)
+
+    for label in ["Rare", "Common"]:
+        label_mask = df["Label"].eq(label).to_numpy()
+
+        assert (train & label_mask).any()
+        assert (validation & label_mask).any()
+        assert (test & label_mask).any()

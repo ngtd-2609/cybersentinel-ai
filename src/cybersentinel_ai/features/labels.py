@@ -22,7 +22,13 @@ CANONICAL_LABELS = (
 def normalize_attack_label(label: str) -> str:
     normalized = str(label).strip().replace("\ufffd", "-")
     normalized = re.sub(r"\s+", " ", normalized)
-    normalized = re.sub(r"\s*-\s*", " - ", normalized)
+
+    if normalized.startswith("Web Attack"):
+        normalized = re.sub(
+            r"^Web Attack\s*-\s*",
+            "Web Attack - ",
+            normalized,
+        )
 
     if normalized not in CANONICAL_LABELS:
         raise ValueError(f"Unknown CIC-IDS2017 label: {normalized}")

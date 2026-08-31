@@ -1,0 +1,6 @@
+outs:
+- md5: c8d90038ac2fc06852c9d6a74596c4a6.dir
+  size: 346478567
+  nfiles: 3
+  hash: md5
+  path: cicids2017_multiclass

@@ -28,3 +28,16 @@ def test_normalize_attack_label(raw, expected):
 def test_unknown_label():
     with pytest.raises(ValueError):
         normalize_attack_label("Unknown Attack")
+
+
+@pytest.mark.parametrize(
+    "label",
+    [
+        "FTP-Patator",
+        "SSH-Patator",
+        "DoS slowloris",
+        "DoS Slowhttptest",
+    ],
+)
+def test_labels_with_internal_names_are_preserved(label):
+    assert normalize_attack_label(label) == label
