@@ -8,13 +8,17 @@ authors = [
 ]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "fastapi>=0.141.1",
     "joblib>=1.5.3",
     "mlflow==3.15.2",
     "numpy>=2.5.2",
     "pandas==2.3.3",
     "protobuf==6.33.6",
     "pyarrow>=25.0.1",
+    "pydantic-settings>=2.15.0",
     "scikit-learn>=1.9.0",
+    "sqlalchemy>=2.0.52",
+    "uvicorn[standard]>=0.52.4",
     "xgboost>=3.4.1",
 ]
 
@@ -28,6 +32,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "dvc>=3.67.1",
+    "httpx>=0.28.1",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "ruff>=0.16.5",
