@@ -1,13 +1,5 @@
-import {
-  Activity,
-  AlertTriangle,
-  Ban,
-  Crosshair,
-  ShieldAlert,
-  Siren,
-} from "lucide-react";
-
 import { AttackTypesChart } from "@/components/dashboard/attack-types-chart";
+import { LiveMetrics } from "@/components/dashboard/live-metrics";
 import { OperationsPanel } from "@/components/dashboard/operations-panel";
 import { SecurityEventsChart } from "@/components/dashboard/security-events-chart";
 import { SecurityInsights } from "@/components/dashboard/security-insights";
@@ -22,50 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const metrics = [
-  {
-    label: "Total Events",
-    value: "12,842",
-    change: "+8.2%",
-    description: "Last 24 hours",
-    icon: Activity,
-  },
-  {
-    label: "Active Threats",
-    value: "37",
-    change: "+4",
-    description: "Currently under analysis",
-    icon: Siren,
-  },
-  {
-    label: "Critical Alerts",
-    value: "18",
-    change: "-12.4%",
-    description: "Requires immediate attention",
-    icon: AlertTriangle,
-  },
-  {
-    label: "High Alerts",
-    value: "64",
-    change: "+5.1%",
-    description: "High-risk detections",
-    icon: ShieldAlert,
-  },
-  {
-    label: "Threats Blocked",
-    value: "1,284",
-    change: "+21.7%",
-    description: "Automated response",
-    icon: Ban,
-  },
-  {
-    label: "Average Risk Score",
-    value: "37.8",
-    change: "-4.1%",
-    description: "Across all events",
-    icon: Crosshair,
-  },
-];
+
 
 export default function DashboardPage() {
   return (
@@ -104,38 +53,7 @@ export default function DashboardPage() {
             </Badge>
           </section>
 
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-            {metrics.map((metric) => (
-              <Card
-                key={metric.label}
-                className="border-slate-200 bg-white shadow-sm"
-              >
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-50">
-                    <metric.icon className="size-5 text-cyan-600" />
-                  </div>
-
-                  <span className="text-xs font-semibold text-slate-500">
-                    {metric.change}
-                  </span>
-                </CardHeader>
-
-                <CardContent>
-                  <CardTitle className="text-sm font-medium text-slate-500">
-                    {metric.label}
-                  </CardTitle>
-
-                  <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                    {metric.value}
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-400">
-                    {metric.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </section>
+          <LiveMetrics />
 
           <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
             <Card className="min-h-[390px] border-slate-200 bg-white shadow-sm">
