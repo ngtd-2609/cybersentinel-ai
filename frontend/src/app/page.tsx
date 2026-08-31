@@ -7,6 +7,8 @@ import {
   Siren,
 } from "lucide-react";
 
+import { AttackTypesChart } from "@/components/dashboard/attack-types-chart";
+import { SecurityEventsChart } from "@/components/dashboard/security-events-chart";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Badge } from "@/components/ui/badge";
@@ -146,11 +148,7 @@ export default function DashboardPage() {
               </CardHeader>
 
               <CardContent>
-                <div className="flex h-[290px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
-                  <p className="text-sm text-slate-400">
-                    Realtime security chart
-                  </p>
-                </div>
+                <SecurityEventsChart />
               </CardContent>
             </Card>
 
@@ -166,11 +164,7 @@ export default function DashboardPage() {
               </CardHeader>
 
               <CardContent>
-                <div className="flex h-[290px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
-                  <p className="text-sm text-slate-400">
-                    Attack type bar chart
-                  </p>
-                </div>
+                <AttackTypesChart />
               </CardContent>
             </Card>
           </section>
