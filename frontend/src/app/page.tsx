@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { AttackTypesChart } from "@/components/dashboard/attack-types-chart";
+import { OperationsPanel } from "@/components/dashboard/operations-panel";
 import { SecurityEventsChart } from "@/components/dashboard/security-events-chart";
 import { SecurityInsights } from "@/components/dashboard/security-insights";
 import { RecentAlerts } from "@/components/dashboard/recent-alerts";
@@ -176,6 +177,8 @@ export default function DashboardPage() {
           </section>
 
           <SecurityInsights />
+
+          <OperationsPanel />
         </main>
       </div>
     </div>
