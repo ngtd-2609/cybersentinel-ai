@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: CyberSentinel AI
+    orgId: 1
+    folder: CyberSentinel AI
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards
