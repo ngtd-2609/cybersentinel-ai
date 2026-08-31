@@ -45,3 +45,9 @@ def get_db() -> Generator[Session, None, None]:
         yield database
     finally:
         database.close()
+
+
+def create_tables() -> None:
+    from cybersentinel_ai.db import models  # noqa: F401
+
+    Base.metadata.create_all(bind=engine)
