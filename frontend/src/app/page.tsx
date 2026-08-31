@@ -9,6 +9,7 @@ import {
 
 import { AttackTypesChart } from "@/components/dashboard/attack-types-chart";
 import { SecurityEventsChart } from "@/components/dashboard/security-events-chart";
+import { RecentAlerts } from "@/components/dashboard/recent-alerts";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Badge } from "@/components/ui/badge";
@@ -167,6 +168,10 @@ export default function DashboardPage() {
                 <AttackTypesChart />
               </CardContent>
             </Card>
+          </section>
+
+          <section className="mt-6">
+            <RecentAlerts />
           </section>
         </main>
       </div>
