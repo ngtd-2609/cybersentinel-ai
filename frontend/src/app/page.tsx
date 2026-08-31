@@ -1,103 +1,181 @@
-import Image from "next/image";
+import {
+  Activity,
+  AlertTriangle,
+  Ban,
+  Crosshair,
+  ShieldAlert,
+  Siren,
+} from "lucide-react";
 
-export default function Home() {
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { Topbar } from "@/components/dashboard/topbar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+const metrics = [
+  {
+    label: "Total Events",
+    value: "12,842",
+    change: "+8.2%",
+    description: "Last 24 hours",
+    icon: Activity,
+  },
+  {
+    label: "Active Threats",
+    value: "37",
+    change: "+4",
+    description: "Currently under analysis",
+    icon: Siren,
+  },
+  {
+    label: "Critical Alerts",
+    value: "18",
+    change: "-12.4%",
+    description: "Requires immediate attention",
+    icon: AlertTriangle,
+  },
+  {
+    label: "High Alerts",
+    value: "64",
+    change: "+5.1%",
+    description: "High-risk detections",
+    icon: ShieldAlert,
+  },
+  {
+    label: "Threats Blocked",
+    value: "1,284",
+    change: "+21.7%",
+    description: "Automated response",
+    icon: Ban,
+  },
+  {
+    label: "Average Risk Score",
+    value: "37.8",
+    change: "-4.1%",
+    description: "Across all events",
+    icon: Crosshair,
+  },
+];
+
+export default function DashboardPage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex min-h-screen bg-slate-50 text-slate-950">
+      <Sidebar />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div className="min-w-0 flex-1">
+        <Topbar />
+
+        <main className="mx-auto max-w-[1600px] p-5 md:p-8">
+          <section className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-500" />
+
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                  Live Security Operations
+                </span>
+              </div>
+
+              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                Security Overview
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                Monitor security events, active threats, risk scores and
+                detection activity across CyberSentinel AI.
+              </p>
+            </div>
+
+            <Badge
+              variant="outline"
+              className="w-fit border-cyan-200 bg-cyan-50 px-3 py-1.5 text-cyan-700"
+            >
+              Production Mode
+            </Badge>
+          </section>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+            {metrics.map((metric) => (
+              <Card
+                key={metric.label}
+                className="border-slate-200 bg-white shadow-sm"
+              >
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-50">
+                    <metric.icon className="size-5 text-cyan-600" />
+                  </div>
+
+                  <span className="text-xs font-semibold text-slate-500">
+                    {metric.change}
+                  </span>
+                </CardHeader>
+
+                <CardContent>
+                  <CardTitle className="text-sm font-medium text-slate-500">
+                    {metric.label}
+                  </CardTitle>
+
+                  <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                    {metric.value}
+                  </p>
+
+                  <p className="mt-2 text-xs text-slate-400">
+                    {metric.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </section>
+
+          <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+            <Card className="min-h-[390px] border-slate-200 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Security Events Over Time
+                </CardTitle>
+
+                <p className="text-sm text-slate-500">
+                  Event volume and severity trend will be connected to the
+                  backend in the next steps.
+                </p>
+              </CardHeader>
+
+              <CardContent>
+                <div className="flex h-[290px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+                  <p className="text-sm text-slate-400">
+                    Realtime security chart
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="min-h-[390px] border-slate-200 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Top Attack Types
+                </CardTitle>
+
+                <p className="text-sm text-slate-500">
+                  Highest-frequency attack categories.
+                </p>
+              </CardHeader>
+
+              <CardContent>
+                <div className="flex h-[290px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+                  <p className="text-sm text-slate-400">
+                    Attack type bar chart
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }
