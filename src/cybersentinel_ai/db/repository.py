@@ -1,8 +1,8 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from cybersentinel_ai.api.schemas import DetectionEventCreate
-from cybersentinel_ai.db.models import DetectionEvent
+from cybersentinel_ai.api.schemas import DetectionEventCreate, IncidentCreate
+from cybersentinel_ai.db.models import DetectionEvent, Incident
 
 
 def create_detection_event(
@@ -93,3 +93,27 @@ def search_detection_events(
     items = list(database.scalars(statement).all())
 
     return items, total
+
+
+def create_incident(
+    database: Session,
+    payload: IncidentCreate,
+) -> Incident:
+    incident = Incident(**payload.model_dump())
+
+    database.add(incident)
+    database.commit()
+    database.refresh(incident)
+
+    return incident
+
+
+def list_incidents(
+    database: Session,
+) -> list[Incident]:
+    statement = (
+        select(Incident)
+        .order_by(Incident.created_at.desc())
+    )
+
+    return list(database.scalars(statement).all())

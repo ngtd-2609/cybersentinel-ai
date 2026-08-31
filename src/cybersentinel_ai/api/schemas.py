@@ -64,3 +64,18 @@ class DetectionEventPage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class IncidentCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    severity: str = Field(min_length=1, max_length=16)
+    status: str = Field(default="OPEN", max_length=32)
+    description: str | None = None
+    detection_event_id: int | None = None
+
+
+class IncidentRead(IncidentCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
