@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertTriangle,
   CheckCircle2,
@@ -7,6 +9,8 @@ import {
 } from "lucide-react";
 
 import { SeverityDistribution } from "@/components/dashboard/severity-distribution";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 import {
   Card,
   CardContent,
@@ -14,38 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const topSources = [
-  {
-    ip: "185.220.101.14",
-    country: "Germany",
-    events: 824,
-    risk: 94,
-  },
-  {
-    ip: "45.83.64.17",
-    country: "Netherlands",
-    events: 612,
-    risk: 88,
-  },
-  {
-    ip: "91.92.240.32",
-    country: "Bulgaria",
-    events: 438,
-    risk: 81,
-  },
-  {
-    ip: "103.14.26.51",
-    country: "Singapore",
-    events: 294,
-    risk: 76,
-  },
-  {
-    ip: "194.26.135.98",
-    country: "United States",
-    events: 186,
-    risk: 69,
-  },
-];
+
 
 const pipeline = [
   {
@@ -67,6 +40,9 @@ const pipeline = [
 ];
 
 export function SecurityInsights() {
+  const { data, isLoading } = useDashboardSummary();
+  const topSources = data?.top_threat_sources ?? [];
+
   return (
     <section className="mt-6 grid gap-6 xl:grid-cols-3">
       <Card className="border-slate-200 bg-white shadow-sm">
@@ -101,38 +77,48 @@ export function SecurityInsights() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {topSources.map((source, index) => (
-            <div
-              key={source.ip}
-              className="flex items-center justify-between gap-4"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-500">
-                  {index + 1}
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-11 w-full" />
+            ))
+          ) : topSources.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-400">
+              No threat source data available.
+            </p>
+          ) : (
+            topSources.map((source, index) => (
+              <div
+                key={source.source_ip}
+                className="flex items-center justify-between gap-4"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-500">
+                    {index + 1}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-xs font-medium text-slate-800">
+                      {source.source_ip}
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {source.count} detection events
+                    </p>
+                  </div>
                 </div>
 
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-xs font-medium text-slate-800">
-                    {source.ip}
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {source.max_risk_score.toFixed(0)}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {source.country} · {source.events} events
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                    Max Risk
                   </p>
                 </div>
               </div>
-
-              <div className="text-right">
-                <p className="text-sm font-semibold text-slate-900">
-                  {source.risk}
-                </p>
-
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                  Risk
-                </p>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
 
