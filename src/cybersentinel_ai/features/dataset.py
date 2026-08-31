@@ -20,3 +20,17 @@ def prepare_binary_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return prepared
+
+
+def prepare_multiclass_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    from cybersentinel_ai.features.labels import normalize_attack_label
+
+    prepared = clean_dataframe(df)
+    prepared = drop_unusable_features(prepared)
+
+    if "Label" not in prepared.columns:
+        raise ValueError("Missing target column: Label")
+
+    prepared["Label"] = prepared["Label"].map(normalize_attack_label)
+
+    return prepared
