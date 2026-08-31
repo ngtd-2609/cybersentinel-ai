@@ -23,3 +23,27 @@ class DetectionEventRead(DetectionEventCreate):
 
     id: int
     created_at: datetime
+
+
+class DashboardAttackType(BaseModel):
+    name: str
+    count: int
+
+
+class DashboardThreatSource(BaseModel):
+    source_ip: str
+    count: int
+    max_risk_score: float
+
+
+class DashboardSummary(BaseModel):
+    total_events: int
+    critical_alerts: int
+    high_alerts: int
+    medium_alerts: int
+    low_alerts: int
+    requires_review: int
+    average_risk_score: float
+    top_attack_types: list[DashboardAttackType]
+    top_threat_sources: list[DashboardThreatSource]
+    recent_events: list[DetectionEventRead]

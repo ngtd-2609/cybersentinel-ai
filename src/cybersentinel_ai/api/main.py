@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from cybersentinel_ai.api.copilot_routes import router as copilot_router
+from cybersentinel_ai.api.dashboard_routes import router as dashboard_router
 from cybersentinel_ai.api.metrics import configure_metrics
 from cybersentinel_ai.api.routes import router
 from cybersentinel_ai.db.database import create_tables
@@ -24,6 +25,7 @@ app = FastAPI(
 
 app.include_router(router)
 app.include_router(copilot_router)
+app.include_router(dashboard_router)
 configure_metrics(app)
 
 
