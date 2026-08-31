@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from cybersentinel_ai.api.schemas import (
     DetectionEventCreate,
+    DetectionEventPage,
     DetectionEventRead,
 )
 from cybersentinel_ai.db.database import get_db
@@ -12,6 +13,7 @@ from cybersentinel_ai.db.repository import (
     create_detection_event,
     get_detection_event,
     list_detection_events,
+    search_detection_events,
 )
 
 router = APIRouter(prefix="/events", tags=["Detection Events"])
@@ -35,6 +37,36 @@ def list_events(
 ) -> list[DetectionEventRead]:
     return list_detection_events(
         database,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/page", response_model=DetectionEventPage)
+def page_events(
+    database: DatabaseSession,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    severity: str | None = None,
+    attack_type: str | None = None,
+    source_ip: str | None = None,
+    min_risk: Annotated[float | None, Query(ge=0, le=100)] = None,
+    max_risk: Annotated[float | None, Query(ge=0, le=100)] = None,
+) -> DetectionEventPage:
+    items, total = search_detection_events(
+        database,
+        limit=limit,
+        offset=offset,
+        severity=severity,
+        attack_type=attack_type,
+        source_ip=source_ip,
+        min_risk=min_risk,
+        max_risk=max_risk,
+    )
+
+    return DetectionEventPage(
+        items=items,
+        total=total,
         limit=limit,
         offset=offset,
     )

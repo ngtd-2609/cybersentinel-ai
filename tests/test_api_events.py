@@ -77,3 +77,27 @@ def test_detection_event_not_found():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Detection event not found"
+
+
+def test_paginated_detection_events():
+    response = client.get(
+        "/events/page",
+        params={
+            "limit": 10,
+            "offset": 0,
+            "severity": "HIGH",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "items" in data
+    assert "total" in data
+    assert data["limit"] == 10
+    assert data["offset"] == 0
+    assert all(
+        event["severity"].upper() == "HIGH"
+        for event in data["items"]
+    )

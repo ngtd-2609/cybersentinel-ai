@@ -57,3 +57,10 @@ class DashboardSummary(BaseModel):
     top_threat_sources: list[DashboardThreatSource]
     timeline: list[DashboardTimelinePoint]
     recent_events: list[DetectionEventRead]
+
+
+class DetectionEventPage(BaseModel):
+    items: list[DetectionEventRead]
+    total: int
+    limit: int
+    offset: int
