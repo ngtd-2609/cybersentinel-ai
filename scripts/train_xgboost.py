@@ -2,19 +2,28 @@ import json
 from pathlib import Path
 
 import joblib
+import mlflow
 import pandas as pd
 
 from cybersentinel_ai.models.xgboost_model import build_xgboost_classifier
 from cybersentinel_ai.training.metrics import binary_classification_metrics
+from cybersentinel_ai.training.mlflow_utils import (
+    configure_mlflow,
+    log_artifact_if_exists,
+    log_metrics,
+)
 
 DATA_DIR = Path("data/processed/cicids2017_binary")
 ARTIFACT_DIR = Path("artifacts/xgboost")
 TRAIN_SAMPLE_SIZE = 400_000
 RANDOM_STATE = 42
+EXPERIMENT_NAME = "cybersentinel-binary-xgboost"
 
 
 def main() -> None:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+
+    experiment_id = configure_mlflow(EXPERIMENT_NAME)
 
     print("Loading train dataset...")
     train = pd.read_parquet(DATA_DIR / "train.parquet")
@@ -46,41 +55,73 @@ def main() -> None:
     print("Training XGBoost model...")
 
     model = build_xgboost_classifier(random_state=RANDOM_STATE)
-    model.fit(x_train, y_train)
 
-    del train_sample, x_train, y_train
+    with mlflow.start_run(run_name="xgboost-binary") as run:
+        mlflow.log_params(
+            {
+                "model": "XGBClassifier",
+                "train_sample_size": TRAIN_SAMPLE_SIZE,
+                "random_state": RANDOM_STATE,
+                "feature_count": x_train.shape[1],
+                "n_estimators": model.get_params()["n_estimators"],
+                "max_depth": model.get_params()["max_depth"],
+                "learning_rate": model.get_params()["learning_rate"],
+                "subsample": model.get_params()["subsample"],
+                "colsample_bytree": model.get_params()["colsample_bytree"],
+                "min_child_weight": model.get_params()["min_child_weight"],
+                "reg_lambda": model.get_params()["reg_lambda"],
+            }
+        )
 
-    print("Loading validation dataset...")
-    validation = pd.read_parquet(DATA_DIR / "validation.parquet")
+        model.fit(x_train, y_train)
 
-    x_validation = validation.drop(columns=["Label"])
-    y_validation = validation["Label"]
+        del train_sample, x_train, y_train
 
-    print("Evaluating...")
-    y_pred = model.predict(x_validation)
-    y_score = model.predict_proba(x_validation)[:, 1]
+        print("Loading validation dataset...")
+        validation = pd.read_parquet(DATA_DIR / "validation.parquet")
 
-    metrics = binary_classification_metrics(
-        y_validation,
-        y_pred,
-        y_score,
-    )
+        x_validation = validation.drop(columns=["Label"])
+        y_validation = validation["Label"]
 
-    model_path = ARTIFACT_DIR / "model.joblib"
-    metrics_path = ARTIFACT_DIR / "validation_metrics.json"
+        print("Evaluating...")
+        y_pred = model.predict(x_validation)
+        y_score = model.predict_proba(x_validation)[:, 1]
 
-    joblib.dump(model, model_path)
+        metrics = binary_classification_metrics(
+            y_validation,
+            y_pred,
+            y_score,
+        )
 
-    with metrics_path.open("w", encoding="utf-8") as file:
-        json.dump(metrics, file, indent=2)
+        model_path = ARTIFACT_DIR / "model.joblib"
+        metrics_path = ARTIFACT_DIR / "validation_metrics.json"
 
-    print("\n=== VALIDATION METRICS ===")
+        joblib.dump(model, model_path)
 
-    for name, value in metrics.items():
-        print(f"{name}: {value}")
+        with metrics_path.open("w", encoding="utf-8") as file:
+            json.dump(metrics, file, indent=2)
 
-    print(f"\nModel: {model_path}")
-    print(f"Metrics: {metrics_path}")
+        log_metrics(metrics)
+        log_artifact_if_exists(model_path)
+        log_artifact_if_exists(metrics_path)
+
+        mlflow.set_tags(
+            {
+                "project": "CyberSentinel AI",
+                "task": "binary intrusion classification",
+                "dataset": "CIC-IDS2017",
+            }
+        )
+
+        print("\n=== VALIDATION METRICS ===")
+
+        for name, value in metrics.items():
+            print(f"{name}: {value}")
+
+        print(f"\nMLflow experiment ID: {experiment_id}")
+        print(f"MLflow run ID: {run.info.run_id}")
+        print(f"Model: {model_path}")
+        print(f"Metrics: {metrics_path}")
 
 
 if __name__ == "__main__":
