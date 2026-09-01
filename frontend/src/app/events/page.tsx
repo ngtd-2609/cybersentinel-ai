@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { createIncident } from "@/lib/api/incidents";
+
 import { RefreshCw, Search, Siren } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -56,6 +58,16 @@ function severityStyle(severity: string) {
 }
 
 export default function EventsPage() {
+  async function handleCreateIncident(event: DetectionEvent) {
+    await createIncident({
+      title: `${event.predicted_label} - EVT-${String(event.id).padStart(5, "0")}`,
+      severity: event.severity,
+      status: "OPEN",
+      description: `Created from detection event ${event.id}`,
+      detection_event_id: event.id,
+    });
+  }
+
   const {
     data,
     isLoading,
@@ -207,6 +219,15 @@ export default function EventsPage() {
                                   —
                                 </span>
                               )}
+
+                              <button
+                                onClick={() =>
+                                  handleCreateIncident(event)
+                                }
+                                className="ml-3 rounded bg-black px-2 py-1 text-xs text-white"
+                              >
+                                Create
+                              </button>
                             </TableCell>
                           </TableRow>
                         ))}
