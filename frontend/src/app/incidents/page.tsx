@@ -59,6 +59,23 @@ export default function IncidentsPage() {
     return matchStatus && matchSeverity;
   });
 
+
+  const summary = {
+    total: incidents.length,
+    open: incidents.filter(
+      (incident) => incident.status === "OPEN",
+    ).length,
+    progress: incidents.filter(
+      (incident) => incident.status === "IN_PROGRESS",
+    ).length,
+    resolved: incidents.filter(
+      (incident) => incident.status === "RESOLVED",
+    ).length,
+    critical: incidents.filter(
+      (incident) => incident.severity === "CRITICAL",
+    ).length,
+  };
+
   return (
     <main className="p-8">
       <div className="mb-6 flex items-center justify-between">
@@ -72,6 +89,54 @@ export default function IncidentsPage() {
         >
           Create Incident
         </button>
+      </div>
+
+
+      <div className="mb-6 grid gap-4 md:grid-cols-5">
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-slate-500">
+            Total
+          </p>
+          <p className="text-2xl font-bold">
+            {summary.total}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-slate-500">
+            Open
+          </p>
+          <p className="text-2xl font-bold text-yellow-600">
+            {summary.open}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-slate-500">
+            In Progress
+          </p>
+          <p className="text-2xl font-bold text-blue-600">
+            {summary.progress}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-slate-500">
+            Resolved
+          </p>
+          <p className="text-2xl font-bold text-green-600">
+            {summary.resolved}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-slate-500">
+            Critical
+          </p>
+          <p className="text-2xl font-bold text-red-600">
+            {summary.critical}
+          </p>
+        </div>
       </div>
 
       <div className="mb-6 flex gap-3">
