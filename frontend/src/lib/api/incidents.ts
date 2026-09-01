@@ -55,3 +55,22 @@ export async function createIncident(
 
   return response.json() as Promise<Incident>;
 }
+
+
+export async function getIncidentById(
+  id: number,
+): Promise<Incident> {
+  const response = await fetch(`${API_URL}/incidents/${id}`, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Incident detail request failed with status ${response.status}`,
+    );
+  }
+
+  return response.json() as Promise<Incident>;
+}
