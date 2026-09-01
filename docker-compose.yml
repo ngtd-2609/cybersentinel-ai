@@ -14,6 +14,20 @@ services:
       - cybersentinel-data:/data
     restart: unless-stopped
 
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cybersentinel-frontend
+    ports:
+      - "3002:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+    depends_on:
+      - api
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:latest
     container_name: cybersentinel-prometheus
