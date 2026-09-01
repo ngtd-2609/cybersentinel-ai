@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: cybersentinel-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cybersentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -7,7 +20,7 @@ services:
     ports:
       - "8001:8000"
     environment:
-      CYBERSENTINEL_DATABASE_URL: sqlite:////data/cybersentinel.db
+      CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/cybersentinel
       CYBERSENTINEL_OLLAMA_URL: http://host.docker.internal:11434
       CYBERSENTINEL_OLLAMA_MODEL: qwen3:4b
     volumes:
@@ -58,4 +71,5 @@ services:
 volumes:
   cybersentinel-data:
   prometheus-data:
+  postgres-data:
   grafana-data:
