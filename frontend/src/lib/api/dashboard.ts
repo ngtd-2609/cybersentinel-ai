@@ -51,15 +51,18 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const response = await fetch(`${API_URL}/dashboard/summary`, {
-    headers: {
-      Accept: "application/json",
+  const response = await fetch(
+    `${API_URL}/dashboard/summary`,
+    {
+      headers: {
+        Accept: "application/json",
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     throw new Error(
-      `Dashboard API request failed with status ${response.status}`,
+      `Dashboard request failed with status ${response.status}`,
     );
   }
 
