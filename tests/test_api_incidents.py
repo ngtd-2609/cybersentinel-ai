@@ -203,3 +203,31 @@ def test_update_status_creates_timeline():
 
     assert len(items) >= 1
     assert items[0]["action"] == "STATUS_CHANGE"
+
+
+def test_create_incident_creates_timeline():
+    response = client.post(
+        "/incidents",
+        json={
+            "title": "Create Timeline Incident",
+            "severity": "HIGH",
+            "status": "OPEN",
+            "description": "Testing create timeline",
+            "detection_event_id": 1,
+        },
+    )
+
+    assert response.status_code == 201
+
+    incident_id = response.json()["id"]
+
+    timeline_response = client.get(
+        f"/incidents/{incident_id}/timeline",
+    )
+
+    assert timeline_response.status_code == 200
+
+    items = timeline_response.json()
+
+    assert len(items) >= 1
+    assert items[0]["action"] == "INCIDENT_CREATED"

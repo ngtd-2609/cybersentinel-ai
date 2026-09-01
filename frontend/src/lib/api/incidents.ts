@@ -138,3 +138,44 @@ export async function getIncidentTimeline(
 
   return response.json() as Promise<IncidentTimeline[]>;
 }
+
+
+export interface CopilotResponse {
+  answer: string;
+  model: string;
+  sources: {
+    document_id: string;
+    title: string;
+    source: string;
+    score: number;
+  }[];
+}
+
+export async function askCopilot(
+  question: string,
+  alertContext: string,
+): Promise<CopilotResponse> {
+  const response = await fetch(
+    `${API_URL}/copilot/ask`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        question,
+        alert_context: alertContext,
+        top_k: 4,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Copilot request failed with status ${response.status}`,
+    );
+  }
+
+  return response.json() as Promise<CopilotResponse>;
+}

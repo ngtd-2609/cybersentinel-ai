@@ -110,6 +110,15 @@ def create_incident(
     database.commit()
     database.refresh(incident)
 
+    timeline = IncidentTimeline(
+        incident_id=incident.id,
+        action="INCIDENT_CREATED",
+        description="Incident created",
+    )
+
+    database.add(timeline)
+    database.commit()
+
     return incident
 
 

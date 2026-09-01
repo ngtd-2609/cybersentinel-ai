@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { getIncidentById, getIncidentTimeline, updateIncidentStatus, type Incident, type IncidentTimeline } from "@/lib/api/incidents";
+import { askCopilot, getIncidentById, getIncidentTimeline, updateIncidentStatus, type Incident, type IncidentTimeline } from "@/lib/api/incidents";
 
 
 function statusClass(status: string) {
@@ -26,6 +26,9 @@ export default function IncidentDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<IncidentTimeline[]>([]);
+  const [copilotAnswer, setCopilotAnswer] = useState<string | null>(null);
+  const [copilotSources, setCopilotSources] = useState<{ title: string; source: string; score: number }[]>([]);
+  const [copilotLoading, setCopilotLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -41,6 +44,35 @@ export default function IncidentDetailPage() {
     }
   }, [id]);
 
+
+
+  async function handleCopilot() {
+    if (!incident) {
+      return;
+    }
+
+    setCopilotLoading(true);
+
+    try {
+      const result = await askCopilot(
+        "Analyze this security incident and provide investigation recommendations.",
+        JSON.stringify({
+          title: incident.title,
+          severity: incident.severity,
+          status: incident.status,
+          description: incident.description,
+          detection_event_id: incident.detection_event_id,
+        }),
+      );
+
+      setCopilotAnswer(result.answer);
+      setCopilotSources(result.sources);
+    } catch {
+      setCopilotAnswer("Unable to analyze incident.");
+    } finally {
+      setCopilotLoading(false);
+    }
+  }
 
   async function handleStatusChange(status: string) {
     if (!incident) {
@@ -134,6 +166,57 @@ export default function IncidentDetailPage() {
         <p>
           Created at: {incident.created_at}
         </p>
+
+        <div className="mt-8 rounded-lg border p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              AI Security Copilot
+            </h2>
+
+            <button
+              onClick={handleCopilot}
+              disabled={copilotLoading}
+              className="rounded bg-black px-3 py-2 text-white"
+            >
+              {copilotLoading ? "Analyzing..." : "Analyze"}
+            </button>
+          </div>
+
+          {copilotAnswer && (
+            <p className="whitespace-pre-line text-sm text-slate-700">
+              {copilotAnswer}
+            </p>
+          )}
+
+          {copilotSources.length > 0 && (
+            <div className="mt-5">
+              <h3 className="mb-2 font-semibold">
+                Knowledge Sources
+              </h3>
+
+              <div className="space-y-2">
+                {copilotSources.map((source, index) => (
+                  <div
+                    key={index}
+                    className="rounded border p-3 text-sm"
+                  >
+                    <p className="font-medium">
+                      {source.title}
+                    </p>
+
+                    <p className="text-slate-500">
+                      {source.source}
+                    </p>
+
+                    <p className="text-xs text-cyan-700">
+                      Score: {source.score.toFixed(3)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="mt-8">
           <h2 className="mb-4 text-xl font-semibold">
