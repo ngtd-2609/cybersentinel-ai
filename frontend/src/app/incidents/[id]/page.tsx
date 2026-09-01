@@ -24,6 +24,7 @@ export default function IncidentDetailPage() {
 
   const [incident, setIncident] = useState<Incident | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -43,14 +44,20 @@ export default function IncidentDetailPage() {
     }
 
     setUpdating(true);
+    setError(null);
 
-    const updated = await updateIncidentStatus(
-      incident.id,
-      status,
-    );
+    try {
+      const updated = await updateIncidentStatus(
+        incident.id,
+        status,
+      );
 
-    setIncident(updated);
-    setUpdating(false);
+      setIncident(updated);
+    } catch {
+      setError("Failed to update incident status");
+    } finally {
+      setUpdating(false);
+    }
   }
 
   if (!incident) {
@@ -68,6 +75,12 @@ export default function IncidentDetailPage() {
       </h1>
 
       <div className="mt-6 space-y-3">
+
+        {error && (
+          <p className="text-red-600">
+            {error}
+          </p>
+        )}
         <p>
           Severity: {incident.severity}
         </p>
