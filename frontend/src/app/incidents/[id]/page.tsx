@@ -6,6 +6,18 @@ import { useParams } from "next/navigation";
 
 import { getIncidentById, updateIncidentStatus, type Incident } from "@/lib/api/incidents";
 
+
+function statusClass(status: string) {
+  switch (status.toUpperCase()) {
+    case "RESOLVED":
+      return "bg-green-100 text-green-700";
+    case "IN_PROGRESS":
+      return "bg-blue-100 text-blue-700";
+    default:
+      return "bg-yellow-100 text-yellow-700";
+  }
+}
+
 export default function IncidentDetailPage() {
   const params = useParams();
   const id = Number(params.id);
@@ -62,6 +74,14 @@ export default function IncidentDetailPage() {
 
         <label className="block">
           Status:
+          <span
+            className={`ml-3 rounded-full px-3 py-1 text-sm font-medium ${statusClass(
+              incident.status,
+            )}`}
+          >
+            {incident.status}
+          </span>
+
           <select
             value={incident.status}
             disabled={updating}
