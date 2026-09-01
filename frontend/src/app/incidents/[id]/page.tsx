@@ -60,27 +60,21 @@ export default function IncidentDetailPage() {
           Severity: {incident.severity}
         </p>
 
-        <p>
-          Status: {incident.status}
-        </p>
-
-        <div className="flex gap-3">
-          <button
+        <label className="block">
+          Status:
+          <select
+            value={incident.status}
             disabled={updating}
-            onClick={() => handleStatusChange("IN_PROGRESS")}
-            className="rounded bg-blue-600 px-3 py-2 text-white"
+            onChange={(event) =>
+              handleStatusChange(event.target.value)
+            }
+            className="ml-3 rounded border px-3 py-2"
           >
-            In Progress
-          </button>
-
-          <button
-            disabled={updating}
-            onClick={() => handleStatusChange("RESOLVED")}
-            className="rounded bg-green-600 px-3 py-2 text-white"
-          >
-            Resolved
-          </button>
-        </div>
+            <option value="OPEN">OPEN</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="RESOLVED">RESOLVED</option>
+          </select>
+        </label>
 
         <p>
           Description: {incident.description ?? "N/A"}
