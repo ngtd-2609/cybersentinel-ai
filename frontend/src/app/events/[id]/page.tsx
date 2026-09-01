@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert, Network, Brain, Siren } from "lucide-react";
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { createIncident } from "@/lib/api/incidents";
 import {
   Card,
   CardContent,
@@ -83,6 +84,7 @@ function ScoreCard({
 
 export default function EventDetailPage() {
   const params = useParams();
+  const router = useRouter();
 
   const id = String(params.id);
 
@@ -93,6 +95,20 @@ export default function EventDetailPage() {
   } = useQuery({
     queryKey: ["event", id],
     queryFn: () => getEvent(id),
+  });
+
+  const createIncidentMutation = useMutation({
+    mutationFn: (eventData: DetectionEvent) =>
+      createIncident({
+        title: `${eventData.predicted_label} - EVT-${String(eventData.id).padStart(5, "0")}`,
+        severity: eventData.severity,
+        status: "OPEN",
+        description: `Security event from ${eventData.source_ip ?? "unknown"} to ${eventData.destination_ip ?? "unknown"}:${eventData.destination_port ?? "N/A"}`,
+        detection_event_id: eventData.id,
+      }),
+    onSuccess: (incident) => {
+      router.push(`/incidents/${incident.id}`);
+    },
   });
 
   return (
@@ -265,8 +281,14 @@ export default function EventDetailPage() {
                     Block Source IP
                   </Button>
 
-                  <Button variant="outline">
-                    Create Incident
+                  <Button
+                    variant="outline"
+                    disabled={createIncidentMutation.isPending}
+                    onClick={() => createIncidentMutation.mutate(event)}
+                  >
+                    {createIncidentMutation.isPending
+                      ? "Creating..."
+                      : "Create Incident"}
                   </Button>
 
                   {event.requires_review && (
