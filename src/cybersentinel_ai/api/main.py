@@ -10,6 +10,7 @@ from cybersentinel_ai.api.dashboard_routes import router as dashboard_router
 from cybersentinel_ai.api.incident_routes import router as incident_router
 from cybersentinel_ai.api.metrics import configure_metrics
 from cybersentinel_ai.api.routes import router
+from cybersentinel_ai.auth.router import router as auth_router
 from cybersentinel_ai.db.database import create_tables
 
 
@@ -44,6 +45,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(auth_router)
 app.include_router(copilot_router)
 app.include_router(incident_router)
 app.include_router(dashboard_router)

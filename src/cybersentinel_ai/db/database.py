@@ -1,10 +1,9 @@
-import os
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-DEFAULT_DATABASE_URL = "sqlite:///./cybersentinel.db"
+from cybersentinel_ai.core.config import get_settings
 
 
 def build_engine(database_url: str):
@@ -20,10 +19,7 @@ def build_engine(database_url: str):
     )
 
 
-DATABASE_URL = os.getenv(
-    "CYBERSENTINEL_DATABASE_URL",
-    DEFAULT_DATABASE_URL,
-)
+DATABASE_URL = get_settings().database_url
 
 engine = build_engine(DATABASE_URL)
 
