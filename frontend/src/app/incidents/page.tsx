@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
@@ -66,9 +67,10 @@ export default function IncidentsPage() {
       ) : (
         <div className="space-y-3">
           {incidents.map((incident) => (
-            <div
+            <Link
               key={incident.id}
-              className="rounded-lg border p-4"
+              href={`/incidents/${incident.id}`}
+              className="block rounded-lg border p-4 transition hover:bg-slate-50"
             >
               <div className="flex justify-between">
                 <h2 className="font-semibold">
@@ -87,7 +89,7 @@ export default function IncidentsPage() {
               <p className="mt-2">
                 {incident.description}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
