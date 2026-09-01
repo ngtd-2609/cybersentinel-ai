@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from cybersentinel_ai.api.schemas import IncidentCreate, IncidentRead
 from cybersentinel_ai.db.database import get_db
 from cybersentinel_ai.db.repository import (
     create_incident,
+    get_incident,
     list_incidents,
 )
 
@@ -28,3 +29,19 @@ def list_all(
     database: DatabaseSession,
 ) -> list[IncidentRead]:
     return list_incidents(database)
+
+
+@router.get("/{incident_id}", response_model=IncidentRead)
+def get_by_id(
+    incident_id: int,
+    database: DatabaseSession,
+) -> IncidentRead:
+    incident = get_incident(database, incident_id)
+
+    if incident is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Incident not found",
+        )
+
+    return incident

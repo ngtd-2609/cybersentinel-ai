@@ -117,3 +117,10 @@ def list_incidents(
     )
 
     return list(database.scalars(statement).all())
+
+
+def get_incident(
+    database: Session,
+    incident_id: int,
+) -> Incident | None:
+    return database.get(Incident, incident_id)

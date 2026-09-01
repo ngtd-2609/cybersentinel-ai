@@ -65,3 +65,34 @@ def test_create_and_list_incidents():
     incidents = list_response.json()
 
     assert len(incidents) >= 1
+
+
+def test_get_incident_by_id():
+    create_response = client.post(
+        "/incidents",
+        json={
+            "title": "Detail Test Incident",
+            "severity": "CRITICAL",
+            "status": "OPEN",
+            "description": "Testing incident detail",
+            "detection_event_id": 1,
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    incident_id = create_response.json()["id"]
+
+    response = client.get(
+        f"/incidents/{incident_id}",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Detail Test Incident"
+
+
+def test_incident_not_found():
+    response = client.get("/incidents/999999")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Incident not found"
