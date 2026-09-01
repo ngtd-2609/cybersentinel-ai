@@ -1,7 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from cybersentinel_ai.api.schemas import DetectionEventCreate, IncidentCreate
+from cybersentinel_ai.api.schemas import DetectionEventCreate, IncidentCreate, IncidentUpdate
 from cybersentinel_ai.db.models import DetectionEvent, Incident
 
 
@@ -124,3 +124,21 @@ def get_incident(
     incident_id: int,
 ) -> Incident | None:
     return database.get(Incident, incident_id)
+
+
+def update_incident_status(
+    database: Session,
+    incident_id: int,
+    payload: IncidentUpdate,
+) -> Incident | None:
+    incident = database.get(Incident, incident_id)
+
+    if incident is None:
+        return None
+
+    incident.status = payload.status
+
+    database.commit()
+    database.refresh(incident)
+
+    return incident

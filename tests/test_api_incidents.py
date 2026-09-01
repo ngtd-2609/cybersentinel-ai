@@ -96,3 +96,30 @@ def test_incident_not_found():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Incident not found"
+
+
+def test_update_incident_status():
+    create_response = client.post(
+        "/incidents",
+        json={
+            "title": "Update Status Incident",
+            "severity": "HIGH",
+            "status": "OPEN",
+            "description": "Testing status update",
+            "detection_event_id": 1,
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    incident_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/incidents/{incident_id}",
+        json={
+            "status": "RESOLVED",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "RESOLVED"

@@ -79,3 +79,7 @@ class IncidentRead(IncidentCreate):
 
     id: int
     created_at: datetime
+
+
+class IncidentUpdate(BaseModel):
+    status: str = Field(min_length=1, max_length=32)
