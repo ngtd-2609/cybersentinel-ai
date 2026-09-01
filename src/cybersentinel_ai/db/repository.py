@@ -110,13 +110,27 @@ def create_incident(
 
 def list_incidents(
     database: Session,
-) -> list[Incident]:
+    *,
+    limit: int = 25,
+    offset: int = 0,
+) -> tuple[list[Incident], int]:
+    count_statement = (
+        select(func.count())
+        .select_from(Incident)
+    )
+
+    total = int(database.scalar(count_statement) or 0)
+
     statement = (
         select(Incident)
         .order_by(Incident.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     )
 
-    return list(database.scalars(statement).all())
+    items = list(database.scalars(statement).all())
+
+    return items, total
 
 
 def get_incident(

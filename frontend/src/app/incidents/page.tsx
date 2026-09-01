@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   createIncident,
@@ -14,27 +14,34 @@ export default function IncidentsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [severityFilter, setSeverityFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
 
-  async function loadIncidents() {
-    const data = await getIncidents();
-    setIncidents(data);
-    setLoading(false);
-  }
+  const loadIncidents = useCallback(
+    async (currentPage = page) => {
+      setLoading(true);
+
+      const data = await getIncidents(
+        25,
+        currentPage * 25,
+      );
+
+      setIncidents(data.items);
+      setTotal(data.total);
+      setLoading(false);
+    },
+    [page],
+  );
 
   useEffect(() => {
-    let mounted = true;
-
-    getIncidents().then((data) => {
-      if (mounted) {
-        setIncidents(data);
-        setLoading(false);
-      }
-    });
+    const timer = setTimeout(() => {
+      loadIncidents(page);
+    }, 0);
 
     return () => {
-      mounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [loadIncidents, page]);
 
   async function handleCreate() {
     await createIncident({
@@ -201,6 +208,36 @@ export default function IncidentsPage() {
           ))}
         </div>
       )}
+
+
+      <div className="mt-6 flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          Showing {incidents.length} of {total} incidents
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            disabled={page === 0}
+            onClick={() =>
+              setPage((current) => Math.max(current - 1, 0))
+            }
+            className="rounded border px-3 py-2 disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          <button
+            disabled={(page + 1) * 25 >= total}
+            onClick={() =>
+              setPage((current) => current + 1)
+            }
+            className="rounded border px-3 py-2 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
     </main>
   );
 }

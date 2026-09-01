@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from cybersentinel_ai.api.schemas import IncidentCreate, IncidentRead, IncidentUpdate
+from cybersentinel_ai.api.schemas import IncidentCreate, IncidentPage, IncidentRead, IncidentUpdate
 from cybersentinel_ai.db.database import get_db
 from cybersentinel_ai.db.repository import (
     create_incident,
@@ -25,11 +25,24 @@ def create(
     return create_incident(database, payload)
 
 
-@router.get("", response_model=list[IncidentRead])
+@router.get("", response_model=IncidentPage)
 def list_all(
     database: DatabaseSession,
-) -> list[IncidentRead]:
-    return list_incidents(database)
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> IncidentPage:
+    items, total = list_incidents(
+        database,
+        limit=limit,
+        offset=offset,
+    )
+
+    return IncidentPage(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{incident_id}", response_model=IncidentRead)

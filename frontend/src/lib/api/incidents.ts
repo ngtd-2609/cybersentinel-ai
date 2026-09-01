@@ -8,6 +8,14 @@ export interface Incident {
   created_at: string;
 }
 
+
+export interface IncidentPage {
+  items: Incident[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface IncidentCreate {
   title: string;
   severity: string;
@@ -19,8 +27,11 @@ export interface IncidentCreate {
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 
-export async function getIncidents(): Promise<Incident[]> {
-  const response = await fetch(`${API_URL}/incidents`, {
+export async function getIncidents(
+  limit: number = 25,
+  offset: number = 0,
+): Promise<IncidentPage> {
+  const response = await fetch(`${API_URL}/incidents?limit=${limit}&offset=${offset}`, {
     headers: {
       Accept: "application/json",
     },
@@ -32,7 +43,7 @@ export async function getIncidents(): Promise<Incident[]> {
     );
   }
 
-  return response.json() as Promise<Incident[]>;
+  return response.json() as Promise<IncidentPage>;
 }
 
 export async function createIncident(

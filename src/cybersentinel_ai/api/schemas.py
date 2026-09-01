@@ -83,3 +83,10 @@ class IncidentRead(IncidentCreate):
 
 class IncidentUpdate(BaseModel):
     status: str = Field(min_length=1, max_length=32)
+
+
+class IncidentPage(BaseModel):
+    items: list[IncidentRead]
+    total: int
+    limit: int
+    offset: int
