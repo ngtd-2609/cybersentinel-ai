@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { getIncidentById, type Incident } from "@/lib/api/incidents";
+import { getIncidentById, updateIncidentStatus, type Incident } from "@/lib/api/incidents";
 
 export default function IncidentDetailPage() {
   const params = useParams();
   const id = Number(params.id);
 
   const [incident, setIncident] = useState<Incident | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -22,6 +23,23 @@ export default function IncidentDetailPage() {
       load();
     }
   }, [id]);
+
+
+  async function handleStatusChange(status: string) {
+    if (!incident) {
+      return;
+    }
+
+    setUpdating(true);
+
+    const updated = await updateIncidentStatus(
+      incident.id,
+      status,
+    );
+
+    setIncident(updated);
+    setUpdating(false);
+  }
 
   if (!incident) {
     return (
@@ -45,6 +63,24 @@ export default function IncidentDetailPage() {
         <p>
           Status: {incident.status}
         </p>
+
+        <div className="flex gap-3">
+          <button
+            disabled={updating}
+            onClick={() => handleStatusChange("IN_PROGRESS")}
+            className="rounded bg-blue-600 px-3 py-2 text-white"
+          >
+            In Progress
+          </button>
+
+          <button
+            disabled={updating}
+            onClick={() => handleStatusChange("RESOLVED")}
+            className="rounded bg-green-600 px-3 py-2 text-white"
+          >
+            Resolved
+          </button>
+        </div>
 
         <p>
           Description: {incident.description ?? "N/A"}

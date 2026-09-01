@@ -74,3 +74,26 @@ export async function getIncidentById(
 
   return response.json() as Promise<Incident>;
 }
+
+
+export async function updateIncidentStatus(
+  id: number,
+  status: string,
+): Promise<Incident> {
+  const response = await fetch(`${API_URL}/incidents/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Update incident failed with status ${response.status}`,
+    );
+  }
+
+  return response.json() as Promise<Incident>;
+}
