@@ -1,8 +1,13 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from cybersentinel_ai.api.schemas import DetectionEventCreate, IncidentCreate, IncidentUpdate
-from cybersentinel_ai.db.models import DetectionEvent, Incident
+from cybersentinel_ai.api.schemas import (
+    DetectionEventCreate,
+    IncidentCreate,
+    IncidentTimelineCreate,
+    IncidentUpdate,
+)
+from cybersentinel_ai.db.models import DetectionEvent, Incident, IncidentTimeline
 
 
 def create_detection_event(
@@ -156,3 +161,29 @@ def update_incident_status(
     database.refresh(incident)
 
     return incident
+
+
+def create_incident_timeline(
+    database: Session,
+    payload: IncidentTimelineCreate,
+) -> IncidentTimeline:
+    timeline = IncidentTimeline(**payload.model_dump())
+
+    database.add(timeline)
+    database.commit()
+    database.refresh(timeline)
+
+    return timeline
+
+
+def list_incident_timelines(
+    database: Session,
+    incident_id: int,
+) -> list[IncidentTimeline]:
+    statement = (
+        select(IncidentTimeline)
+        .where(IncidentTimeline.incident_id == incident_id)
+        .order_by(IncidentTimeline.created_at.desc())
+    )
+
+    return list(database.scalars(statement).all())

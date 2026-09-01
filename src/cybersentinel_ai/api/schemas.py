@@ -90,3 +90,16 @@ class IncidentPage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class IncidentTimelineCreate(BaseModel):
+    incident_id: int
+    action: str = Field(min_length=1, max_length=64)
+    description: str = Field(min_length=1, max_length=1000)
+
+
+class IncidentTimelineRead(IncidentTimelineCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime

@@ -114,3 +114,34 @@ class Incident(Base):
         nullable=False,
         default=lambda: datetime.now(UTC),
     )
+
+
+class IncidentTimeline(Base):
+    __tablename__ = "incident_timelines"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    incident_id: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    action: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    description: Mapped[str] = mapped_column(
+        String(1000),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )

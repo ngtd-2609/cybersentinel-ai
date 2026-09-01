@@ -3,11 +3,20 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from cybersentinel_ai.api.schemas import IncidentCreate, IncidentPage, IncidentRead, IncidentUpdate
+from cybersentinel_ai.api.schemas import (
+    IncidentCreate,
+    IncidentPage,
+    IncidentRead,
+    IncidentTimelineCreate,
+    IncidentTimelineRead,
+    IncidentUpdate,
+)
 from cybersentinel_ai.db.database import get_db
 from cybersentinel_ai.db.repository import (
     create_incident,
+    create_incident_timeline,
     get_incident,
+    list_incident_timelines,
     list_incidents,
     update_incident_status,
 )
@@ -80,3 +89,44 @@ def update_status(
         )
 
     return incident
+
+
+@router.post("/{incident_id}/timeline", response_model=IncidentTimelineRead)
+def create_timeline(
+    incident_id: int,
+    payload: IncidentTimelineCreate,
+    database: DatabaseSession,
+) -> IncidentTimelineRead:
+    incident = get_incident(database, incident_id)
+
+    if incident is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Incident not found",
+        )
+
+    payload.incident_id = incident_id
+
+    return create_incident_timeline(
+        database,
+        payload,
+    )
+
+
+@router.get("/{incident_id}/timeline", response_model=list[IncidentTimelineRead])
+def get_timelines(
+    incident_id: int,
+    database: DatabaseSession,
+) -> list[IncidentTimelineRead]:
+    incident = get_incident(database, incident_id)
+
+    if incident is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Incident not found",
+        )
+
+    return list_incident_timelines(
+        database,
+        incident_id,
+    )

@@ -123,3 +123,46 @@ def test_update_incident_status():
 
     assert response.status_code == 200
     assert response.json()["status"] == "RESOLVED"
+
+
+def test_incident_timeline():
+    create_response = client.post(
+        "/incidents",
+        json={
+            "title": "Timeline Incident",
+            "severity": "HIGH",
+            "status": "OPEN",
+            "description": "Testing timeline",
+            "detection_event_id": 1,
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    incident_id = create_response.json()["id"]
+
+    create_timeline_response = client.post(
+        f"/incidents/{incident_id}/timeline",
+        json={
+            "incident_id": incident_id,
+            "action": "STATUS_CHANGE",
+            "description": "Incident moved to investigation",
+        },
+    )
+
+    assert create_timeline_response.status_code == 200
+
+    timeline = create_timeline_response.json()
+
+    assert timeline["action"] == "STATUS_CHANGE"
+
+    list_response = client.get(
+        f"/incidents/{incident_id}/timeline",
+    )
+
+    assert list_response.status_code == 200
+
+    items = list_response.json()
+
+    assert len(items) >= 1
+    assert items[0]["description"] == "Incident moved to investigation"
