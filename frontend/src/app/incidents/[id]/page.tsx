@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { getIncidentById, type Incident } from "@/lib/api/incidents";
@@ -50,7 +51,17 @@ export default function IncidentDetailPage() {
         </p>
 
         <p>
-          Detection Event ID: {incident.detection_event_id ?? "N/A"}
+          Detection Event ID:{" "}
+          {incident.detection_event_id ? (
+            <Link
+              href={`/events/${incident.detection_event_id}`}
+              className="text-blue-600 hover:underline"
+            >
+              #{incident.detection_event_id}
+            </Link>
+          ) : (
+            "N/A"
+          )}
         </p>
 
         <p>
