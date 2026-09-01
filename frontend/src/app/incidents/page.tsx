@@ -12,6 +12,8 @@ import {
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [severityFilter, setSeverityFilter] = useState("ALL");
 
   async function loadIncidents() {
     const data = await getIncidents();
@@ -45,6 +47,18 @@ export default function IncidentsPage() {
     loadIncidents();
   }
 
+  const filteredIncidents = incidents.filter((incident) => {
+    const matchStatus =
+      statusFilter === "ALL" ||
+      incident.status === statusFilter;
+
+    const matchSeverity =
+      severityFilter === "ALL" ||
+      incident.severity === severityFilter;
+
+    return matchStatus && matchSeverity;
+  });
+
   return (
     <main className="p-8">
       <div className="mb-6 flex items-center justify-between">
@@ -60,13 +74,42 @@ export default function IncidentsPage() {
         </button>
       </div>
 
+      <div className="mb-6 flex gap-3">
+        <select
+          value={statusFilter}
+          onChange={(event) =>
+            setStatusFilter(event.target.value)
+          }
+          className="rounded border px-3 py-2"
+        >
+          <option value="ALL">All Status</option>
+          <option value="OPEN">OPEN</option>
+          <option value="IN_PROGRESS">IN_PROGRESS</option>
+          <option value="RESOLVED">RESOLVED</option>
+        </select>
+
+        <select
+          value={severityFilter}
+          onChange={(event) =>
+            setSeverityFilter(event.target.value)
+          }
+          className="rounded border px-3 py-2"
+        >
+          <option value="ALL">All Severity</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+      </div>
+
       {loading ? (
         <p>Loading...</p>
-      ) : incidents.length === 0 ? (
+      ) : filteredIncidents.length === 0 ? (
         <p>No incidents found.</p>
       ) : (
         <div className="space-y-3">
-          {incidents.map((incident) => (
+          {filteredIncidents.map((incident) => (
             <Link
               key={incident.id}
               href={`/incidents/${incident.id}`}
