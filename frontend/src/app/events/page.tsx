@@ -5,6 +5,7 @@ import { createIncident } from "@/lib/api/incidents";
 
 import { RefreshCw, Search, Siren } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -58,14 +59,17 @@ function severityStyle(severity: string) {
 }
 
 export default function EventsPage() {
+  const router = useRouter();
   async function handleCreateIncident(event: DetectionEvent) {
-    await createIncident({
+    const incident = await createIncident({
       title: `${event.predicted_label} - EVT-${String(event.id).padStart(5, "0")}`,
       severity: event.severity,
       status: "OPEN",
       description: `Created from detection event ${event.id}`,
       detection_event_id: event.id,
     });
+
+    router.push(`/incidents/${incident.id}`);
   }
 
   const {
