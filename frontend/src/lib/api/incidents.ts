@@ -108,3 +108,33 @@ export async function updateIncidentStatus(
 
   return response.json() as Promise<Incident>;
 }
+
+
+export interface IncidentTimeline {
+  id: number;
+  incident_id: number;
+  action: string;
+  description: string;
+  created_at: string;
+}
+
+export async function getIncidentTimeline(
+  id: number,
+): Promise<IncidentTimeline[]> {
+  const response = await fetch(
+    `${API_URL}/incidents/${id}/timeline`,
+    {
+      headers: {
+        Accept: "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Timeline request failed with status ${response.status}`,
+    );
+  }
+
+  return response.json() as Promise<IncidentTimeline[]>;
+}

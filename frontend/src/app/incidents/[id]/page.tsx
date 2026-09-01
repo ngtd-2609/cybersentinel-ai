@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { getIncidentById, updateIncidentStatus, type Incident } from "@/lib/api/incidents";
+import { getIncidentById, getIncidentTimeline, updateIncidentStatus, type Incident, type IncidentTimeline } from "@/lib/api/incidents";
 
 
 function statusClass(status: string) {
@@ -25,11 +25,15 @@ export default function IncidentDetailPage() {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timeline, setTimeline] = useState<IncidentTimeline[]>([]);
 
   useEffect(() => {
     async function load() {
       const data = await getIncidentById(id);
+      const history = await getIncidentTimeline(id);
+
       setIncident(data);
+      setTimeline(history);
     }
 
     if (id) {
@@ -130,6 +134,39 @@ export default function IncidentDetailPage() {
         <p>
           Created at: {incident.created_at}
         </p>
+
+        <div className="mt-8">
+          <h2 className="mb-4 text-xl font-semibold">
+            Incident Timeline
+          </h2>
+
+          <div className="space-y-3">
+            {timeline.length === 0 ? (
+              <p className="text-slate-500">
+                No timeline events.
+              </p>
+            ) : (
+              timeline.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-lg border p-4"
+                >
+                  <p className="font-semibold">
+                    {item.action}
+                  </p>
+
+                  <p className="text-sm text-slate-600">
+                    {item.description}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    {item.created_at}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </main>
   );

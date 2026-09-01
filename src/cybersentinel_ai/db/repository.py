@@ -155,7 +155,19 @@ def update_incident_status(
     if incident is None:
         return None
 
+    old_status = incident.status
     incident.status = payload.status
+
+    timeline = IncidentTimeline(
+        incident_id=incident_id,
+        action="STATUS_CHANGE",
+        description=(
+            f"Status changed from {old_status} "
+            f"to {payload.status}"
+        ),
+    )
+
+    database.add(timeline)
 
     database.commit()
     database.refresh(incident)
