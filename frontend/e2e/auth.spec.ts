@@ -45,15 +45,6 @@ test("successful login returns to the requested page", async ({ page }) => {
   );
   await page.route("**/api/auth/login", async (route) => {
     signedIn = true;
-    await page.context().addCookies([
-      {
-        name: "cybersentinel_access_token",
-        value: "e2e-token",
-        url: "http://127.0.0.1:3100",
-        httpOnly: true,
-        sameSite: "Lax",
-      },
-    ]);
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -67,10 +58,84 @@ test("successful login returns to the requested page", async ({ page }) => {
   await page.goto("/login?returnTo=%2F");
   await page.getByLabel("Email address").fill(adminUser.email);
   await page.getByLabel("Password").fill("valid-test-password");
+  await page.context().addCookies([
+    {
+      name: "cybersentinel_access_token",
+      value: "e2e-token",
+      url: "http://127.0.0.1:3100",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
   await page.getByRole("button", { name: "Sign in securely" }).click();
 
   await expect(page).toHaveURL("/");
   await expect(page.getByRole("heading", { name: "Security Overview" })).toBeVisible();
+});
+
+test("signing out clears the active session", async ({ page }) => {
+  let signedOut = false;
+  await page.context().addCookies([
+    {
+      name: "cybersentinel_access_token",
+      value: "e2e-token",
+      url: "http://127.0.0.1:3100",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  await page.route("**/api/auth/me", (route) =>
+    signedOut
+      ? fulfillJson(route, { detail: "Not authenticated" }, 401)
+      : fulfillJson(route, adminUser),
+  );
+  await page.route("**/api/auth/logout", async (route) => {
+    signedOut = true;
+    await page.context().clearCookies();
+    await route.fulfill({ status: 204 });
+  });
+  await mockDashboard(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByLabel("Email address")).toBeVisible();
+});
+
+test("an expired API session returns the user to login", async ({ page }) => {
+  let expired = false;
+  let eventRequests = 0;
+  await page.context().addCookies([
+    {
+      name: "cybersentinel_access_token",
+      value: "expired-e2e-token",
+      url: "http://127.0.0.1:3100",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  await page.route("**/api/auth/me", (route) =>
+    expired
+      ? fulfillJson(route, { detail: "Not authenticated" }, 401)
+      : fulfillJson(route, adminUser),
+  );
+  await page.route("**/api/backend/events/page?*", async (route) => {
+    eventRequests += 1;
+    if (eventRequests === 1) {
+      return fulfillJson(route, { items: [], total: 0, limit: 25, offset: 0 });
+    }
+    expired = true;
+    await page.context().clearCookies();
+    return fulfillJson(route, { detail: "Session expired" }, 401);
+  });
+
+  await page.goto("/events");
+  await expect(page.getByRole("heading", { name: "Detection Events" })).toBeVisible();
+  await page.getByRole("button", { name: "Refresh" }).click();
+
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Fevents$/);
+  await expect(page.getByLabel("Email address")).toBeVisible();
 });
 
 test("administration navigation is role-aware", async ({ page }) => {
