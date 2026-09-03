@@ -22,7 +22,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Your current role cannot view or modify administration data.
           </p>
-          <Button render={<Link href="/" />} className="mt-6">
+          <Button render={<Link href="/" />} nativeButton={false} className="mt-6">
             Return to dashboard
           </Button>
         </div>

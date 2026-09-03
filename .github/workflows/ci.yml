@@ -76,6 +76,59 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install Playwright browser
+        run: npm run test:e2e:install
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+  database-integration:
+    name: PostgreSQL migration and integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cybersentinel_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cybersentinel_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cybersentinel_test
+      CYBERSENTINEL_ENVIRONMENT: test
+      CYBERSENTINEL_SECRET_KEY: ci-integration-secret-at-least-32-characters
+      CYBERSENTINEL_RUN_POSTGRES_INTEGRATION: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --locked --dev
+
+      - name: Migrate an empty database
+        run: uv run alembic upgrade head
+
+      - name: Verify PostgreSQL schema and CRUD
+        run: uv run pytest tests/integration/test_postgres_schema.py -q
+
   docker:
     name: Docker Build
     runs-on: ubuntu-latest

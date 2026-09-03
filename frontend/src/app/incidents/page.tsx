@@ -48,7 +48,7 @@ export default function IncidentsPage() {
         <main className="mx-auto max-w-[1500px] p-5 md:p-8">
           <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><ShieldAlert className="size-4" />Response operations</div><h1 className="text-3xl font-semibold tracking-tight">Incident Management</h1><p className="mt-2 text-sm text-slate-500">Triage, investigate and resolve incidents linked to detection evidence.</p></div>
-            <div className="flex gap-2"><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? "animate-spin" : ""} />Refresh</Button><Button render={<Link href="/events" />}><Siren />Review detections</Button></div>
+            <div className="flex gap-2"><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? "animate-spin" : ""} />Refresh</Button><Button render={<Link href="/events" />} nativeButton={false}><Siren />Review detections</Button></div>
           </header>
           <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[

@@ -75,7 +75,7 @@ export default function IncidentDetailPage() {
       <div className="min-w-0 flex-1">
         <Topbar />
         <main className="mx-auto max-w-[1500px] p-5 md:p-8">
-          <Button render={<Link href="/incidents" />} variant="ghost" className="mb-5">
+          <Button render={<Link href="/incidents" />} nativeButton={false} variant="ghost" className="mb-5">
             <ArrowLeft /> Back to incidents
           </Button>
 
@@ -129,7 +129,7 @@ export default function IncidentDetailPage() {
                         <div><p className="text-xs text-slate-400">Threat</p><p className="mt-1 font-medium">{incident.detection_event.predicted_label}</p></div>
                         <div><p className="text-xs text-slate-400">Source IP</p><p className="mt-1 font-mono text-sm">{incident.detection_event.source_ip ?? "—"}</p></div>
                         <div><p className="text-xs text-slate-400">Risk score</p><p className="mt-1 font-semibold text-red-600">{incident.detection_event.risk_score.toFixed(0)}/100</p></div>
-                        <Button render={<Link href={`/events/${incident.detection_event.id}`} />} variant="outline">View event</Button>
+                        <Button render={<Link href={`/events/${incident.detection_event.id}`} />} nativeButton={false} variant="outline">View event</Button>
                       </CardContent>
                     </Card>
                   )}
