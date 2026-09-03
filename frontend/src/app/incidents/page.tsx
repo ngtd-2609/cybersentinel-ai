@@ -1,249 +1,73 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, CheckCircle2, Clock3, RefreshCw, ShieldAlert, Siren } from "lucide-react";
 
-import {
-  createIncident,
-  getIncidents,
-  type Incident,
-} from "@/lib/api/incidents";
-import { useAuth } from "@/components/auth/auth-provider";
-import { canWrite } from "@/lib/auth";
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { Topbar } from "@/components/dashboard/topbar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getIncidents, type Incident } from "@/lib/api/incidents";
+
+const PAGE_SIZE = 25;
+const EMPTY_INCIDENTS: Incident[] = [];
+const severityStyle: Record<string, string> = {
+  CRITICAL: "border-red-200 bg-red-50 text-red-700",
+  HIGH: "border-orange-200 bg-orange-50 text-orange-700",
+  MEDIUM: "border-amber-200 bg-amber-50 text-amber-700",
+  LOW: "border-cyan-200 bg-cyan-50 text-cyan-700",
+};
 
 export default function IncidentsPage() {
-  const { user } = useAuth();
-  const mayWrite = user ? canWrite(user.role) : false;
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [severityFilter, setSeverityFilter] = useState("ALL");
   const [page, setPage] = useState(0);
-  const [total, setTotal] = useState(0);
-
-  const loadIncidents = useCallback(
-    async (currentPage = page) => {
-      setLoading(true);
-
-      const data = await getIncidents(
-        25,
-        currentPage * 25,
-      );
-
-      setIncidents(data.items);
-      setTotal(data.total);
-      setLoading(false);
-    },
-    [page],
-  );
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadIncidents(page);
-    }, 0);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [loadIncidents, page]);
-
-  async function handleCreate() {
-    await createIncident({
-      title: "New Security Incident",
-      severity: "HIGH",
-      status: "OPEN",
-      description: "Created from analyst dashboard",
-    });
-
-    loadIncidents();
-  }
-
-  const filteredIncidents = incidents.filter((incident) => {
-    const matchStatus =
-      statusFilter === "ALL" ||
-      incident.status === statusFilter;
-
-    const matchSeverity =
-      severityFilter === "ALL" ||
-      incident.severity === severityFilter;
-
-    return matchStatus && matchSeverity;
+  const [status, setStatus] = useState("ALL");
+  const [severity, setSeverity] = useState("ALL");
+  const query = useQuery({
+    queryKey: ["incidents", page],
+    queryFn: () => getIncidents(PAGE_SIZE, page * PAGE_SIZE),
+    refetchInterval: 30_000,
   });
-
-
-  const summary = {
-    total: incidents.length,
-    open: incidents.filter(
-      (incident) => incident.status === "OPEN",
-    ).length,
-    progress: incidents.filter(
-      (incident) => incident.status === "IN_PROGRESS",
-    ).length,
-    resolved: incidents.filter(
-      (incident) => incident.status === "RESOLVED",
-    ).length,
-    critical: incidents.filter(
-      (incident) => incident.severity === "CRITICAL",
-    ).length,
-  };
+  const incidents = query.data?.items ?? EMPTY_INCIDENTS;
+  const filtered = useMemo(() => incidents.filter((incident) =>
+    (status === "ALL" || incident.status === status) &&
+    (severity === "ALL" || incident.severity === severity),
+  ), [incidents, severity, status]);
+  const open = incidents.filter((item) => item.status === "OPEN").length;
+  const active = incidents.filter((item) => item.status === "IN_PROGRESS").length;
+  const resolved = incidents.filter((item) => item.status === "RESOLVED").length;
 
   return (
-    <main className="p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          Incident Management
-        </h1>
-
-        {mayWrite && (
-          <button
-            onClick={handleCreate}
-            className="rounded-lg bg-black px-4 py-2 text-white"
-          >
-            Create Incident
-          </button>
-        )}
+    <div className="flex min-h-screen bg-slate-50 text-slate-950">
+      <Sidebar />
+      <div className="min-w-0 flex-1">
+        <Topbar />
+        <main className="mx-auto max-w-[1500px] p-5 md:p-8">
+          <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><ShieldAlert className="size-4" />Response operations</div><h1 className="text-3xl font-semibold tracking-tight">Incident Management</h1><p className="mt-2 text-sm text-slate-500">Triage, investigate and resolve incidents linked to detection evidence.</p></div>
+            <div className="flex gap-2"><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? "animate-spin" : ""} />Refresh</Button><Button render={<Link href="/events" />}><Siren />Review detections</Button></div>
+          </header>
+          <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: "Total incidents", value: query.data?.total ?? 0, icon: ShieldAlert, color: "text-slate-600" },
+              { label: "Open", value: open, icon: Siren, color: "text-amber-600" },
+              { label: "In progress", value: active, icon: Clock3, color: "text-blue-600" },
+              { label: "Resolved", value: resolved, icon: CheckCircle2, color: "text-emerald-600" },
+            ].map((metric) => <Card key={metric.label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{metric.label}</p><p className="mt-2 text-3xl font-semibold">{metric.value}</p></div><metric.icon className={`size-7 ${metric.color}`} /></CardContent></Card>)}
+          </section>
+          <Card className="mb-6"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row">
+            <Select value={status} onValueChange={(value) => setStatus(value ?? "ALL")}><SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem><SelectItem value="OPEN">Open</SelectItem><SelectItem value="IN_PROGRESS">In progress</SelectItem><SelectItem value="RESOLVED">Resolved</SelectItem></SelectContent></Select>
+            <Select value={severity} onValueChange={(value) => setSeverity(value ?? "ALL")}><SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All severities</SelectItem><SelectItem value="CRITICAL">Critical</SelectItem><SelectItem value="HIGH">High</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="LOW">Low</SelectItem></SelectContent></Select>
+          </CardContent></Card>
+          {query.isLoading ? <p className="py-16 text-center text-slate-500">Loading incidents...</p> : query.isError ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">Unable to load incidents.</p> : filtered.length === 0 ? <p className="rounded-xl border bg-white p-12 text-center text-slate-500">No incidents match the current filters.</p> : (
+            <section className="space-y-3">{filtered.map((incident) => <Link key={incident.id} href={`/incidents/${incident.id}`} className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-300 hover:shadow md:grid-cols-[1fr_auto] md:items-center"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{incident.title}</p><Badge variant="outline" className={severityStyle[incident.severity] ?? ""}>{incident.severity}</Badge><Badge variant="outline">{incident.status.replaceAll("_", " ")}</Badge></div><p className="mt-2 line-clamp-2 text-sm text-slate-500">{incident.description ?? "No description"}</p><p className="mt-2 text-xs text-slate-400">INC-{String(incident.id).padStart(5, "0")} · {new Date(incident.created_at).toLocaleString()}{incident.detection_event_id ? ` · EVT-${String(incident.detection_event_id).padStart(5, "0")}` : ""}</p></div><ArrowRight className="hidden size-5 text-slate-400 md:block" /></Link>)}</section>
+          )}
+          <footer className="mt-6 flex items-center justify-between text-sm text-slate-500"><span>Showing {incidents.length} of {query.data?.total ?? 0} incidents</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0 || query.isFetching} onClick={() => setPage((value) => Math.max(0, value - 1))}>Previous</Button><Button variant="outline" size="sm" disabled={!query.data || (page + 1) * PAGE_SIZE >= query.data.total || query.isFetching} onClick={() => setPage((value) => value + 1)}>Next</Button></div></footer>
+        </main>
       </div>
-
-
-      <div className="mb-6 grid gap-4 md:grid-cols-5">
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-slate-500">
-            Total
-          </p>
-          <p className="text-2xl font-bold">
-            {summary.total}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-slate-500">
-            Open
-          </p>
-          <p className="text-2xl font-bold text-yellow-600">
-            {summary.open}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-slate-500">
-            In Progress
-          </p>
-          <p className="text-2xl font-bold text-blue-600">
-            {summary.progress}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-slate-500">
-            Resolved
-          </p>
-          <p className="text-2xl font-bold text-green-600">
-            {summary.resolved}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-slate-500">
-            Critical
-          </p>
-          <p className="text-2xl font-bold text-red-600">
-            {summary.critical}
-          </p>
-        </div>
-      </div>
-
-      <div className="mb-6 flex gap-3">
-        <select
-          value={statusFilter}
-          onChange={(event) =>
-            setStatusFilter(event.target.value)
-          }
-          className="rounded border px-3 py-2"
-        >
-          <option value="ALL">All Status</option>
-          <option value="OPEN">OPEN</option>
-          <option value="IN_PROGRESS">IN_PROGRESS</option>
-          <option value="RESOLVED">RESOLVED</option>
-        </select>
-
-        <select
-          value={severityFilter}
-          onChange={(event) =>
-            setSeverityFilter(event.target.value)
-          }
-          className="rounded border px-3 py-2"
-        >
-          <option value="ALL">All Severity</option>
-          <option value="CRITICAL">CRITICAL</option>
-          <option value="HIGH">HIGH</option>
-          <option value="MEDIUM">MEDIUM</option>
-          <option value="LOW">LOW</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : filteredIncidents.length === 0 ? (
-        <p>No incidents found.</p>
-      ) : (
-        <div className="space-y-3">
-          {filteredIncidents.map((incident) => (
-            <Link
-              key={incident.id}
-              href={`/incidents/${incident.id}`}
-              className="block rounded-lg border p-4 transition hover:bg-slate-50"
-            >
-              <div className="flex justify-between">
-                <h2 className="font-semibold">
-                  {incident.title}
-                </h2>
-
-                <span>
-                  {incident.severity}
-                </span>
-              </div>
-
-              <p className="text-sm text-gray-500">
-                {incident.status}
-              </p>
-
-              <p className="mt-2">
-                {incident.description}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-
-
-      <div className="mt-6 flex items-center justify-between">
-        <p className="text-sm text-slate-500">
-          Showing {incidents.length} of {total} incidents
-        </p>
-
-        <div className="flex gap-3">
-          <button
-            disabled={page === 0}
-            onClick={() =>
-              setPage((current) => Math.max(current - 1, 0))
-            }
-            className="rounded border px-3 py-2 disabled:opacity-50"
-          >
-            Previous
-          </button>
-
-          <button
-            disabled={(page + 1) * 25 >= total}
-            onClick={() =>
-              setPage((current) => current + 1)
-            }
-            className="rounded border px-3 py-2 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-    </main>
+    </div>
   );
 }

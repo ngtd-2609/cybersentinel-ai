@@ -7,6 +7,13 @@ export interface Incident {
   status: string;
   description: string | null;
   detection_event_id: number | null;
+  detection_event?: {
+    id: number;
+    source_ip: string | null;
+    predicted_label: string;
+    risk_score: number;
+    severity: string;
+  } | null;
   created_at: string;
 }
 
@@ -136,6 +143,27 @@ export async function getIncidentTimeline(
   }
 
   return response.json() as Promise<IncidentTimeline[]>;
+}
+
+export async function createIncidentTimeline(
+  id: number,
+  action: string,
+  description: string,
+): Promise<IncidentTimeline> {
+  const response = await apiFetch(`/incidents/${id}/timeline`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ action, description }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Timeline update failed with status ${response.status}`);
+  }
+
+  return response.json() as Promise<IncidentTimeline>;
 }
 
 
