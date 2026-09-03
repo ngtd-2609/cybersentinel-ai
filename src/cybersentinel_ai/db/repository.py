@@ -199,9 +199,13 @@ def update_incident_status(
 
 def create_incident_timeline(
     database: Session,
+    incident_id: int,
     payload: IncidentTimelineCreate,
 ) -> IncidentTimeline:
-    timeline = IncidentTimeline(**payload.model_dump())
+    timeline = IncidentTimeline(
+        incident_id=incident_id,
+        **payload.model_dump(),
+    )
 
     database.add(timeline)
     database.commit()

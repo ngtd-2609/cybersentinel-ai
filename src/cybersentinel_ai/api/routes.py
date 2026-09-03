@@ -19,6 +19,7 @@ from cybersentinel_ai.db.repository import (
     list_detection_events,
     search_detection_events,
 )
+from cybersentinel_ai.security.rbac import UserRole, require_role
 
 router = APIRouter(prefix="/events", tags=["Detection Events"])
 
@@ -29,12 +30,19 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 def create_event(
     payload: DetectionEventCreate,
     database: DatabaseSession,
+    current_user=Depends(
+        require_role(
+            UserRole.ADMIN,
+            UserRole.SENIOR_ANALYST,
+            UserRole.ANALYST,
+        )
+    ),
 ) -> DetectionEventRead:
     event = create_detection_event(database, payload)
 
     log_action(
         database,
-        None,
+        current_user.id,
         "CREATE_DETECTION_EVENT",
         f"Created detection event {event.id}",
         "DETECTION_EVENT",

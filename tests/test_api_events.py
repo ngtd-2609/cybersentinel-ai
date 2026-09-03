@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from cybersentinel_ai.api.main import app
 from cybersentinel_ai.db.database import Base, get_db
+from cybersentinel_ai.security.dependencies import get_current_user
 
 engine = create_engine(
     "sqlite://",
@@ -33,6 +35,18 @@ def override_get_db() -> Generator[Session, None, None]:
 
 
 app.dependency_overrides[get_db] = override_get_db
+
+
+def override_get_current_user():
+    return SimpleNamespace(
+        id=1,
+        email="analyst@cybersentinel.ai",
+        role="ANALYST",
+        is_active=True,
+    )
+
+
+app.dependency_overrides[get_current_user] = override_get_current_user
 
 client = TestClient(app)
 
@@ -77,6 +91,38 @@ def test_detection_event_not_found():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Detection event not found"
+
+
+def test_viewer_cannot_create_detection_event():
+    previous_override = app.dependency_overrides[get_current_user]
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        id=2,
+        email="viewer@cybersentinel.ai",
+        role="VIEWER",
+        is_active=True,
+    )
+
+    try:
+        response = client.post(
+            "/events",
+            json={
+                "source_ip": "10.0.0.30",
+                "destination_ip": "10.0.0.40",
+                "destination_port": 443,
+                "predicted_label": "DDoS",
+                "classifier_confidence": 0.97,
+                "anomaly_score": 0.82,
+                "rule_score": 0.70,
+                "risk_score": 88.4,
+                "severity": "HIGH",
+                "requires_review": False,
+            },
+        )
+    finally:
+        app.dependency_overrides[get_current_user] = previous_override
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Insufficient permissions"
 
 
 def test_paginated_detection_events():

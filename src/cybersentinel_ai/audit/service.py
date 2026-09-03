@@ -31,5 +31,18 @@ def log_action(
 
 def list_audit_logs(
     db: Session,
-) -> list[AuditLog]:
-    return get_audit_logs(db)
+    *,
+    limit: int,
+    offset: int,
+    action: str | None = None,
+    target_type: str | None = None,
+    user_id: int | None = None,
+) -> tuple[list[AuditLog], int]:
+    return get_audit_logs(
+        db,
+        limit=limit,
+        offset=offset,
+        action=action,
+        target_type=target_type,
+        user_id=user_id,
+    )

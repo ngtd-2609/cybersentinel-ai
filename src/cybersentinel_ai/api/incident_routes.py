@@ -21,7 +21,7 @@ from cybersentinel_ai.db.repository import (
     list_incidents,
     update_incident_status,
 )
-from cybersentinel_ai.security.dependencies import get_current_user
+from cybersentinel_ai.security.rbac import UserRole, require_role
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -32,7 +32,13 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 def create(
     payload: IncidentCreate,
     database: DatabaseSession,
-    current_user=Depends(get_current_user),
+    current_user=Depends(
+        require_role(
+            UserRole.ADMIN,
+            UserRole.SENIOR_ANALYST,
+            UserRole.ANALYST,
+        )
+    ),
 ) -> IncidentRead:
     incident = create_incident(database, payload)
 
@@ -89,7 +95,13 @@ def update_status(
     incident_id: int,
     payload: IncidentUpdate,
     database: DatabaseSession,
-    current_user=Depends(get_current_user),
+    current_user=Depends(
+        require_role(
+            UserRole.ADMIN,
+            UserRole.SENIOR_ANALYST,
+            UserRole.ANALYST,
+        )
+    ),
 ) -> IncidentRead:
     incident = update_incident_status(
         database,
@@ -120,7 +132,13 @@ def create_timeline(
     incident_id: int,
     payload: IncidentTimelineCreate,
     database: DatabaseSession,
-    current_user=Depends(get_current_user),
+    current_user=Depends(
+        require_role(
+            UserRole.ADMIN,
+            UserRole.SENIOR_ANALYST,
+            UserRole.ANALYST,
+        )
+    ),
 ) -> IncidentTimelineRead:
     incident = get_incident(database, incident_id)
 
@@ -130,10 +148,9 @@ def create_timeline(
             detail="Incident not found",
         )
 
-    payload.incident_id = incident_id
-
     timeline = create_incident_timeline(
         database,
+        incident_id,
         payload,
     )
 

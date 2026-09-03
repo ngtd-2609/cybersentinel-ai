@@ -13,3 +13,10 @@ class AuditLogResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AuditLogPage(BaseModel):
+    items: list[AuditLogResponse]
+    total: int
+    limit: int
+    offset: int

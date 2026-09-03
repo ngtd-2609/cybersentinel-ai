@@ -32,6 +32,7 @@ def change_user_role(
 
     allowed_roles = {
         "ADMIN",
+        "SENIOR_ANALYST",
         "ANALYST",
         "VIEWER",
     }

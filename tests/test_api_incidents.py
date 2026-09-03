@@ -162,7 +162,6 @@ def test_incident_timeline():
     create_timeline_response = client.post(
         f"/incidents/{incident_id}/timeline",
         json={
-            "incident_id": incident_id,
             "action": "STATUS_CHANGE",
             "description": "Incident moved to investigation",
         },
@@ -173,6 +172,7 @@ def test_incident_timeline():
     timeline = create_timeline_response.json()
 
     assert timeline["action"] == "STATUS_CHANGE"
+    assert timeline["incident_id"] == incident_id
 
     list_response = client.get(
         f"/incidents/{incident_id}/timeline",

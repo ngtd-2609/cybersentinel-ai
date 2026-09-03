@@ -4,6 +4,7 @@ from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.auth.repository import (
     create_user,
     get_user_by_email,
+    get_user_by_username,
 )
 from cybersentinel_ai.auth.schemas import UserCreate
 from cybersentinel_ai.db.models import User
@@ -24,6 +25,14 @@ def register_user(
 
     if existing:
         raise ValueError("Email already exists")
+
+    existing_username = get_user_by_username(
+        db,
+        payload.username,
+    )
+
+    if existing_username:
+        raise ValueError("Username already exists")
 
     user = User(
         email=payload.email,

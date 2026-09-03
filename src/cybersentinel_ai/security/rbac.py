@@ -7,6 +7,7 @@ from cybersentinel_ai.security.dependencies import get_current_user
 
 class UserRole(str, Enum):
     ADMIN = "ADMIN"
+    SENIOR_ANALYST = "SENIOR_ANALYST"
     ANALYST = "ANALYST"
     VIEWER = "VIEWER"
 
