@@ -18,6 +18,17 @@ class DetectionEventCreate(BaseModel):
     requires_review: bool = False
 
 
+
+class DetectionEventBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    source_ip: str | None
+    predicted_label: str
+    risk_score: float
+    severity: str
+
+
 class DetectionEventRead(DetectionEventCreate):
     model_config = ConfigDict(from_attributes=True)
 
@@ -74,10 +85,16 @@ class IncidentCreate(BaseModel):
     detection_event_id: int | None = None
 
 
-class IncidentRead(IncidentCreate):
+class IncidentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    title: str
+    severity: str
+    status: str
+    description: str | None
+    detection_event_id: int | None
+    detection_event: DetectionEventBrief | None = None
     created_at: datetime
 
 

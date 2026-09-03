@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -104,3 +106,56 @@ def test_ollama_timeout_from_environment(monkeypatch):
     client = OllamaClient()
 
     assert client.timeout == 240.0
+
+
+def test_qwen3_disables_thinking_in_prompt():
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.read().decode())
+
+        assert payload["think"] is False
+        assert payload["prompt"].startswith("/no_think\n")
+
+        return httpx.Response(
+            200,
+            json={
+                "model": "qwen3:4b",
+                "response": "1. Assessment\nRansomware alert.",
+                "done": True,
+            },
+        )
+
+    client = OllamaClient(
+        model="qwen3:4b",
+        transport=httpx.MockTransport(handler),
+    )
+
+    result = client.generate("Analyze this alert")
+
+    assert result.response.startswith("1. Assessment")
+
+
+def test_ollama_sends_structured_output_schema():
+    schema: dict[str, object] = {
+        "type": "object",
+        "properties": {"assessment": {"type": "string"}},
+        "required": ["assessment"],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.read().decode())
+        assert payload["format"] == schema
+        return httpx.Response(
+            200,
+            json={
+                "model": "qwen3:4b",
+                "response": '{"assessment":"Critical alert"}',
+                "done": True,
+            },
+        )
+
+    client = OllamaClient(
+        model="qwen3:4b",
+        transport=httpx.MockTransport(handler),
+    )
+
+    client.generate("Analyze this alert", format_schema=schema)

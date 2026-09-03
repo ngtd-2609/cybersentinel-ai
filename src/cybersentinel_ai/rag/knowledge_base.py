@@ -2,6 +2,26 @@ from cybersentinel_ai.rag.retriever import KnowledgeDocument
 from cybersentinel_ai.threat_intel.attack_mapping import ATTACK_MAPPING
 
 SOC_PLAYBOOKS = {
+    "Ransomware": (
+        "Prioritize containment of the affected host. Review process execution, file "
+        "modification activity, network connections, authentication events, and available "
+        "endpoint telemetry. Preserve evidence before remediation. Determine whether "
+        "encryption or lateral movement occurred, isolate confirmed affected systems, "
+        "identify additional impacted assets, and follow the organization incident "
+        "response and recovery process."
+    ),
+    "Malware": (
+        "Review endpoint process activity, executable and script execution, persistence "
+        "indicators, network connections, file changes, and available security telemetry. "
+        "Preserve evidence, scope potentially affected hosts, isolate systems when the "
+        "evidence supports containment, and investigate the initial execution path."
+    ),
+    "SSH Brute Force": (
+        "Review SSH authentication failures, source addresses, targeted accounts, login "
+        "frequency, and successful authentication following repeated failures. Validate "
+        "whether the source is authorized. Consider source blocking, rate limiting, "
+        "credential reset, and stronger authentication when supported by the evidence."
+    ),
     "DDoS": (
         "Investigate abnormal traffic volume, packet rate, source distribution, "
         "destination services, and infrastructure saturation. Consider rate limiting, "

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.auth.schemas import (
     TokenResponse,
     UserCreate,
@@ -56,10 +57,28 @@ def login(
     )
 
     if not user:
+        log_action(
+            db,
+            None,
+            "LOGIN_FAILED",
+            f"Failed login attempt for {payload.email}",
+            "USER",
+            None,
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Invalid credentials",
         )
+
+    log_action(
+        db,
+        user.id,
+        "LOGIN_SUCCESS",
+        f"User {user.email} logged in",
+        "USER",
+        user.id,
+    )
 
     return TokenResponse(
         access_token=create_access_token(

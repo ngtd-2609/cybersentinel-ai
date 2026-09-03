@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from cybersentinel_ai.api.main import app
 from cybersentinel_ai.db.database import Base, get_db
+from cybersentinel_ai.security.dependencies import get_current_user
 
 engine = create_engine(
     "sqlite://",
@@ -34,6 +36,18 @@ def override_get_db() -> Generator[Session, None, None]:
 
 app.dependency_overrides[get_db] = override_get_db
 
+
+def override_get_current_user():
+    return SimpleNamespace(
+        id=1,
+        email="test-admin@cybersentinel.ai",
+        role="ADMIN",
+        is_active=True,
+    )
+
+
+app.dependency_overrides[get_current_user] = override_get_current_user
+
 client = TestClient(app)
 
 
@@ -43,7 +57,7 @@ def test_create_and_list_incidents():
         "severity": "HIGH",
         "status": "OPEN",
         "description": "Testing incident creation",
-        "detection_event_id": 1,
+        "detection_event_id": None,
     }
 
     create_response = client.post(
@@ -62,9 +76,13 @@ def test_create_and_list_incidents():
 
     assert list_response.status_code == 200
 
-    incidents = list_response.json()
+    page = list_response.json()
 
-    assert len(incidents) >= 1
+    assert page["total"] >= 1
+    assert any(
+        item["title"] == "Test Incident"
+        for item in page["items"]
+    )
 
 
 def test_get_incident_by_id():
@@ -75,7 +93,7 @@ def test_get_incident_by_id():
             "severity": "CRITICAL",
             "status": "OPEN",
             "description": "Testing incident detail",
-            "detection_event_id": 1,
+            "detection_event_id": None,
         },
     )
 
@@ -106,7 +124,7 @@ def test_update_incident_status():
             "severity": "HIGH",
             "status": "OPEN",
             "description": "Testing status update",
-            "detection_event_id": 1,
+            "detection_event_id": None,
         },
     )
 
@@ -133,7 +151,7 @@ def test_incident_timeline():
             "severity": "HIGH",
             "status": "OPEN",
             "description": "Testing timeline",
-            "detection_event_id": 1,
+            "detection_event_id": None,
         },
     )
 
@@ -176,7 +194,7 @@ def test_update_status_creates_timeline():
             "severity": "HIGH",
             "status": "OPEN",
             "description": "Testing auto timeline",
-            "detection_event_id": 1,
+            "detection_event_id": None,
         },
     )
 
@@ -213,7 +231,7 @@ def test_create_incident_creates_timeline():
             "severity": "HIGH",
             "status": "OPEN",
             "description": "Testing create timeline",
-            "detection_event_id": 1,
+            "detection_event_id": None,
         },
     )
 

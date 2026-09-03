@@ -9,6 +9,20 @@ class AttackTechnique:
 
 
 ATTACK_MAPPING: dict[str, tuple[AttackTechnique, ...]] = {
+    "RANSOMWARE": (
+        AttackTechnique(
+            technique_id="T1486",
+            technique_name="Data Encrypted for Impact",
+            tactic="Impact",
+        ),
+    ),
+    "SSH-BRUTE-FORCE": (
+        AttackTechnique(
+            technique_id="T1110",
+            technique_name="Brute Force",
+            tactic="Credential Access",
+        ),
+    ),
     "DDoS": (
         AttackTechnique(
             technique_id="T1498",

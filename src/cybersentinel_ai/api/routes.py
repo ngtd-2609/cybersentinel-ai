@@ -7,10 +7,14 @@ from cybersentinel_ai.api.schemas import (
     DetectionEventCreate,
     DetectionEventPage,
     DetectionEventRead,
+    IncidentCreate,
 )
+from cybersentinel_ai.audit.service import log_action
+from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import get_db
 from cybersentinel_ai.db.repository import (
     create_detection_event,
+    create_incident,
     get_detection_event,
     list_detection_events,
     search_detection_events,
@@ -26,7 +30,47 @@ def create_event(
     payload: DetectionEventCreate,
     database: DatabaseSession,
 ) -> DetectionEventRead:
-    return create_detection_event(database, payload)
+    event = create_detection_event(database, payload)
+
+    log_action(
+        database,
+        None,
+        "CREATE_DETECTION_EVENT",
+        f"Created detection event {event.id}",
+        "DETECTION_EVENT",
+        event.id,
+    )
+
+    threshold = get_settings().auto_incident_risk_threshold
+
+    if event.requires_review and event.risk_score >= threshold:
+        incident = create_incident(
+            database,
+            IncidentCreate(
+                title=f"{event.predicted_label} detection",
+                severity=event.severity,
+                status="OPEN",
+                description=(
+                    f"Automatically created from detection event {event.id} "
+                    f"with risk score {event.risk_score:.1f}"
+                ),
+                detection_event_id=event.id,
+            ),
+        )
+
+        log_action(
+            database,
+            None,
+            "CREATE_INCIDENT_FROM_DETECTION",
+            (
+                f"Automatically created incident {incident.id} "
+                f"from detection event {event.id}"
+            ),
+            "INCIDENT",
+            incident.id,
+        )
+
+    return event
 
 
 @router.get("", response_model=list[DetectionEventRead])

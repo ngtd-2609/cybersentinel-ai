@@ -6,11 +6,13 @@ import httpx
 
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:3b"
-DEFAULT_TIMEOUT = 300.0
+DEFAULT_TIMEOUT = 180.0
+DEFAULT_NUM_PREDICT = 256
 
 OLLAMA_URL_ENV = "CYBERSENTINEL_OLLAMA_URL"
 OLLAMA_MODEL_ENV = "CYBERSENTINEL_OLLAMA_MODEL"
 OLLAMA_TIMEOUT_ENV = "CYBERSENTINEL_OLLAMA_TIMEOUT"
+OLLAMA_NUM_PREDICT_ENV = "CYBERSENTINEL_OLLAMA_NUM_PREDICT"
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,7 @@ class OllamaClient:
         base_url: str | None = None,
         model: str | None = None,
         timeout: float | None = None,
+        num_predict: int | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         resolved_base_url = (
@@ -58,29 +61,50 @@ class OllamaClient:
                 )
             )
 
+        if num_predict is None:
+            num_predict = int(
+                os.getenv(
+                    OLLAMA_NUM_PREDICT_ENV,
+                    str(DEFAULT_NUM_PREDICT),
+                )
+            )
+
         self.base_url = resolved_base_url.rstrip("/")
         self.model = resolved_model
         self.timeout = timeout
+        self.num_predict = num_predict
         self.transport = transport
 
     def generate(
         self,
         prompt: str,
         system: str | None = None,
+        format_schema: dict[str, object] | None = None,
     ) -> OllamaResponse:
         prompt = prompt.strip()
 
         if not prompt:
             raise ValueError("prompt must not be empty")
 
+        if self.model.lower().startswith("qwen3"):
+            prompt = f"/no_think\n{prompt}"
+
         payload: dict[str, object] = {
             "model": self.model,
             "prompt": prompt,
             "stream": False,
+            "think": False,
+            "options": {
+                "num_predict": self.num_predict,
+                "temperature": 0.2,
+            },
         }
 
         if system:
             payload["system"] = system
+
+        if format_schema:
+            payload["format"] = format_schema
 
         with httpx.Client(
             timeout=self.timeout,

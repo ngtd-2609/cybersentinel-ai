@@ -1,30 +1,22 @@
 import os
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from cybersentinel_ai.api.audit_routes import router as audit_router
 from cybersentinel_ai.api.copilot_routes import router as copilot_router
 from cybersentinel_ai.api.dashboard_routes import router as dashboard_router
 from cybersentinel_ai.api.incident_routes import router as incident_router
 from cybersentinel_ai.api.metrics import configure_metrics
 from cybersentinel_ai.api.routes import router
+from cybersentinel_ai.api.user_admin_routes import router as user_admin_router
+from cybersentinel_ai.api.user_status_routes import router as user_status_router
 from cybersentinel_ai.auth.router import router as auth_router
-from cybersentinel_ai.db.database import create_tables
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    create_tables()
-    yield
-
 
 app = FastAPI(
     title="CyberSentinel AI",
     version="0.1.0",
     description="AI-powered network intrusion detection and SOC assistant.",
-    lifespan=lifespan,
 )
 
 cors_origins = [
@@ -45,9 +37,12 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(audit_router)
 app.include_router(auth_router)
 app.include_router(copilot_router)
 app.include_router(incident_router)
+app.include_router(user_admin_router)
+app.include_router(user_status_router)
 app.include_router(dashboard_router)
 configure_metrics(app)
 

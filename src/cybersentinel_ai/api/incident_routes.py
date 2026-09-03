@@ -11,6 +11,7 @@ from cybersentinel_ai.api.schemas import (
     IncidentTimelineRead,
     IncidentUpdate,
 )
+from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.db.database import get_db
 from cybersentinel_ai.db.repository import (
     create_incident,
@@ -20,6 +21,7 @@ from cybersentinel_ai.db.repository import (
     list_incidents,
     update_incident_status,
 )
+from cybersentinel_ai.security.dependencies import get_current_user
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -30,8 +32,20 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 def create(
     payload: IncidentCreate,
     database: DatabaseSession,
+    current_user=Depends(get_current_user),
 ) -> IncidentRead:
-    return create_incident(database, payload)
+    incident = create_incident(database, payload)
+
+    log_action(
+        database,
+        current_user.id,
+        "CREATE_INCIDENT",
+        f"Created incident {incident.id}",
+        "INCIDENT",
+        incident.id,
+    )
+
+    return incident
 
 
 @router.get("", response_model=IncidentPage)
@@ -75,6 +89,7 @@ def update_status(
     incident_id: int,
     payload: IncidentUpdate,
     database: DatabaseSession,
+    current_user=Depends(get_current_user),
 ) -> IncidentRead:
     incident = update_incident_status(
         database,
@@ -88,6 +103,15 @@ def update_status(
             detail="Incident not found",
         )
 
+    log_action(
+        database,
+        current_user.id,
+        "UPDATE_INCIDENT_STATUS",
+        f"Updated incident {incident.id}",
+        "INCIDENT",
+        incident.id,
+    )
+
     return incident
 
 
@@ -96,6 +120,7 @@ def create_timeline(
     incident_id: int,
     payload: IncidentTimelineCreate,
     database: DatabaseSession,
+    current_user=Depends(get_current_user),
 ) -> IncidentTimelineRead:
     incident = get_incident(database, incident_id)
 
@@ -107,10 +132,21 @@ def create_timeline(
 
     payload.incident_id = incident_id
 
-    return create_incident_timeline(
+    timeline = create_incident_timeline(
         database,
         payload,
     )
+
+    log_action(
+        database,
+        current_user.id,
+        "CREATE_INCIDENT_TIMELINE",
+        f"Added timeline to incident {incident_id}",
+        "INCIDENT",
+        incident_id,
+    )
+
+    return timeline
 
 
 @router.get("/{incident_id}/timeline", response_model=list[IncidentTimelineRead])

@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 
 from cybersentinel_ai.rag.knowledge_base import build_default_knowledge_base
@@ -12,10 +13,23 @@ SYSTEM_PROMPT = """You are CyberSentinel AI, a SOC analyst copilot.
 Use only the supplied security context when making factual claims.
 If the context is insufficient, clearly say what additional evidence is needed.
 Do not invent indicators, CVEs, MITRE techniques, hosts, users, or attack evidence.
-Keep recommendations practical, prioritized, and suitable for a SOC analyst.
+Preserve IP addresses, hostnames, identifiers, labels, scores, and other indicators
+exactly as supplied. Never rewrite or alter them.
+Do not expose internal reasoning or describe your hidden thought process.
+Keep the answer concise and operational.
+Use exactly these sections:
+1. Assessment
+2. Supporting Evidence
+3. Recommended Actions
+Start the response immediately with "1. Assessment". Do not restate the prompt,
+instructions, or retrieved source list. Keep the complete response under 180 words.
+Prioritize containment, investigation, eradication, recovery, and monitoring only
+when supported by the supplied context.
 """
 
 KNOWN_ATTACK_LABELS = (
+    "RANSOMWARE",
+    "SSH-BRUTE-FORCE",
     "PortScan",
     "DDoS",
     "DoS GoldenEye",
@@ -29,6 +43,20 @@ KNOWN_ATTACK_LABELS = (
     "Web Attack - XSS",
     "Heartbleed",
 )
+
+COPILOT_RESPONSE_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "assessment": {"type": "string"},
+        "supporting_evidence": {"type": "string"},
+        "recommended_actions": {"type": "string"},
+    },
+    "required": [
+        "assessment",
+        "supporting_evidence",
+        "recommended_actions",
+    ],
+}
 
 
 @dataclass(frozen=True)
@@ -116,6 +144,37 @@ class SOCCopilot:
 
         return results
 
+    def _label_documents(
+        self,
+        alert_context: str | None,
+    ) -> list[RetrievalResult]:
+        if not alert_context:
+            return []
+
+        context_lower = alert_context.lower()
+        matched_labels = {
+            label
+            for label in KNOWN_ATTACK_LABELS
+            if label.lower() in context_lower
+        }
+
+        if not matched_labels:
+            return []
+
+        normalized_labels = {
+            label.lower().replace("-", " ")
+            for label in matched_labels
+        }
+
+        return [
+            RetrievalResult(document=document, score=1.0)
+            for document in self.retriever.documents
+            if (
+                category := document.metadata.get("category")
+            )
+            and category.lower() in normalized_labels
+        ]
+
     @staticmethod
     def _merge_results(
         primary: list[RetrievalResult],
@@ -135,6 +194,40 @@ class SOCCopilot:
             merged.append(result)
 
         return merged[:top_k]
+
+    @staticmethod
+    def _format_response(raw_response: str) -> str:
+        try:
+            payload = json.loads(raw_response)
+        except (json.JSONDecodeError, TypeError):
+            return raw_response.strip()
+
+        if not isinstance(payload, dict):
+            return raw_response.strip()
+
+        fields = (
+            ("1. Assessment", payload.get("assessment")),
+            (
+                "2. Supporting Evidence",
+                payload.get("supporting_evidence"),
+            ),
+            (
+                "3. Recommended Actions",
+                payload.get("recommended_actions"),
+            ),
+        )
+
+        if not all(
+            isinstance(value, str) and value.strip()
+            for _, value in fields
+        ):
+            return raw_response.strip()
+
+        return "\n\n".join(
+            f"{heading}\n{value.strip()}"
+            for heading, value in fields
+            if isinstance(value, str)
+        )
 
     def ask(
         self,
@@ -164,6 +257,11 @@ class SOCCopilot:
             alert_context
         )
 
+        label_results = self._label_documents(alert_context)
+
+        if label_results:
+            semantic_results = label_results
+
         results = self._merge_results(
             mapped_results,
             semantic_results,
@@ -191,12 +289,14 @@ class SOCCopilot:
             )
 
         prompt_parts.append(
-            "Provide: assessment, supporting evidence, and recommended next actions."
+            "Preserve every supplied indicator exactly. Return concise content for "
+            "the three required response fields."
         )
 
         response = self.llm_client.generate(
             prompt="\n\n".join(prompt_parts),
             system=SYSTEM_PROMPT,
+            format_schema=COPILOT_RESPONSE_SCHEMA,
         )
 
         sources = tuple(
@@ -210,7 +310,7 @@ class SOCCopilot:
         )
 
         return CopilotAnswer(
-            answer=response.response,
+            answer=self._format_response(response.response),
             sources=sources,
             model=response.model,
         )

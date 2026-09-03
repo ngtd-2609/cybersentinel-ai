@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from cybersentinel_ai.rag.copilot import SOCCopilot
@@ -9,14 +11,42 @@ class FakeOllamaClient:
         self,
         prompt: str,
         system: str | None = None,
+        format_schema: dict[str, object] | None = None,
     ) -> OllamaResponse:
         assert "scan open ports" in prompt
         assert "Retrieved security knowledge" in prompt
         assert system is not None
+        assert format_schema is not None
 
         return OllamaResponse(
             model="qwen2.5:3b",
             response="Investigate the source and exposed services.",
+            done=True,
+        )
+
+
+class CapturingOllamaClient:
+    def __init__(self) -> None:
+        self.prompt = ""
+        self.system = ""
+
+    def generate(
+        self,
+        prompt: str,
+        system: str | None = None,
+        format_schema: dict[str, object] | None = None,
+    ) -> OllamaResponse:
+        self.prompt = prompt
+        self.system = system or ""
+        return OllamaResponse(
+            model="qwen3:4b",
+            response=json.dumps(
+                {
+                    "assessment": "Critical ransomware alert.",
+                    "supporting_evidence": "Source IP 10.10.10.10.",
+                    "recommended_actions": "Isolate the affected host.",
+                }
+            ),
             done=True,
         )
 
@@ -49,3 +79,29 @@ def test_soc_copilot_empty_question():
 
     with pytest.raises(ValueError):
         copilot.ask("   ")
+
+
+def test_ransomware_context_excludes_unrelated_playbooks():
+    client = CapturingOllamaClient()
+    copilot = SOCCopilot(
+        llm_client=client,  # type: ignore[arg-type]
+    )
+
+    result = copilot.ask(
+        "Assess this alert and recommend immediate SOC actions.",
+        alert_context=(
+            "RANSOMWARE alert from source IP 10.10.10.10 with "
+            "risk score 98 and severity CRITICAL."
+        ),
+        top_k=4,
+    )
+
+    source_ids = {source.document_id for source in result.sources}
+    assert source_ids == {"mitre-t1486", "soc-ransomware"}
+    assert "10.10.10.10" in client.prompt
+    assert "SSH Brute Force" not in client.prompt
+    assert "Brute Force Investigation" not in client.prompt
+    assert 'Start the response immediately with "1. Assessment"' in client.system
+    assert result.answer.startswith("1. Assessment\n")
+    assert "\n\n2. Supporting Evidence\n" in result.answer
+    assert "\n\n3. Recommended Actions\n" in result.answer

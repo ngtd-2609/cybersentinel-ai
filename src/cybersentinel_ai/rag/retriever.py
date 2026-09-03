@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+DEFAULT_MIN_SCORE = 0.08
+
 
 @dataclass(frozen=True)
 class KnowledgeDocument:
@@ -23,11 +25,13 @@ class TfidfRetriever:
     def __init__(
         self,
         documents: list[KnowledgeDocument],
+        min_score: float = DEFAULT_MIN_SCORE,
     ) -> None:
         if not documents:
             raise ValueError("documents must not be empty")
 
         self.documents = documents
+        self.min_score = min_score
         self.vectorizer = TfidfVectorizer(
             lowercase=True,
             stop_words="english",
@@ -69,5 +73,5 @@ class TfidfRetriever:
                 score=float(similarities[index]),
             )
             for index in ranked_indices
-            if similarities[index] > 0.0
+            if similarities[index] >= self.min_score
         ]

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.auth.repository import (
     create_user,
     get_user_by_email,
@@ -33,10 +34,21 @@ def register_user(
         full_name=payload.full_name,
     )
 
-    return create_user(
+    created_user = create_user(
         db,
         user,
     )
+
+    log_action(
+        db,
+        created_user.id,
+        "CREATE_USER",
+        f"Created user {created_user.email}",
+        "USER",
+        created_user.id,
+    )
+
+    return created_user
 
 
 def authenticate_user(
@@ -56,6 +68,17 @@ def authenticate_user(
         password,
         user.hashed_password,
     ):
+        return None
+
+    if not user.is_active:
+        log_action(
+            db,
+            user.id,
+            "LOGIN_BLOCKED",
+            f"Disabled user {user.email} attempted login",
+            "USER",
+            user.id,
+        )
         return None
 
     return user

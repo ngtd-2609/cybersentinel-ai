@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     secret_key: str = "change-this-in-production"
 
+    auto_incident_risk_threshold: float = 85.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="CYBERSENTINEL_",

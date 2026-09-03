@@ -117,6 +117,19 @@ def create_incident(
     )
 
     database.add(timeline)
+
+    if incident.detection_event_id:
+        detection_timeline = IncidentTimeline(
+            incident_id=incident.id,
+            action="DETECTION_RECEIVED",
+            description=(
+                f"Linked detection event {incident.detection_event_id} "
+                "to incident"
+            ),
+        )
+
+        database.add(detection_timeline)
+
     database.commit()
 
     return incident
