@@ -48,6 +48,8 @@ mlflow.db
 *.log
 tmp/
 temp/
+backups/
+deploy/certs/
 
 # Local credentials
 *.pem

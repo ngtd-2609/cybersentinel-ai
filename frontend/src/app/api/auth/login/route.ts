@@ -20,9 +20,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const loginHeaders = new Headers({ "Content-Type": "application/json" });
+  const forwardedFor = request.headers.get("X-Forwarded-For");
+  if (forwardedFor) {
+    loginHeaders.set("X-Forwarded-For", forwardedFor);
+  }
+
   const loginResponse = await fetch(`${BACKEND_API_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: loginHeaders,
     body: JSON.stringify(credentials),
     cache: "no-store",
   });

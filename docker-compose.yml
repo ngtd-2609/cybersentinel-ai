@@ -3,9 +3,9 @@ services:
     image: postgres:16
     container_name: cybersentinel-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: cybersentinel
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-cybersentinel}
     ports:
       - "5432:5432"
     volumes:
@@ -26,18 +26,22 @@ services:
       - "8001:8000"
     env_file:
       - .env
+    environment:
+      CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-cybersentinel}
     volumes:
       - cybersentinel-data:/data
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ready"]
       interval: 30s
       timeout: 10s
       retries: 5
 
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
 
   frontend:
@@ -48,12 +52,14 @@ services:
     ports:
       - "3002:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8001
       CYBERSENTINEL_API_URL: http://api:8000
     depends_on:
       api:
         condition: service_healthy
     restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
 
   prometheus:
     image: prom/prometheus:latest
