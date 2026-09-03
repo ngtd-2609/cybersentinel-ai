@@ -10,6 +10,7 @@ import {
   FileText,
   LayoutDashboard,
   Radar,
+  ScrollText,
   Settings,
   ShieldCheck,
   Siren,
@@ -33,6 +34,7 @@ const operations = [
 
 const administration = [
   { label: "Users & Roles", href: "/admin/users", icon: Users, adminOnly: true },
+  { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText, adminOnly: true },
   { label: "Settings", href: "/settings", icon: Settings, adminOnly: false },
 ];
 
@@ -98,16 +100,30 @@ export function Sidebar() {
         </p>
 
         <nav className="space-y-1">
-          {administrationItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
-            >
-              <item.icon className="size-4 text-slate-400" />
-              {item.label}
-            </Link>
-          ))}
+          {administrationItems.map((item) => {
+            const active = pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+                  active
+                    ? "bg-cyan-50 text-cyan-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "size-4",
+                    active ? "text-cyan-600" : "text-slate-400",
+                  )}
+                />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
