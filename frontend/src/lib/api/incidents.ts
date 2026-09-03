@@ -1,3 +1,5 @@
+import { apiFetch } from "@/lib/api/client";
+
 export interface Incident {
   id: number;
   title: string;
@@ -24,14 +26,11 @@ export interface IncidentCreate {
   detection_event_id?: number | null;
 }
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
-
 export async function getIncidents(
   limit: number = 25,
   offset: number = 0,
 ): Promise<IncidentPage> {
-  const response = await fetch(`${API_URL}/incidents?limit=${limit}&offset=${offset}`, {
+  const response = await apiFetch(`/incidents?limit=${limit}&offset=${offset}`, {
     headers: {
       Accept: "application/json",
     },
@@ -49,7 +48,7 @@ export async function getIncidents(
 export async function createIncident(
   payload: IncidentCreate,
 ): Promise<Incident> {
-  const response = await fetch(`${API_URL}/incidents`, {
+  const response = await apiFetch("/incidents", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -71,7 +70,7 @@ export async function createIncident(
 export async function getIncidentById(
   id: number,
 ): Promise<Incident> {
-  const response = await fetch(`${API_URL}/incidents/${id}`, {
+  const response = await apiFetch(`/incidents/${id}`, {
     headers: {
       Accept: "application/json",
     },
@@ -91,7 +90,7 @@ export async function updateIncidentStatus(
   id: number,
   status: string,
 ): Promise<Incident> {
-  const response = await fetch(`${API_URL}/incidents/${id}`, {
+  const response = await apiFetch(`/incidents/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -121,8 +120,8 @@ export interface IncidentTimeline {
 export async function getIncidentTimeline(
   id: number,
 ): Promise<IncidentTimeline[]> {
-  const response = await fetch(
-    `${API_URL}/incidents/${id}/timeline`,
+  const response = await apiFetch(
+    `/incidents/${id}/timeline`,
     {
       headers: {
         Accept: "application/json",
@@ -155,8 +154,8 @@ export async function askCopilot(
   question: string,
   alertContext: string,
 ): Promise<CopilotResponse> {
-  const response = await fetch(
-    `${API_URL}/copilot/ask`,
+  const response = await apiFetch(
+    "/copilot/ask",
     {
       method: "POST",
       headers: {

@@ -49,6 +49,7 @@ services:
       - "3002:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8001
+      CYBERSENTINEL_API_URL: http://api:8000
     depends_on:
       api:
         condition: service_healthy

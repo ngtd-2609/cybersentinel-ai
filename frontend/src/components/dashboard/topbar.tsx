@@ -1,10 +1,22 @@
-import { Bell, Languages, Menu, Search } from "lucide-react";
+"use client";
 
+import { Bell, Languages, LogOut, Menu, Search } from "lucide-react";
+
+import { useAuth } from "@/components/auth/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatRole } from "@/lib/auth";
 
 export function Topbar() {
+  const { user, logout } = useAuth();
+  const initials = (user?.full_name ?? user?.username ?? "SOC Analyst")
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b border-slate-200 bg-white/95 px-5 backdrop-blur md:px-8">
       <Button
@@ -47,18 +59,29 @@ export function Topbar() {
         <div className="flex items-center gap-3">
           <Avatar className="size-9 border border-cyan-100">
             <AvatarFallback className="bg-cyan-50 text-xs font-semibold text-cyan-700">
-              SA
+              {initials}
             </AvatarFallback>
           </Avatar>
 
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-slate-900">
-              SOC Analyst
+              {user?.full_name ?? user?.username ?? "SOC Analyst"}
             </p>
             <p className="text-xs text-slate-500">
-              Senior Analyst
+              {user ? formatRole(user.role) : "Loading role"}
             </p>
           </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => void logout()}
+            className="text-slate-500 hover:text-red-600"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="size-4" />
+          </Button>
         </div>
       </div>
     </header>

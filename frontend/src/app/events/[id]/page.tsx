@@ -7,9 +7,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createIncident } from "@/lib/api/incidents";
+import { apiFetch } from "@/lib/api/client";
+import { canWrite } from "@/lib/auth";
 import {
   Card,
   CardContent,
@@ -32,14 +35,11 @@ interface DetectionEvent {
   created_at: string;
 }
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
-
 async function getEvent(
   id: string,
 ): Promise<DetectionEvent> {
-  const response = await fetch(
-    `${API_URL}/events/${id}`,
+  const response = await apiFetch(
+    `/events/${id}`,
   );
 
   if (!response.ok) {
@@ -85,6 +85,8 @@ function ScoreCard({
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const mayWrite = user ? canWrite(user.role) : false;
 
   const id = String(params.id);
 
@@ -273,23 +275,17 @@ export default function EventDetailPage() {
                 </CardHeader>
 
                 <CardContent className="flex flex-wrap gap-3">
-                  <Button>
-                    Investigate
-                  </Button>
-
-                  <Button variant="outline">
-                    Block Source IP
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    disabled={createIncidentMutation.isPending}
-                    onClick={() => createIncidentMutation.mutate(event)}
-                  >
-                    {createIncidentMutation.isPending
-                      ? "Creating..."
-                      : "Create Incident"}
-                  </Button>
+                  {mayWrite && (
+                    <Button
+                      variant="outline"
+                      disabled={createIncidentMutation.isPending}
+                      onClick={() => createIncidentMutation.mutate(event)}
+                    >
+                      {createIncidentMutation.isPending
+                        ? "Creating..."
+                        : "Create Incident"}
+                    </Button>
+                  )}
 
                   {event.requires_review && (
                     <Badge className="bg-violet-100 text-violet-700">

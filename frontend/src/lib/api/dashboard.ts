@@ -1,3 +1,5 @@
+import { apiFetch } from "@/lib/api/client";
+
 export interface DetectionEvent {
   id: number;
   source_ip: string | null;
@@ -47,12 +49,9 @@ export interface DashboardSummary {
   recent_events: DetectionEvent[];
 }
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
-
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const response = await fetch(
-    `${API_URL}/dashboard/summary`,
+  const response = await apiFetch(
+    "/dashboard/summary",
     {
       headers: {
         Accept: "application/json",

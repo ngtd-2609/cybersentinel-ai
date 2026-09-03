@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-provider";
 
 const operations = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -31,12 +32,16 @@ const operations = [
 ];
 
 const administration = [
-  { label: "Users & Roles", href: "/admin/users", icon: Users },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Users & Roles", href: "/admin/users", icon: Users, adminOnly: true },
+  { label: "Settings", href: "/settings", icon: Settings, adminOnly: false },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const administrationItems = administration.filter(
+    (item) => !item.adminOnly || user?.role === "ADMIN",
+  );
 
   return (
     <aside className="hidden h-screen w-72 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
@@ -93,7 +98,7 @@ export function Sidebar() {
         </p>
 
         <nav className="space-y-1">
-          {administration.map((item) => (
+          {administrationItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

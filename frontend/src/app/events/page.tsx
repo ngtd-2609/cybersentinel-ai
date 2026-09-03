@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { createIncident } from "@/lib/api/incidents";
+import { apiFetch } from "@/lib/api/client";
 
 import { RefreshCw, Search, Siren } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import { useRouter } from "next/navigation";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { DetectionEvent } from "@/lib/api/dashboard";
+import { canWrite } from "@/lib/auth";
 
 interface DetectionEventPage {
   items: DetectionEvent[];
@@ -30,12 +33,9 @@ interface DetectionEventPage {
   offset: number;
 }
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
-
 async function getEvents(): Promise<DetectionEventPage> {
-  const response = await fetch(
-    `${API_URL}/events/page?limit=25&offset=0`,
+  const response = await apiFetch(
+    "/events/page?limit=25&offset=0",
   );
 
   if (!response.ok) {
@@ -60,6 +60,8 @@ function severityStyle(severity: string) {
 
 export default function EventsPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const mayWrite = user ? canWrite(user.role) : false;
   async function handleCreateIncident(event: DetectionEvent) {
     const incident = await createIncident({
       title: `${event.predicted_label} - EVT-${String(event.id).padStart(5, "0")}`,
@@ -224,14 +226,16 @@ export default function EventsPage() {
                                 </span>
                               )}
 
-                              <button
-                                onClick={() =>
-                                  handleCreateIncident(event)
-                                }
-                                className="ml-3 rounded bg-black px-2 py-1 text-xs text-white"
-                              >
-                                Create
-                              </button>
+                              {mayWrite && (
+                                <button
+                                  onClick={() =>
+                                    handleCreateIncident(event)
+                                  }
+                                  className="ml-3 rounded bg-black px-2 py-1 text-xs text-white"
+                                >
+                                  Create
+                                </button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

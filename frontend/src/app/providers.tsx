@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/components/auth/auth-provider";
 
 export function Providers({
   children,
@@ -27,9 +28,9 @@ export function Providers({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        {children}
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

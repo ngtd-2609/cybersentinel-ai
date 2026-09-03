@@ -8,8 +8,12 @@ import {
   getIncidents,
   type Incident,
 } from "@/lib/api/incidents";
+import { useAuth } from "@/components/auth/auth-provider";
+import { canWrite } from "@/lib/auth";
 
 export default function IncidentsPage() {
+  const { user } = useAuth();
+  const mayWrite = user ? canWrite(user.role) : false;
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -90,12 +94,14 @@ export default function IncidentsPage() {
           Incident Management
         </h1>
 
-        <button
-          onClick={handleCreate}
-          className="rounded-lg bg-black px-4 py-2 text-white"
-        >
-          Create Incident
-        </button>
+        {mayWrite && (
+          <button
+            onClick={handleCreate}
+            className="rounded-lg bg-black px-4 py-2 text-white"
+          >
+            Create Incident
+          </button>
+        )}
       </div>
 
 

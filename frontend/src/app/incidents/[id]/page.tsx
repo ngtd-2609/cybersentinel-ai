@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { askCopilot, getIncidentById, getIncidentTimeline, updateIncidentStatus, type Incident, type IncidentTimeline } from "@/lib/api/incidents";
+import { useAuth } from "@/components/auth/auth-provider";
+import { canWrite } from "@/lib/auth";
 
 
 function statusClass(status: string) {
@@ -19,6 +21,8 @@ function statusClass(status: string) {
 }
 
 export default function IncidentDetailPage() {
+  const { user } = useAuth();
+  const mayWrite = user ? canWrite(user.role) : false;
   const params = useParams();
   const id = Number(params.id);
 
@@ -131,18 +135,20 @@ export default function IncidentDetailPage() {
             {incident.status}
           </span>
 
-          <select
-            value={incident.status}
-            disabled={updating}
-            onChange={(event) =>
-              handleStatusChange(event.target.value)
-            }
-            className="ml-3 rounded border px-3 py-2"
-          >
-            <option value="OPEN">OPEN</option>
-            <option value="IN_PROGRESS">IN_PROGRESS</option>
-            <option value="RESOLVED">RESOLVED</option>
-          </select>
+          {mayWrite && (
+            <select
+              value={incident.status}
+              disabled={updating}
+              onChange={(event) =>
+                handleStatusChange(event.target.value)
+              }
+              className="ml-3 rounded border px-3 py-2"
+            >
+              <option value="OPEN">OPEN</option>
+              <option value="IN_PROGRESS">IN_PROGRESS</option>
+              <option value="RESOLVED">RESOLVED</option>
+            </select>
+          )}
         </label>
 
         <p>
