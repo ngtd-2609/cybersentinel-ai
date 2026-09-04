@@ -1,5 +1,5 @@
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine, inspect, select
@@ -11,6 +11,7 @@ from cybersentinel_ai.db.models import (
     Incident,
     IncidentTimeline,
     User,
+    UserSession,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -30,6 +31,7 @@ def test_migrated_schema_supports_core_crud() -> None:
         "incident_timelines",
         "incidents",
         "users",
+        "user_sessions",
     }
     assert expected_tables <= set(inspect(engine).get_table_names())
     inspector = inspect(engine)
@@ -81,6 +83,18 @@ def test_migrated_schema_supports_core_crud() -> None:
         session.add_all([incident, user])
         session.flush()
 
+        user_session = UserSession(
+            user_id=user.id,
+            refresh_token_hash="a" * 64,
+            expires_at=now + timedelta(days=7),
+            created_at=now,
+            ip_address="127.0.0.1",
+            user_agent="CI integration test",
+        )
+        session.add(user_session)
+        session.flush()
+        user_session_id = user_session.id
+
         session.add_all(
             [
                 IncidentTimeline(
@@ -124,6 +138,7 @@ def test_migrated_schema_supports_core_crud() -> None:
         session.commit()
         session.refresh(audit_log)
         assert audit_log.user_id is None
+        assert session.get(UserSession, user_session_id) is None
 
         session.delete(stored)
         session.commit()

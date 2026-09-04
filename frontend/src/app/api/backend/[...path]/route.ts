@@ -2,8 +2,14 @@ import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { AUTH_COOKIE_NAME } from "@/lib/auth";
+import { AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME } from "@/lib/auth";
 import { BACKEND_API_URL } from "@/lib/server/backend";
+import {
+  clearSessionCookies,
+  refreshSession,
+  setSessionCookies,
+  type SessionTokens,
+} from "@/lib/server/session";
 
 interface RouteContext {
   params: Promise<{ path: string[] }>;
@@ -13,7 +19,9 @@ async function proxyRequest(
   request: NextRequest,
   context: RouteContext,
 ) {
-  const token = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  let token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+  const refreshToken = cookieStore.get(REFRESH_COOKIE_NAME)?.value;
 
   if (!token) {
     return NextResponse.json(
@@ -28,22 +36,35 @@ async function proxyRequest(
   );
   target.search = request.nextUrl.search;
 
-  const headers = new Headers();
-  headers.set("Authorization", `Bearer ${token}`);
-  headers.set("Accept", request.headers.get("Accept") ?? "application/json");
-
-  const contentType = request.headers.get("Content-Type");
-  if (contentType) {
-    headers.set("Content-Type", contentType);
-  }
-
   const hasBody = !["GET", "HEAD"].includes(request.method);
-  const backendResponse = await fetch(target, {
-    method: request.method,
-    headers,
-    body: hasBody ? await request.arrayBuffer() : undefined,
-    cache: "no-store",
-  });
+  const requestBody = hasBody ? await request.arrayBuffer() : undefined;
+  const forward = (accessToken: string) => {
+    const headers = new Headers();
+    headers.set("Authorization", `Bearer ${accessToken}`);
+    headers.set("Accept", request.headers.get("Accept") ?? "application/json");
+
+    const contentType = request.headers.get("Content-Type");
+    if (contentType) {
+      headers.set("Content-Type", contentType);
+    }
+
+    return fetch(target, {
+      method: request.method,
+      headers,
+      body: requestBody,
+      cache: "no-store",
+    });
+  };
+
+  let refreshed: SessionTokens | null = null;
+  let backendResponse = await forward(token);
+  if (backendResponse.status === 401 && refreshToken) {
+    refreshed = await refreshSession(refreshToken);
+    if (refreshed) {
+      token = refreshed.access_token;
+      backendResponse = await forward(token);
+    }
+  }
   const body = await backendResponse.arrayBuffer();
   const response = new NextResponse(body, {
     status: backendResponse.status,
@@ -53,8 +74,11 @@ async function proxyRequest(
     },
   });
 
+  if (refreshed) {
+    setSessionCookies(response, refreshed);
+  }
   if (backendResponse.status === 401) {
-    response.cookies.delete(AUTH_COOKIE_NAME);
+    clearSessionCookies(response);
   }
 
   return response;

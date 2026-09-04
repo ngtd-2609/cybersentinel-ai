@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     login_rate_limit_window_seconds: int = 60
 
+    access_token_expire_minutes: int = 15
+
+    refresh_token_expire_days: int = 7
+
     enforce_production_config: bool = False
 
     @property

@@ -1,4 +1,5 @@
 export const AUTH_COOKIE_NAME = "cybersentinel_access_token";
+export const REFRESH_COOKIE_NAME = "cybersentinel_refresh_token";
 
 export const WRITE_ROLES = [
   "ADMIN",

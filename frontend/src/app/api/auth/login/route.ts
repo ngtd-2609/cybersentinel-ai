@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { AUTH_COOKIE_NAME, type AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth";
+import { BACKEND_API_URL } from "@/lib/server/backend";
 import {
-  AUTH_COOKIE_OPTIONS,
-  BACKEND_API_URL,
-} from "@/lib/server/backend";
-
-interface TokenResponse {
-  access_token: string;
-}
+  setSessionCookies,
+  type SessionTokens,
+} from "@/lib/server/session";
 
 export async function POST(request: Request) {
   const credentials = await request.json().catch(() => null);
@@ -40,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json(error, { status: loginResponse.status });
   }
 
-  const token = (await loginResponse.json()) as TokenResponse;
+  const token = (await loginResponse.json()) as SessionTokens;
   const userResponse = await fetch(`${BACKEND_API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token.access_token}` },
     cache: "no-store",
@@ -55,11 +52,7 @@ export async function POST(request: Request) {
 
   const user = (await userResponse.json()) as AuthUser;
   const response = NextResponse.json(user);
-  response.cookies.set(
-    AUTH_COOKIE_NAME,
-    token.access_token,
-    AUTH_COOKIE_OPTIONS,
-  );
+  setSessionCookies(response, token);
 
   return response;
 }
