@@ -83,6 +83,7 @@ def test_login_rate_limit(monkeypatch):
     assert second.status_code == 401
     assert limited.status_code == 429
     assert int(limited.headers["retry-after"]) >= 1
+    assert limited.headers["x-request-id"]
 
 
 def test_production_rejects_weak_jwt_secret():
@@ -101,6 +102,16 @@ def test_production_accepts_strong_jwt_secret():
         environment="production",
         enforce_production_config=True,
         secret_key="a-unique-production-secret-with-32-chars",
+        redis_url="redis://redis:6379/0",
     )
 
     assert settings.environment == "production"
+
+
+def test_request_id_header_is_preserved_and_invalid_value_is_replaced():
+    supplied = client.get("/health", headers={"X-Request-ID": "trace-test-123"})
+    invalid = client.get("/health", headers={"X-Request-ID": "invalid request id"})
+
+    assert supplied.headers["x-request-id"] == "trace-test-123"
+    assert invalid.headers["x-request-id"] != "invalid request id"
+    assert len(invalid.headers["x-request-id"]) == 36

@@ -1,6 +1,3 @@
-from collections import defaultdict, deque
-from time import monotonic
-
 from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -17,12 +14,22 @@ from cybersentinel_ai.api.metrics import configure_metrics
 from cybersentinel_ai.api.routes import router
 from cybersentinel_ai.api.user_admin_routes import router as user_admin_router
 from cybersentinel_ai.api.user_status_routes import router as user_status_router
+from cybersentinel_ai.audit.context import (
+    build_request_context,
+    reset_request_context,
+    set_request_context,
+)
 from cybersentinel_ai.auth.router import router as auth_router
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import get_db
+from cybersentinel_ai.security.rate_limit import (
+    LoginRateLimiter,
+    RateLimitUnavailableError,
+)
 
 settings = get_settings()
-login_failures: dict[str, deque[float]] = defaultdict(deque)
+login_rate_limiter = LoginRateLimiter(settings.redis_url)
+login_failures = login_rate_limiter.local_attempts
 
 app = FastAPI(
     title=settings.app_name,
@@ -55,10 +62,20 @@ async def security_headers(request, call_next) -> Response:
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
     if settings.environment.lower() == "production":
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+@app.middleware("http")
+async def request_audit_context(request, call_next) -> Response:
+    context = build_request_context(request, trust_proxy_headers=settings.trust_proxy_headers)
+    token = set_request_context(context)
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = context.request_id
+        return response
+    finally:
+        reset_request_context(token)
 
 
 @app.middleware("http")
@@ -66,35 +83,53 @@ async def login_rate_limit(request, call_next) -> Response:
     if request.method != "POST" or request.url.path != "/auth/login":
         return await call_next(request)
 
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if settings.environment.lower() == "production" and forwarded_for:
-        client_key = forwarded_for.split(",", maxsplit=1)[0].strip()
-    else:
-        client_key = request.client.host if request.client else "unknown"
-    now = monotonic()
-    failures = login_failures[client_key]
-    window = settings.login_rate_limit_window_seconds
-
-    while failures and now - failures[0] >= window:
-        failures.popleft()
-
-    if len(failures) >= settings.login_rate_limit_attempts:
-        retry_after = max(1, int(window - (now - failures[0])))
-        response = JSONResponse(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            content={"detail": "Too many login attempts. Try again later."},
-            headers={"Retry-After": str(retry_after)},
+    context = build_request_context(request, trust_proxy_headers=settings.trust_proxy_headers)
+    client_key = context.ip_address or "unknown"
+    try:
+        decision = await login_rate_limiter.consume(
+            client_key,
+            limit=settings.login_rate_limit_attempts,
+            window_seconds=settings.login_rate_limit_window_seconds,
+            fail_closed=settings.rate_limit_fail_closed,
         )
+    except RateLimitUnavailableError:
+        response = JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "Login protection is temporarily unavailable"},
+            headers={"Retry-After": "5"},
+        )
+        response.headers["X-Request-ID"] = context.request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         return response
 
+    if not decision.allowed:
+        response = JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Too many login attempts. Try again later."},
+            headers={"Retry-After": str(decision.retry_after)},
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Request-ID"] = context.request_id
+        return response
+
     response = await call_next(request)
-    if response.status_code == status.HTTP_200_OK:
-        login_failures.pop(client_key, None)
-    elif response.status_code == status.HTTP_401_UNAUTHORIZED:
-        failures.append(now)
+    if response.status_code in {status.HTTP_200_OK, status.HTTP_202_ACCEPTED}:
+        try:
+            await login_rate_limiter.clear(client_key, fail_closed=settings.rate_limit_fail_closed)
+        except RateLimitUnavailableError:
+            unavailable = JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"detail": "Login protection is temporarily unavailable"},
+                headers={"Retry-After": "5"},
+            )
+            unavailable.headers["X-Request-ID"] = context.request_id
+            unavailable.headers["X-Content-Type-Options"] = "nosniff"
+            unavailable.headers["X-Frame-Options"] = "DENY"
+            return unavailable
     return response
+
 
 app.include_router(router)
 app.include_router(audit_router)

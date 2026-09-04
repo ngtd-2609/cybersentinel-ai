@@ -1,4 +1,19 @@
 services:
+  redis:
+    image: redis:8-alpine
+    container_name: cybersentinel-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
   postgres:
     image: postgres:16
     container_name: cybersentinel-postgres
@@ -28,10 +43,15 @@ services:
       - .env
     environment:
       CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-cybersentinel}
+      CYBERSENTINEL_REDIS_URL: redis://redis:6379/0
+      CYBERSENTINEL_RATE_LIMIT_FAIL_CLOSED: "true"
+      CYBERSENTINEL_TRUST_PROXY_HEADERS: "true"
     volumes:
       - cybersentinel-data:/data
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/ready"]
@@ -93,3 +113,4 @@ volumes:
   prometheus-data:
   postgres-data:
   grafana-data:
+  redis-data:

@@ -27,6 +27,12 @@ class Settings(BaseSettings):
 
     login_rate_limit_window_seconds: int = Field(default=60, ge=1)
 
+    redis_url: str | None = None
+
+    rate_limit_fail_closed: bool = True
+
+    trust_proxy_headers: bool = False
+
     public_registration_enabled: bool = False
 
     account_lockout_attempts: int = Field(default=5, ge=1)
@@ -62,6 +68,12 @@ class Settings(BaseSettings):
                 "CYBERSENTINEL_SECRET_KEY must be a unique value of at least "
                 "32 characters in production"
             )
+        if (
+            self.environment.lower() == "production"
+            and self.enforce_production_config
+            and not self.redis_url
+        ):
+            raise ValueError("CYBERSENTINEL_REDIS_URL is required in production")
         return self
 
     model_config = SettingsConfigDict(
