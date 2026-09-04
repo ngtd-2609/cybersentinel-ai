@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from cybersentinel_ai.rag.copilot import SOCCopilot
+from cybersentinel_ai.security.dependencies import get_current_user
 
 router = APIRouter(prefix="/copilot", tags=["SOC Copilot"])
 
@@ -37,7 +38,11 @@ CopilotDependency = Annotated[
 ]
 
 
-@router.post("/ask", response_model=CopilotResponse)
+@router.post(
+    "/ask",
+    response_model=CopilotResponse,
+    dependencies=[Depends(get_current_user)],
+)
 def ask_copilot(
     payload: CopilotRequest,
     copilot: CopilotDependency,

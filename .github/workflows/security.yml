@@ -1,0 +1,149 @@
+name: Security
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-sast:
+    name: Dependency audit and SAST
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CYBERSENTINEL_REDIS_URL: redis://localhost:6379/0
+      CYBERSENTINEL_RUN_REDIS_INTEGRATION: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install Python dependencies
+        run: uv sync --locked --dev
+
+      - name: Audit Python dependencies
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project --quiet \
+            --output-file /tmp/cybersentinel-requirements.txt
+          # PYSEC-2026-1325 affects ECDSA operations. CyberSentinel signs and
+          # verifies JWTs exclusively with an allowlisted HS256 algorithm.
+          uvx pip-audit --strict -r /tmp/cybersentinel-requirements.txt \
+            --ignore-vuln PYSEC-2026-1325
+
+      - name: Run Bandit SAST
+        run: uvx bandit -r src -ll -ii
+
+      - name: Verify distributed Redis quota
+        run: uv run pytest tests/integration/test_redis_rate_limit.py -q
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit frontend dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+  container-scan:
+    name: Container vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f docker/Dockerfile -t cybersentinel-ai:security .
+
+      - name: Scan API image with Trivy
+        run: >-
+          docker run --rm
+          -v /var/run/docker.sock:/var/run/docker.sock
+          aquasec/trivy:0.74.0 image
+          --scanners vuln
+          --exit-code 1
+          --ignore-unfixed
+          --severity CRITICAL
+          cybersentinel-ai:security
+
+  dast:
+    name: OWASP ZAP API scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cybersentinel_dast
+      CYBERSENTINEL_ENVIRONMENT: test
+      CYBERSENTINEL_SECRET_KEY: dast-secret-at-least-32-characters-long
+      CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/cybersentinel_dast
+      CYBERSENTINEL_REDIS_URL: redis://redis:6379/0
+      CYBERSENTINEL_RATE_LIMIT_FAIL_CLOSED: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Compose environment
+        run: touch .env
+
+      - name: Start API stack
+        run: docker compose up -d --build postgres redis api
+
+      - name: Wait for API readiness
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8001/ready; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs api
+          exit 1
+
+      - name: Run active OpenAPI DAST
+        run: >-
+          docker run --rm --network host
+          ghcr.io/zaproxy/zaproxy:stable
+          zap-api-scan.py
+          -t http://127.0.0.1:8001/openapi.json
+          -f openapi
+          -I
+
+      - name: Show API logs on failure
+        if: failure()
+        run: docker compose logs api
+
+      - name: Stop API stack
+        if: always()
+        run: docker compose down --volumes
