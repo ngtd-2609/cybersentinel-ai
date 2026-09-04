@@ -57,6 +57,10 @@ def test_migrated_schema_supports_core_crud() -> None:
     } <= user_columns
     user_indexes = {index["name"] for index in inspector.get_indexes("users")}
     assert "ix_users_locked_until" in user_indexes
+    audit_columns = {column["name"] for column in inspector.get_columns("audit_logs")}
+    assert {"request_id", "ip_address", "user_agent"} <= audit_columns
+    audit_indexes = {index["name"] for index in inspector.get_indexes("audit_logs")}
+    assert {"ix_audit_logs_request_id", "ix_audit_logs_ip_address"} <= audit_indexes
 
     now = datetime.now(UTC)
     with Session(engine) as session:
@@ -136,6 +140,9 @@ def test_migrated_schema_supports_core_crud() -> None:
                     target_type="incident",
                     target_id=incident.id,
                     description="CI database acceptance audit record.",
+                    request_id="ci-request-id",
+                    ip_address="127.0.0.1",
+                    user_agent="CI integration test",
                     created_at=now,
                 ),
             ]

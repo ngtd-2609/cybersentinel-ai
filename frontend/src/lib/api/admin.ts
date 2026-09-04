@@ -23,6 +23,9 @@ export interface AuditLog {
   target_type: string | null;
   target_id: number | null;
   description: string;
+  request_id: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
   created_at: string;
 }
 

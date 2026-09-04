@@ -44,6 +44,9 @@ test("administrator reviews attributable audit records", async ({ page }) => {
           target_type: "INCIDENT",
           target_id: 7,
           description: "Created incident from detection event 19.",
+          request_id: "request-abc-123",
+          ip_address: "203.0.113.9",
+          user_agent: "Playwright",
           created_at: "2026-09-03T10:10:00Z",
         },
       ],
@@ -59,4 +62,5 @@ test("administrator reviews attributable audit records", async ({ page }) => {
   await expect(page.getByText("User #1")).toBeVisible();
   await expect(page.getByText("Incident #7")).toBeVisible();
   await expect(page.getByText("Created incident from detection event 19.")).toBeVisible();
+  await expect(page.getByText("203.0.113.9 · request-abc-123")).toBeVisible();
 });

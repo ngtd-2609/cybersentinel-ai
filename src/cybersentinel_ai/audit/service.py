@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from cybersentinel_ai.audit.context import get_request_context
 from cybersentinel_ai.audit.repository import (
     create_audit_log,
     get_audit_logs,
@@ -17,12 +18,16 @@ def log_action(
     *,
     commit: bool = True,
 ) -> AuditLog:
+    request_context = get_request_context()
     audit_log = AuditLog(
         user_id=user_id,
         action=action,
         target_type=target_type,
         target_id=target_id,
         description=description,
+        request_id=request_context.request_id if request_context else None,
+        ip_address=request_context.ip_address if request_context else None,
+        user_agent=request_context.user_agent if request_context else None,
     )
 
     return create_audit_log(

@@ -237,7 +237,10 @@ function AuditLogsPanel() {
                         : "—"}
                     </TableCell>
                     <TableCell className="max-w-xl whitespace-normal pr-5 text-sm text-slate-600">
-                      {log.description}
+                      <p>{log.description}</p>
+                      <p className="mt-1 font-mono text-[11px] text-slate-400">
+                        {[log.ip_address, log.request_id].filter(Boolean).join(" · ") || "No request metadata"}
+                      </p>
                     </TableCell>
                   </TableRow>
                 ))}

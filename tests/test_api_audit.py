@@ -3,13 +3,19 @@ from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from cybersentinel_ai.api.audit_routes import router
+from cybersentinel_ai.audit.context import (
+    RequestAuditContext,
+    reset_request_context,
+    set_request_context,
+)
 from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.db.database import Base, get_db
+from cybersentinel_ai.db.models import AuditLog
 from cybersentinel_ai.security.dependencies import get_current_user
 
 engine = create_engine(
@@ -78,3 +84,23 @@ def test_audit_logs_support_pagination_and_filters():
     assert len(page["items"]) == 1
     assert page["items"][0]["action"] == "UPDATE_STATUS"
     assert page["items"][0]["user_id"] == 2
+
+
+def test_audit_log_captures_request_metadata():
+    token = set_request_context(
+        RequestAuditContext(
+            request_id="audit-request-123",
+            ip_address="203.0.113.9",
+            user_agent="Audit test agent",
+        )
+    )
+    try:
+        with TestingSession() as database:
+            created = log_action(database, None, "TEST_CONTEXT", "Context metadata")
+            stored = database.scalar(select(AuditLog).where(AuditLog.id == created.id))
+            assert stored is not None
+            assert stored.request_id == "audit-request-123"
+            assert stored.ip_address == "203.0.113.9"
+            assert stored.user_agent == "Audit test agent"
+    finally:
+        reset_request_context(token)
