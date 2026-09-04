@@ -2,11 +2,12 @@ from collections.abc import Generator
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cybersentinel_ai.auth.router import router
 from cybersentinel_ai.db.database import Base, build_engine, get_db
-from cybersentinel_ai.db.models import User
+from cybersentinel_ai.db.models import AuditLog, User
 from cybersentinel_ai.security.jwt import hash_password
 
 
@@ -58,6 +59,8 @@ def test_login_refresh_rotation_and_logout_revoke(tmp_path):
     assert refresh.status_code == 200
     second = refresh.json()
     assert second["refresh_token"] != first["refresh_token"]
+    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
+    assert client.get("/auth/me", headers=second_headers).status_code == 200
 
     assert client.get("/auth/me", headers=first_headers).status_code == 401
     reused = client.post(
@@ -66,15 +69,66 @@ def test_login_refresh_rotation_and_logout_revoke(tmp_path):
     )
     assert reused.status_code == 401
 
-    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
-    assert client.get("/auth/me", headers=second_headers).status_code == 200
+    assert client.get("/auth/me", headers=second_headers).status_code == 401
+
+    third = client.post(
+        "/auth/login",
+        json={
+            "email": "analyst@example.test",
+            "password": "StrongPassword123!",
+        },
+    ).json()
+    third_headers = {"Authorization": f"Bearer {third['access_token']}"}
+    wrong_password = client.post(
+        "/auth/change-password",
+        headers=third_headers,
+        json={
+            "current_password": "WrongPassword123!",
+            "new_password": "NewStrongPassword456!",
+        },
+    )
+    assert wrong_password.status_code == 400
+    changed = client.post(
+        "/auth/change-password",
+        headers=third_headers,
+        json={
+            "current_password": "StrongPassword123!",
+            "new_password": "NewStrongPassword456!",
+        },
+    )
+    assert changed.status_code == 204
+    assert client.get("/auth/me", headers=third_headers).status_code == 401
+
+    old_login = client.post(
+        "/auth/login",
+        json={
+            "email": "analyst@example.test",
+            "password": "StrongPassword123!",
+        },
+    )
+    assert old_login.status_code == 401
+
+    fourth = client.post(
+        "/auth/login",
+        json={
+            "email": "analyst@example.test",
+            "password": "NewStrongPassword456!",
+        },
+    ).json()
+    fourth_headers = {"Authorization": f"Bearer {fourth['access_token']}"}
+    assert client.get("/auth/me", headers=fourth_headers).status_code == 200
 
     logout = client.post(
         "/auth/logout",
-        headers=second_headers,
-        json={"refresh_token": second["refresh_token"]},
+        headers=fourth_headers,
+        json={"refresh_token": fourth["refresh_token"]},
     )
     assert logout.status_code == 204
-    assert client.get("/auth/me", headers=second_headers).status_code == 401
+    assert client.get("/auth/me", headers=fourth_headers).status_code == 401
+
+    with testing_session() as database:
+        actions = set(database.scalars(select(AuditLog.action)).all())
+    assert "REFRESH_TOKEN_REUSE" in actions
+    assert "PASSWORD_CHANGED" in actions
 
     engine.dispose()

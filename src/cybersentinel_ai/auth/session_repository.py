@@ -35,3 +35,15 @@ def get_user_session_by_refresh_hash(
     if for_update:
         statement = statement.with_for_update()
     return db.scalar(statement)
+
+
+def get_user_sessions(
+    db: Session,
+    user_id: int,
+    *,
+    for_update: bool = False,
+) -> list[UserSession]:
+    statement = select(UserSession).where(UserSession.user_id == user_id)
+    if for_update:
+        statement = statement.with_for_update()
+    return list(db.scalars(statement).all())

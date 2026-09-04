@@ -11,6 +11,7 @@ from cybersentinel_ai.auth.repository import (
     get_user_by_username,
 )
 from cybersentinel_ai.auth.schemas import UserCreate
+from cybersentinel_ai.auth.session_service import revoke_all_user_sessions
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import atomic
 from cybersentinel_ai.db.models import User
@@ -24,6 +25,10 @@ class AccountLockedError(ValueError):
     def __init__(self, retry_after: int):
         super().__init__("Account temporarily locked")
         self.retry_after = retry_after
+
+
+class InvalidCurrentPasswordError(ValueError):
+    pass
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -199,3 +204,34 @@ def bootstrap_first_admin(db: Session, payload: UserCreate) -> User:
             commit=False,
         )
     return admin
+
+
+def change_user_password(
+    db: Session,
+    user_id: int,
+    current_password: str,
+    new_password: str,
+) -> None:
+    with atomic(db):
+        user = db.scalar(
+            select(User).where(User.id == user_id).with_for_update()
+        )
+        if user is None or not verify_password(current_password, user.hashed_password):
+            raise InvalidCurrentPasswordError("Current password is incorrect")
+        if verify_password(new_password, user.hashed_password):
+            raise ValueError("New password must differ from current password")
+
+        user.hashed_password = hash_password(new_password)
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.last_failed_login_at = None
+        revoke_all_user_sessions(db, user.id)
+        log_action(
+            db,
+            user.id,
+            "PASSWORD_CHANGED",
+            f"Changed password and revoked all sessions for {user.email}",
+            "USER",
+            user.id,
+            commit=False,
+        )

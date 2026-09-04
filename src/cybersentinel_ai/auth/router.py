@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.auth.schemas import (
+    PasswordChangeRequest,
     RefreshTokenRequest,
     TokenResponse,
     UserCreate,
@@ -12,11 +13,14 @@ from cybersentinel_ai.auth.schemas import (
 from cybersentinel_ai.auth.service import (
     AccountLockedError,
     authenticate_user,
+    change_user_password,
     register_user,
 )
 from cybersentinel_ai.auth.session_service import (
     InvalidRefreshTokenError,
+    RefreshTokenReuseError,
     issue_user_session,
+    revoke_rotated_session_family,
     revoke_user_session,
     rotate_user_session,
 )
@@ -135,6 +139,27 @@ def refresh(
                 user.id,
                 commit=False,
             )
+    except RefreshTokenReuseError as exc:
+        with atomic(db):
+            revoked = revoke_rotated_session_family(
+                db,
+                payload.refresh_token,
+                exc.user_id,
+            )
+            if revoked:
+                log_action(
+                    db,
+                    exc.user_id,
+                    "REFRESH_TOKEN_REUSE",
+                    "Detected refresh-token reuse and revoked the session family",
+                    "USER",
+                    exc.user_id,
+                    commit=False,
+                )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
     except InvalidRefreshTokenError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -174,6 +199,30 @@ def logout(
                 current_user.id,
                 commit=False,
             )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/change-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def change_password(
+    payload: PasswordChangeRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+) -> Response:
+    try:
+        change_user_password(
+            db,
+            current_user.id,
+            payload.current_password,
+            payload.new_password,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

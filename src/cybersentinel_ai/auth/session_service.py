@@ -7,6 +7,7 @@ from cybersentinel_ai.auth.session_repository import (
     create_user_session,
     get_user_session,
     get_user_session_by_refresh_hash,
+    get_user_sessions,
 )
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.models import User, UserSession
@@ -19,6 +20,12 @@ from cybersentinel_ai.security.jwt import (
 
 class InvalidRefreshTokenError(ValueError):
     pass
+
+
+class RefreshTokenReuseError(InvalidRefreshTokenError):
+    def __init__(self, user_id: int):
+        super().__init__("Invalid or expired refresh token")
+        self.user_id = user_id
 
 
 @dataclass(frozen=True)
@@ -76,11 +83,11 @@ def rotate_user_session(
         hash_refresh_token(refresh_token),
         for_update=True,
     )
-    if (
-        current is None
-        or current.revoked_at is not None
-        or _as_utc(current.expires_at) <= now
-    ):
+    if current is None or _as_utc(current.expires_at) <= now:
+        raise InvalidRefreshTokenError("Invalid or expired refresh token")
+    if current.revoked_at is not None:
+        if current.replaced_by_id is not None:
+            raise RefreshTokenReuseError(current.user_id)
         raise InvalidRefreshTokenError("Invalid or expired refresh token")
 
     user = db.get(User, current.user_id)
@@ -123,6 +130,52 @@ def revoke_user_session(
         session.revoked_at = datetime.now(UTC)
         db.flush()
     return True
+
+
+def revoke_rotated_session_family(
+    db: Session,
+    refresh_token: str,
+    user_id: int,
+) -> bool:
+    current = get_user_session_by_refresh_hash(
+        db,
+        hash_refresh_token(refresh_token),
+        for_update=True,
+    )
+    if (
+        current is None
+        or current.user_id != user_id
+        or current.replaced_by_id is None
+    ):
+        return False
+
+    now = datetime.now(UTC)
+    next_session_id = current.replaced_by_id
+    visited = {current.id}
+    while next_session_id is not None and next_session_id not in visited:
+        visited.add(next_session_id)
+        descendant = get_user_session(db, next_session_id, for_update=True)
+        if descendant is None or descendant.user_id != user_id:
+            break
+        if descendant.revoked_at is None:
+            descendant.revoked_at = now
+            descendant.last_used_at = now
+        next_session_id = descendant.replaced_by_id
+
+    db.flush()
+    return True
+
+
+def revoke_all_user_sessions(db: Session, user_id: int) -> int:
+    now = datetime.now(UTC)
+    revoked = 0
+    for session in get_user_sessions(db, user_id, for_update=True):
+        if session.revoked_at is None:
+            session.revoked_at = now
+            session.last_used_at = now
+            revoked += 1
+    db.flush()
+    return revoked
 
 
 def is_user_session_active(

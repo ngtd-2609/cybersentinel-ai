@@ -8,8 +8,10 @@ from cybersentinel_ai.auth.session_repository import (
 )
 from cybersentinel_ai.auth.session_service import (
     InvalidRefreshTokenError,
+    RefreshTokenReuseError,
     is_user_session_active,
     issue_user_session,
+    revoke_rotated_session_family,
     revoke_user_session,
     rotate_user_session,
 )
@@ -56,14 +58,32 @@ def test_refresh_rotation_revokes_old_token_and_logout_revokes_access():
         assert second.refresh_token != first.refresh_token
         assert not is_user_session_active(database, first_claims["sid"], user.id)
 
-        with pytest.raises(InvalidRefreshTokenError), atomic(database):
-            rotate_user_session(database, first.refresh_token)
-
         second_claims = decode_access_token(second.access_token)
         with atomic(database):
-            assert revoke_user_session(database, second.refresh_token, user.id)
+            _, third = rotate_user_session(database, second.refresh_token)
+        third_claims = decode_access_token(third.access_token)
+
+        with pytest.raises(RefreshTokenReuseError) as reused, atomic(database):
+            rotate_user_session(database, first.refresh_token)
+
+        assert reused.value.user_id == user.id
+        with atomic(database):
+            assert revoke_rotated_session_family(
+                database,
+                first.refresh_token,
+                user.id,
+            )
 
         assert not is_user_session_active(database, second_claims["sid"], user.id)
+        assert not is_user_session_active(database, third_claims["sid"], user.id)
+
+        with atomic(database):
+            fourth = issue_user_session(database, user)
+        fourth_claims = decode_access_token(fourth.access_token)
+        with atomic(database):
+            assert revoke_user_session(database, fourth.refresh_token, user.id)
+
+        assert not is_user_session_active(database, fourth_claims["sid"], user.id)
 
 
 def test_expired_refresh_token_cannot_rotate():

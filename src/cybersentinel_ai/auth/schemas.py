@@ -1,10 +1,24 @@
 import re
 import string
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
+
+
+def validate_password_strength(value: str) -> str:
+    requirements = (
+        any(character.islower() for character in value),
+        any(character.isupper() for character in value),
+        any(character.isdigit() for character in value),
+        any(character in string.punctuation for character in value),
+    )
+    if not all(requirements):
+        raise ValueError(
+            "Password must include uppercase, lowercase, number, and special character"
+        )
+    return value
 
 
 class EmailMixin(BaseModel):
@@ -41,19 +55,7 @@ class UserCreate(EmailMixin):
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
-        requirements = (
-            any(character.islower() for character in value),
-            any(character.isupper() for character in value),
-            any(character.isdigit() for character in value),
-            any(character in string.punctuation for character in value),
-        )
-
-        if not all(requirements):
-            raise ValueError(
-                "Password must include uppercase, lowercase, number, and special character"
-            )
-
-        return value
+        return validate_password_strength(value)
 
 
 class UserLogin(EmailMixin):
@@ -70,6 +72,22 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str = Field(min_length=32, max_length=512)
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        return validate_password_strength(value)
+
+    @model_validator(mode="after")
+    def reject_reused_password(self) -> "PasswordChangeRequest":
+        if self.current_password == self.new_password:
+            raise ValueError("New password must differ from current password")
+        return self
 
 
 class UserResponse(BaseModel):

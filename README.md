@@ -1891,7 +1891,13 @@ Retrieved evidence and analyst review remain necessary.
 The API implements password authentication, RBAC, short-lived access tokens,
 rotating refresh sessions, explicit session revocation, one-time first-admin
 bootstrap, closed-by-default public registration, and database-backed account
-lockout. The remaining production hardening work includes:
+lockout. Reuse of an already-rotated refresh token is treated as compromise and
+revokes every descendant session in that rotation chain.
+
+An authenticated user can change their password with `POST /auth/change-password`
+using `current_password` and a policy-compliant `new_password`. A successful change
+revokes every session for that user, including the session making the request, so
+the client must sign in again. The remaining production hardening work includes:
 
 ```text
 password reset and email verification
