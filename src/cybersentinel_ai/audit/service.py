@@ -14,6 +14,8 @@ def log_action(
     description: str,
     target_type: str | None = None,
     target_id: int | None = None,
+    *,
+    commit: bool = True,
 ) -> AuditLog:
     audit_log = AuditLog(
         user_id=user_id,
@@ -26,6 +28,7 @@ def log_action(
     return create_audit_log(
         db,
         audit_log,
+        commit=commit,
     )
 
 

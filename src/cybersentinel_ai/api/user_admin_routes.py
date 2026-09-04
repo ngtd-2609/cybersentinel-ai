@@ -10,7 +10,7 @@ from cybersentinel_ai.auth.admin_service import (
     change_user_role,
     list_users,
 )
-from cybersentinel_ai.db.database import get_db
+from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.security.rbac import (
     UserRole,
     require_role,
@@ -48,20 +48,23 @@ def update_role(
     ),
 ):
     try:
-        user = change_user_role(
-            db,
-            user_id,
-            payload.role,
-        )
+        with atomic(db):
+            user = change_user_role(
+                db,
+                user_id,
+                payload.role,
+                commit=False,
+            )
 
-        log_action(
-            db,
-            current_user.id,
-            "UPDATE_ROLE",
-            f"Changed user {user.email} role to {payload.role}",
-            "USER",
-            user.id,
-        )
+            log_action(
+                db,
+                current_user.id,
+                "UPDATE_ROLE",
+                f"Changed user {user.email} role to {payload.role}",
+                "USER",
+                user.id,
+                commit=False,
+            )
 
         return user
     except ValueError as exc:

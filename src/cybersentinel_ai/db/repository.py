@@ -13,11 +13,20 @@ from cybersentinel_ai.db.models import DetectionEvent, Incident, IncidentTimelin
 def create_detection_event(
     database: Session,
     payload: DetectionEventCreate,
+    *,
+    idempotency_key: str | None = None,
+    commit: bool = True,
 ) -> DetectionEvent:
-    event = DetectionEvent(**payload.model_dump())
+    event = DetectionEvent(
+        **payload.model_dump(),
+        idempotency_key=idempotency_key,
+    )
 
     database.add(event)
-    database.commit()
+    if commit:
+        database.commit()
+    else:
+        database.flush()
     database.refresh(event)
 
     return event
@@ -28,6 +37,17 @@ def get_detection_event(
     event_id: int,
 ) -> DetectionEvent | None:
     return database.get(DetectionEvent, event_id)
+
+
+def get_detection_event_by_idempotency_key(
+    database: Session,
+    idempotency_key: str,
+) -> DetectionEvent | None:
+    return database.scalar(
+        select(DetectionEvent).where(
+            DetectionEvent.idempotency_key == idempotency_key
+        )
+    )
 
 
 def list_detection_events(
@@ -103,12 +123,13 @@ def search_detection_events(
 def create_incident(
     database: Session,
     payload: IncidentCreate,
+    *,
+    commit: bool = True,
 ) -> Incident:
     incident = Incident(**payload.model_dump())
 
     database.add(incident)
-    database.commit()
-    database.refresh(incident)
+    database.flush()
 
     timeline = IncidentTimeline(
         incident_id=incident.id,
@@ -130,7 +151,11 @@ def create_incident(
 
         database.add(detection_timeline)
 
-    database.commit()
+    if commit:
+        database.commit()
+    else:
+        database.flush()
+    database.refresh(incident)
 
     return incident
 
@@ -171,6 +196,8 @@ def update_incident_status(
     database: Session,
     incident_id: int,
     payload: IncidentUpdate,
+    *,
+    commit: bool = True,
 ) -> Incident | None:
     incident = database.get(Incident, incident_id)
 
@@ -191,7 +218,10 @@ def update_incident_status(
 
     database.add(timeline)
 
-    database.commit()
+    if commit:
+        database.commit()
+    else:
+        database.flush()
     database.refresh(incident)
 
     return incident
@@ -201,6 +231,8 @@ def create_incident_timeline(
     database: Session,
     incident_id: int,
     payload: IncidentTimelineCreate,
+    *,
+    commit: bool = True,
 ) -> IncidentTimeline:
     timeline = IncidentTimeline(
         incident_id=incident_id,
@@ -208,7 +240,10 @@ def create_incident_timeline(
     )
 
     database.add(timeline)
-    database.commit()
+    if commit:
+        database.commit()
+    else:
+        database.flush()
     database.refresh(timeline)
 
     return timeline

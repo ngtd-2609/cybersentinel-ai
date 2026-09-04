@@ -29,10 +29,15 @@ def update_user_role(
     db: Session,
     user: User,
     role: str,
+    *,
+    commit: bool = True,
 ) -> User:
     user.role = role
 
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(user)
 
     return user
@@ -42,10 +47,15 @@ def update_user_status(
     db: Session,
     user: User,
     is_active: bool,
+    *,
+    commit: bool = True,
 ) -> User:
     user.is_active = is_active
 
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(user)
 
     return user

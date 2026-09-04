@@ -19,6 +19,8 @@ def change_user_role(
     db: Session,
     user_id: int,
     role: str,
+    *,
+    commit: bool = True,
 ) -> User:
     user = get_user_by_id(
         db,
@@ -42,17 +44,18 @@ def change_user_role(
             "Invalid role"
         )
 
-    return update_user_role(
-        db,
-        user,
-        role,
-    )
+    if commit:
+        return update_user_role(db, user, role)
+
+    return update_user_role(db, user, role, commit=False)
 
 
 def change_user_status(
     db: Session,
     user_id: int,
     is_active: bool,
+    *,
+    commit: bool = True,
 ) -> User:
     user = get_user_by_id(
         db,
@@ -64,8 +67,7 @@ def change_user_status(
             "User not found"
         )
 
-    return update_user_status(
-        db,
-        user,
-        is_active,
-    )
+    if commit:
+        return update_user_status(db, user, is_active)
+
+    return update_user_status(db, user, is_active, commit=False)

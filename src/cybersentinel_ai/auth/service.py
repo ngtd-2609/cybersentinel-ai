@@ -7,6 +7,7 @@ from cybersentinel_ai.auth.repository import (
     get_user_by_username,
 )
 from cybersentinel_ai.auth.schemas import UserCreate
+from cybersentinel_ai.db.database import atomic
 from cybersentinel_ai.db.models import User
 from cybersentinel_ai.security.jwt import (
     hash_password,
@@ -43,19 +44,22 @@ def register_user(
         full_name=payload.full_name,
     )
 
-    created_user = create_user(
-        db,
-        user,
-    )
+    with atomic(db):
+        created_user = create_user(
+            db,
+            user,
+            commit=False,
+        )
 
-    log_action(
-        db,
-        created_user.id,
-        "CREATE_USER",
-        f"Created user {created_user.email}",
-        "USER",
-        created_user.id,
-    )
+        log_action(
+            db,
+            created_user.id,
+            "CREATE_USER",
+            f"Created user {created_user.email}",
+            "USER",
+            created_user.id,
+            commit=False,
+        )
 
     return created_user
 

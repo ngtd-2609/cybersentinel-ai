@@ -10,3 +10,12 @@ def test_sqlite_database_connection():
         result = connection.execute(text("SELECT 1")).scalar_one()
 
     assert result == 1
+
+
+def test_sqlite_foreign_keys_are_enabled():
+    engine = build_engine("sqlite:///:memory:")
+
+    with engine.connect() as connection:
+        enabled = connection.execute(text("PRAGMA foreign_keys")).scalar_one()
+
+    assert enabled == 1

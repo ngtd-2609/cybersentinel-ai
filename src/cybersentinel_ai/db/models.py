@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cybersentinel_ai.db.database import Base
@@ -15,9 +15,17 @@ class DetectionEvent(Base):
         autoincrement=True,
     )
 
+    idempotency_key: Mapped[str | None] = mapped_column(
+        String(128),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
     source_ip: Mapped[str | None] = mapped_column(
         String(45),
         nullable=True,
+        index=True,
     )
 
     destination_ip: Mapped[str | None] = mapped_column(
@@ -54,11 +62,13 @@ class DetectionEvent(Base):
     risk_score: Mapped[float] = mapped_column(
         Float,
         nullable=False,
+        index=True,
     )
 
     severity: Mapped[str] = mapped_column(
         String(16),
         nullable=False,
+        index=True,
     )
 
     requires_review: Mapped[bool] = mapped_column(
@@ -71,6 +81,7 @@ class DetectionEvent(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
+        index=True,
     )
 
 
@@ -97,6 +108,7 @@ class Incident(Base):
         String(32),
         nullable=False,
         default="OPEN",
+        index=True,
     )
 
     description: Mapped[str | None] = mapped_column(
@@ -106,7 +118,9 @@ class Incident(Base):
 
     detection_event_id: Mapped[int | None] = mapped_column(
         Integer,
+        ForeignKey("detection_events.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     detection_event = relationship(
@@ -120,6 +134,7 @@ class Incident(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
+        index=True,
     )
 
 
@@ -134,7 +149,9 @@ class IncidentTimeline(Base):
 
     incident_id: Mapped[int] = mapped_column(
         Integer,
+        ForeignKey("incidents.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     action: Mapped[str] = mapped_column(
@@ -151,6 +168,7 @@ class IncidentTimeline(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
+        index=True,
     )
 
 
@@ -224,17 +242,21 @@ class AuditLog(Base):
 
     user_id: Mapped[int | None] = mapped_column(
         Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     action: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
+        index=True,
     )
 
     target_type: Mapped[str | None] = mapped_column(
         String(64),
         nullable=True,
+        index=True,
     )
 
     target_id: Mapped[int | None] = mapped_column(
@@ -251,4 +273,5 @@ class AuditLog(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
+        index=True,
     )

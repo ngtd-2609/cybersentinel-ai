@@ -7,9 +7,14 @@ from cybersentinel_ai.db.models import AuditLog
 def create_audit_log(
     db: Session,
     audit_log: AuditLog,
+    *,
+    commit: bool = True,
 ) -> AuditLog:
     db.add(audit_log)
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(audit_log)
 
     return audit_log

@@ -29,9 +29,14 @@ def get_user_by_username(
 def create_user(
     db: Session,
     user: User,
+    *,
+    commit: bool = True,
 ) -> User:
     db.add(user)
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(user)
 
     return user

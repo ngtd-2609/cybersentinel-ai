@@ -7,7 +7,7 @@ from cybersentinel_ai.auth.admin_service import change_user_status
 from cybersentinel_ai.auth.admin_status_schemas import (
     UpdateStatusRequest,
 )
-from cybersentinel_ai.db.database import get_db
+from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.security.rbac import (
     UserRole,
     require_role,
@@ -32,20 +32,23 @@ def update_status(
     ),
 ):
     try:
-        user = change_user_status(
-            db,
-            user_id,
-            payload.is_active,
-        )
+        with atomic(db):
+            user = change_user_status(
+                db,
+                user_id,
+                payload.is_active,
+                commit=False,
+            )
 
-        log_action(
-            db,
-            current_user.id,
-            "UPDATE_STATUS",
-            f"Changed user {user.email} active status to {payload.is_active}",
-            "USER",
-            user.id,
-        )
+            log_action(
+                db,
+                current_user.id,
+                "UPDATE_STATUS",
+                f"Changed user {user.email} active status to {payload.is_active}",
+                "USER",
+                user.id,
+                commit=False,
+            )
 
         return user
 

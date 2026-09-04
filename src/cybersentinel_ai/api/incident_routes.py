@@ -12,7 +12,7 @@ from cybersentinel_ai.api.schemas import (
     IncidentUpdate,
 )
 from cybersentinel_ai.audit.service import log_action
-from cybersentinel_ai.db.database import get_db
+from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.db.repository import (
     create_incident,
     create_incident_timeline,
@@ -40,16 +40,18 @@ def create(
         )
     ),
 ) -> IncidentRead:
-    incident = create_incident(database, payload)
+    with atomic(database):
+        incident = create_incident(database, payload, commit=False)
 
-    log_action(
-        database,
-        current_user.id,
-        "CREATE_INCIDENT",
-        f"Created incident {incident.id}",
-        "INCIDENT",
-        incident.id,
-    )
+        log_action(
+            database,
+            current_user.id,
+            "CREATE_INCIDENT",
+            f"Created incident {incident.id}",
+            "INCIDENT",
+            incident.id,
+            commit=False,
+        )
 
     return incident
 
@@ -103,26 +105,29 @@ def update_status(
         )
     ),
 ) -> IncidentRead:
-    incident = update_incident_status(
-        database,
-        incident_id,
-        payload,
-    )
-
-    if incident is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Incident not found",
+    with atomic(database):
+        incident = update_incident_status(
+            database,
+            incident_id,
+            payload,
+            commit=False,
         )
 
-    log_action(
-        database,
-        current_user.id,
-        "UPDATE_INCIDENT_STATUS",
-        f"Updated incident {incident.id}",
-        "INCIDENT",
-        incident.id,
-    )
+        if incident is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Incident not found",
+            )
+
+        log_action(
+            database,
+            current_user.id,
+            "UPDATE_INCIDENT_STATUS",
+            f"Updated incident {incident.id}",
+            "INCIDENT",
+            incident.id,
+            commit=False,
+        )
 
     return incident
 
@@ -148,20 +153,23 @@ def create_timeline(
             detail="Incident not found",
         )
 
-    timeline = create_incident_timeline(
-        database,
-        incident_id,
-        payload,
-    )
+    with atomic(database):
+        timeline = create_incident_timeline(
+            database,
+            incident_id,
+            payload,
+            commit=False,
+        )
 
-    log_action(
-        database,
-        current_user.id,
-        "CREATE_INCIDENT_TIMELINE",
-        f"Added timeline to incident {incident_id}",
-        "INCIDENT",
-        incident_id,
-    )
+        log_action(
+            database,
+            current_user.id,
+            "CREATE_INCIDENT_TIMELINE",
+            f"Added timeline to incident {incident_id}",
+            "INCIDENT",
+            incident_id,
+            commit=False,
+        )
 
     return timeline
 

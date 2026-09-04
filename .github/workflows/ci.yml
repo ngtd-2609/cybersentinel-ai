@@ -126,6 +126,11 @@ jobs:
       - name: Migrate an empty database
         run: uv run alembic upgrade head
 
+      - name: Verify latest migration downgrade and re-upgrade
+        run: |
+          uv run alembic downgrade -1
+          uv run alembic upgrade head
+
       - name: Verify PostgreSQL schema and CRUD
         run: uv run pytest tests/integration/test_postgres_schema.py -q
 
