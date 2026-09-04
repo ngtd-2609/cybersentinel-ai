@@ -5,9 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = (
-        "postgresql+psycopg://postgres:postgres@localhost:5432/cybersentinel"
-    )
+    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/cybersentinel"
 
     ollama_url: str = "http://localhost:11434"
 
@@ -39,6 +37,10 @@ class Settings(BaseSettings):
 
     refresh_token_expire_days: int = 7
 
+    mfa_challenge_expire_minutes: int = Field(default=5, ge=1, le=15)
+
+    mfa_challenge_max_attempts: int = Field(default=5, ge=1, le=10)
+
     enforce_production_config: bool = False
 
     @property
@@ -51,9 +53,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secret(self) -> "Settings":
-        if self.environment.lower() == "production" and self.enforce_production_config and (
-            self.secret_key == "change-this-in-production"
-            or len(self.secret_key) < 32
+        if (
+            self.environment.lower() == "production"
+            and self.enforce_production_config
+            and (self.secret_key == "change-this-in-production" or len(self.secret_key) < 32)
         ):
             raise ValueError(
                 "CYBERSENTINEL_SECRET_KEY must be a unique value of at least "

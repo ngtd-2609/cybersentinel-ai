@@ -70,6 +70,40 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class MfaChallengeResponse(BaseModel):
+    mfa_required: bool = True
+    mfa_token: str
+    expires_in: int
+
+
+class MfaVerifyRequest(BaseModel):
+    mfa_token: str = Field(min_length=32, max_length=2048)
+    code: str = Field(min_length=6, max_length=32)
+
+
+class MfaCodeRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=32)
+
+
+class MfaDisableRequest(MfaCodeRequest):
+    current_password: str = Field(min_length=1, max_length=128)
+
+
+class MfaEnrollmentResponse(BaseModel):
+    secret: str
+    provisioning_uri: str
+
+
+class MfaRecoveryCodesResponse(BaseModel):
+    recovery_codes: list[str]
+
+
+class MfaStatusResponse(BaseModel):
+    enabled: bool
+    enrollment_pending: bool
+    recovery_codes_remaining: int
+
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str = Field(min_length=32, max_length=512)
 

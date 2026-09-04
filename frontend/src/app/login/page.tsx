@@ -21,6 +21,8 @@ export default function LoginPage() {
   const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,15 +32,29 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(
+        mfaToken ? "/api/auth/mfa/verify" : "/api/auth/login",
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+        body: JSON.stringify(
+          mfaToken
+            ? { mfa_token: mfaToken, code: mfaCode }
+            : { email, password },
+        ),
+      },
+      );
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         throw new Error(body?.detail ?? "Unable to sign in");
+      }
+
+      if (response.status === 202) {
+        const challenge = (await response.json()) as { mfa_token: string };
+        setMfaToken(challenge.mfa_token);
+        setPassword("");
+        return;
       }
 
       const user = (await response.json()) as AuthUser;
@@ -95,15 +111,19 @@ export default function LoginPage() {
             <div className="flex size-11 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200 lg:hidden">
               <ShieldCheck className="size-6 text-cyan-700" />
             </div>
-            <CardTitle className="text-2xl">Sign in to CyberSentinel</CardTitle>
+            <CardTitle className="text-2xl">
+              {mfaToken ? "Verify administrator access" : "Sign in to CyberSentinel"}
+            </CardTitle>
             <CardDescription>
-              Use your authorized SOC account to continue.
+              {mfaToken
+                ? "Enter a current authenticator code or a one-time recovery code."
+                : "Use your authorized SOC account to continue."}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="px-7 pb-8 sm:px-9">
             <form className="space-y-5" onSubmit={handleSubmit}>
-              <div className="space-y-2">
+              {!mfaToken ? <><div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
                   Email address
                 </label>
@@ -132,7 +152,22 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   required
                 />
-              </div>
+              </div></> : <div className="space-y-2">
+                <label htmlFor="mfa-code" className="text-sm font-medium">
+                  Authenticator or recovery code
+                </label>
+                <Input
+                  id="mfa-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                  placeholder="000000"
+                  required
+                  autoFocus
+                />
+              </div>}
 
               {error && (
                 <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -146,7 +181,11 @@ export default function LoginPage() {
                 className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
               >
                 <LockKeyhole className="size-4" />
-                {isSubmitting ? "Verifying..." : "Sign in securely"}
+                {isSubmitting
+                  ? "Verifying..."
+                  : mfaToken
+                    ? "Verify MFA"
+                    : "Sign in securely"}
               </Button>
             </form>
           </CardContent>

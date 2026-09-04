@@ -10,6 +10,8 @@ from cybersentinel_ai.db.models import (
     DetectionEvent,
     Incident,
     IncidentTimeline,
+    MfaChallenge,
+    MfaRecoveryCode,
     User,
     UserSession,
 )
@@ -32,6 +34,8 @@ def test_migrated_schema_supports_core_crud() -> None:
         "incidents",
         "users",
         "user_sessions",
+        "mfa_challenges",
+        "mfa_recovery_codes",
     }
     assert expected_tables <= set(inspect(engine).get_table_names())
     inspector = inspect(engine)
@@ -47,6 +51,9 @@ def test_migrated_schema_supports_core_crud() -> None:
         "failed_login_attempts",
         "locked_until",
         "last_failed_login_at",
+        "mfa_enabled",
+        "mfa_secret_encrypted",
+        "mfa_pending_secret_encrypted",
     } <= user_columns
     user_indexes = {index["name"] for index in inspector.get_indexes("users")}
     assert "ix_users_locked_until" in user_indexes
@@ -103,6 +110,18 @@ def test_migrated_schema_supports_core_crud() -> None:
         session.flush()
         user_session_id = user_session.id
 
+        recovery_code = MfaRecoveryCode(user_id=user.id, code_hash="b" * 64)
+        challenge = MfaChallenge(
+            user_id=user.id,
+            expires_at=now + timedelta(minutes=5),
+            ip_address="127.0.0.1",
+            user_agent="CI integration test",
+        )
+        session.add_all([recovery_code, challenge])
+        session.flush()
+        recovery_code_id = recovery_code.id
+        challenge_id = challenge.id
+
         session.add_all(
             [
                 IncidentTimeline(
@@ -147,6 +166,8 @@ def test_migrated_schema_supports_core_crud() -> None:
         session.refresh(audit_log)
         assert audit_log.user_id is None
         assert session.get(UserSession, user_session_id) is None
+        assert session.get(MfaRecoveryCode, recovery_code_id) is None
+        assert session.get(MfaChallenge, challenge_id) is None
 
         session.delete(stored)
         session.commit()

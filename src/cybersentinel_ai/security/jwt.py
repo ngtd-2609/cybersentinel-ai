@@ -38,9 +38,7 @@ def create_access_token(
 ) -> str:
     settings = get_settings()
     issued_at = datetime.now(UTC)
-    expire = issued_at + timedelta(
-        minutes=settings.access_token_expire_minutes
-    )
+    expire = issued_at + timedelta(minutes=settings.access_token_expire_minutes)
 
     payload = {
         "sub": subject,
@@ -62,6 +60,21 @@ def create_refresh_token() -> str:
     return token_urlsafe(48)
 
 
+def create_mfa_challenge_token(subject: str, challenge_id: str) -> str:
+    settings = get_settings()
+    issued_at = datetime.now(UTC)
+    expire = issued_at + timedelta(minutes=settings.mfa_challenge_expire_minutes)
+    payload = {
+        "sub": subject,
+        "cid": challenge_id,
+        "jti": str(uuid4()),
+        "type": "mfa_challenge",
+        "iat": issued_at,
+        "exp": expire,
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
 def hash_refresh_token(token: str) -> str:
     return sha256(token.encode("utf-8")).hexdigest()
 
@@ -79,4 +92,16 @@ def decode_access_token(token: str) -> dict:
         or not payload.get("jti")
     ):
         raise JWTError("Invalid access token claims")
+    return payload
+
+
+def decode_mfa_challenge_token(token: str) -> dict:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    if (
+        payload.get("type") != "mfa_challenge"
+        or not payload.get("sub")
+        or not payload.get("cid")
+        or not payload.get("jti")
+    ):
+        raise JWTError("Invalid MFA challenge token claims")
     return payload

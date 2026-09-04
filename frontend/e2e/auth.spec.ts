@@ -73,6 +73,42 @@ test("successful login returns to the requested page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Security Overview" })).toBeVisible();
 });
 
+test("administrator login completes an MFA challenge before navigation", async ({ page }) => {
+  await page.route("**/api/auth/me", (route) =>
+    fulfillJson(route, { detail: "Not authenticated" }, 401),
+  );
+  await page.route("**/api/auth/login", (route) =>
+    fulfillJson(
+      route,
+      { mfa_required: true, mfa_token: "test-mfa-token", expires_in: 300 },
+      202,
+    ),
+  );
+  await page.route("**/api/auth/mfa/verify", (route) => fulfillJson(route, adminUser));
+  await page.route("**/api/backend/dashboard/summary", (route) =>
+    fulfillJson(route, dashboardSummary),
+  );
+
+  await page.goto("/login");
+  await page.getByLabel("Email address").fill(adminUser.email);
+  await page.getByLabel("Password").fill("valid-test-password");
+  await page.getByRole("button", { name: "Sign in securely" }).click();
+
+  await expect(page.getByLabel("Authenticator or recovery code")).toBeVisible();
+  await page.getByLabel("Authenticator or recovery code").fill("123456");
+  await page.context().addCookies([
+    {
+      name: "cybersentinel_access_token",
+      value: "e2e-token",
+      url: "http://127.0.0.1:3100",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  await page.getByRole("button", { name: "Verify MFA" }).click();
+  await expect(page).toHaveURL("/");
+});
+
 test("signing out clears the active session", async ({ page }) => {
   let signedOut = false;
   await page.context().addCookies([

@@ -37,6 +37,11 @@ export async function POST(request: Request) {
     return NextResponse.json(error, { status: loginResponse.status });
   }
 
+  if (loginResponse.status === 202) {
+    const challenge = await loginResponse.json();
+    return NextResponse.json(challenge, { status: 202 });
+  }
+
   const token = (await loginResponse.json()) as SessionTokens;
   const userResponse = await fetch(`${BACKEND_API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token.access_token}` },
