@@ -42,6 +42,14 @@ def test_migrated_schema_supports_core_crud() -> None:
         index["name"]: index for index in inspector.get_indexes("detection_events")
     }
     assert detection_indexes["ix_detection_events_idempotency_key"]["unique"]
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    assert {
+        "failed_login_attempts",
+        "locked_until",
+        "last_failed_login_at",
+    } <= user_columns
+    user_indexes = {index["name"] for index in inspector.get_indexes("users")}
+    assert "ix_users_locked_until" in user_indexes
 
     now = datetime.now(UTC)
     with Session(engine) as session:

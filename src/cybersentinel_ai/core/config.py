@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,9 +25,15 @@ class Settings(BaseSettings):
 
     trusted_hosts: str = "api,localhost,127.0.0.1,testserver"
 
-    login_rate_limit_attempts: int = 5
+    login_rate_limit_attempts: int = Field(default=5, ge=1)
 
-    login_rate_limit_window_seconds: int = 60
+    login_rate_limit_window_seconds: int = Field(default=60, ge=1)
+
+    public_registration_enabled: bool = False
+
+    account_lockout_attempts: int = Field(default=5, ge=1)
+
+    account_lockout_minutes: int = Field(default=15, ge=1)
 
     access_token_expire_minutes: int = 15
 

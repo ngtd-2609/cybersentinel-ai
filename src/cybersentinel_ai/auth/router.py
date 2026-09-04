@@ -10,6 +10,7 @@ from cybersentinel_ai.auth.schemas import (
     UserResponse,
 )
 from cybersentinel_ai.auth.service import (
+    AccountLockedError,
     authenticate_user,
     register_user,
 )
@@ -19,6 +20,7 @@ from cybersentinel_ai.auth.session_service import (
     revoke_user_session,
     rotate_user_session,
 )
+from cybersentinel_ai.core.config import Settings, get_settings
 from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.security.dependencies import get_current_user
 
@@ -35,7 +37,13 @@ router = APIRouter(
 def register(
     payload: UserCreate,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ):
+    if not settings.public_registration_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Public registration is disabled",
+        )
     try:
         return register_user(
             db,
@@ -57,22 +65,20 @@ def login(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    user = authenticate_user(
-        db,
-        payload.email,
-        payload.password,
-    )
+    try:
+        user = authenticate_user(
+            db,
+            payload.email,
+            payload.password,
+        )
+    except AccountLockedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Account temporarily locked",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
 
     if not user:
-        log_action(
-            db,
-            None,
-            "LOGIN_FAILED",
-            f"Failed login attempt for {payload.email}",
-            "USER",
-            None,
-        )
-
         raise HTTPException(
             status_code=401,
             detail="Invalid credentials",

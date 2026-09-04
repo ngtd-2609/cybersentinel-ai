@@ -1433,6 +1433,28 @@ Build and start:
 docker compose up -d --build
 ```
 
+Public registration is disabled by default. Bootstrap the first administrator
+once, using the hidden password prompt so the password is not stored in shell
+history or Docker Compose environment configuration:
+
+```bash
+docker compose exec api /app/.venv/bin/python -m cybersentinel_ai.auth.bootstrap \
+  --email admin@example.com \
+  --username admin \
+  --full-name "SOC Administrator"
+```
+
+The command refuses to run after any administrator exists. For non-interactive
+automation, pass `--password-stdin` and supply the password through standard input
+from an appropriate secret manager. Public registration can be deliberately enabled
+with `CYBERSENTINEL_PUBLIC_REGISTRATION_ENABLED=true`; do not enable it on an
+internet-facing deployment without email verification and abuse controls.
+
+Login protection defaults to five failed attempts followed by a 15-minute
+database-backed account lock. Configure it with
+`CYBERSENTINEL_ACCOUNT_LOCKOUT_ATTEMPTS` and
+`CYBERSENTINEL_ACCOUNT_LOCKOUT_MINUTES`.
+
 Check:
 
 ```bash
@@ -1866,12 +1888,15 @@ Retrieved evidence and analyst review remain necessary.
 
 ## Authentication
 
-The current API does not yet implement production-grade:
+The API implements password authentication, RBAC, short-lived access tokens,
+rotating refresh sessions, explicit session revocation, one-time first-admin
+bootstrap, closed-by-default public registration, and database-backed account
+lockout. The remaining production hardening work includes:
 
 ```text
-authentication
-authorization
-RBAC
+password reset and email verification
+administrator MFA/TOTP
+distributed Redis rate limiting
 OAuth
 API keys
 ```
