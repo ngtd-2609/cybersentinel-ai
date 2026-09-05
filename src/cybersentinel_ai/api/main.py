@@ -10,8 +10,11 @@ from cybersentinel_ai.api.audit_routes import router as audit_router
 from cybersentinel_ai.api.copilot_routes import router as copilot_router
 from cybersentinel_ai.api.dashboard_routes import router as dashboard_router
 from cybersentinel_ai.api.incident_routes import router as incident_router
+from cybersentinel_ai.api.ingestion_routes import router as ingestion_router
 from cybersentinel_ai.api.metrics import configure_metrics
+from cybersentinel_ai.api.realtime_routes import router as realtime_router
 from cybersentinel_ai.api.routes import router
+from cybersentinel_ai.api.rule_routes import router as rule_router
 from cybersentinel_ai.api.user_admin_routes import router as user_admin_router
 from cybersentinel_ai.api.user_status_routes import router as user_status_router
 from cybersentinel_ai.audit.context import (
@@ -49,7 +52,14 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Idempotency-Key",
+        "X-Ingestion-Key",
+        "X-Request-ID",
+    ],
 )
 
 
@@ -136,6 +146,9 @@ app.include_router(audit_router)
 app.include_router(auth_router)
 app.include_router(copilot_router)
 app.include_router(incident_router)
+app.include_router(ingestion_router)
+app.include_router(realtime_router)
+app.include_router(rule_router)
 app.include_router(user_admin_router)
 app.include_router(user_status_router)
 app.include_router(dashboard_router)

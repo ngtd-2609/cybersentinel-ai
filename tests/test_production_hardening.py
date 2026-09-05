@@ -103,9 +103,21 @@ def test_production_accepts_strong_jwt_secret():
         enforce_production_config=True,
         secret_key="a-unique-production-secret-with-32-chars",
         redis_url="redis://redis:6379/0",
+        ingestion_api_keys="phase-j-production-ingestion-key",
     )
 
     assert settings.environment == "production"
+
+
+def test_production_rejects_missing_ingestion_api_keys():
+    with pytest.raises(ValidationError, match="INGESTION_API_KEYS"):
+        Settings(
+            _env_file=None,
+            environment="production",
+            enforce_production_config=True,
+            secret_key="a-unique-production-secret-with-32-chars",
+            redis_url="redis://redis:6379/0",
+        )
 
 
 def test_request_id_header_is_preserved_and_invalid_value_is_replaced():

@@ -1,7 +1,17 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cybersentinel_ai.db.database import Base
@@ -21,6 +31,20 @@ class DetectionEvent(Base):
         nullable=True,
         unique=True,
         index=True,
+    )
+
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    source_type: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    occurred_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    asset_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    hostname: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    affected_user: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    ioc_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    ioc_value: Mapped[str | None] = mapped_column(String(512), nullable=True, index=True)
+    correlation_key: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
     )
 
     source_ip: Mapped[str | None] = mapped_column(
@@ -131,6 +155,14 @@ class Incident(Base):
         lazy="joined",
     )
 
+    correlation_key: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    last_event_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -170,6 +202,127 @@ class IncidentTimeline(Base):
         nullable=False,
         default=lambda: datetime.now(UTC),
         index=True,
+    )
+
+
+class IncidentDetection(Base):
+    __tablename__ = "incident_detections"
+
+    incident_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("incidents.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    detection_event_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("detection_events.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class AlertRule(Base):
+    __tablename__ = "alert_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+    min_risk_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    severities: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    label_pattern: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    require_review: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    auto_create_incident: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    notification_channels: Mapped[str] = mapped_column(
+        String(128), nullable=False, default=""
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class IngestionJob(Base):
+    __tablename__ = "ingestion_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(128), nullable=False, unique=True, index=True
+    )
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    external_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="PENDING", index=True
+    )
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    next_retry_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    detection_event_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("detection_events.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class NotificationDelivery(Base):
+    __tablename__ = "notification_deliveries"
+    __table_args__ = (
+        UniqueConstraint(
+            "detection_event_id", "channel", name="uq_notification_event_channel"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    detection_event_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("detection_events.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    incident_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("incidents.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    channel: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="PENDING", index=True
+    )
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    next_retry_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
 

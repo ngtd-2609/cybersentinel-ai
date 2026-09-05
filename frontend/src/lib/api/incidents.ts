@@ -14,6 +14,9 @@ export interface Incident {
     risk_score: number;
     severity: string;
   } | null;
+  correlation_key: string | null;
+  event_count: number;
+  last_event_at: string | null;
   created_at: string;
 }
 

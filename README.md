@@ -1423,6 +1423,10 @@ Services:
 
 ```text
 cybersentinel-api
+cybersentinel-worker
+cybersentinel-postgres
+cybersentinel-redis
+cybersentinel-frontend
 cybersentinel-prometheus
 cybersentinel-grafana
 ```
@@ -1454,6 +1458,35 @@ Login protection defaults to five failed attempts followed by a 15-minute
 database-backed account lock. Configure it with
 `CYBERSENTINEL_ACCOUNT_LOCKOUT_ATTEMPTS` and
 `CYBERSENTINEL_ACCOUNT_LOCKOUT_MINUTES`.
+
+Configure at least one agent ingestion secret before starting the stack:
+
+```bash
+CYBERSENTINEL_INGESTION_API_KEYS=replace-with-a-long-random-secret
+```
+
+Agents and collectors submit validated batches to `POST /ingest/events` with the
+secret in `X-Ingestion-Key`. The dedicated worker performs deduplication,
+correlation, incident creation, and notification delivery asynchronously:
+
+```bash
+curl -X POST http://127.0.0.1:8001/ingest/events \
+  -H 'Content-Type: application/json' \
+  -H 'X-Ingestion-Key: replace-with-a-long-random-secret' \
+  -d '{"events":[{"external_id":"edr-2026-0001","source_type":"edr-agent","occurred_at":"2026-09-05T12:00:00Z","hostname":"workstation-42","affected_user":"analyst@example.com","ioc_type":"sha256","ioc_value":"0123456789abcdef","predicted_label":"Ransomware","classifier_confidence":0.98,"anomaly_score":0.94,"rule_score":0.90,"risk_score":96,"severity":"CRITICAL","requires_review":true}]}'
+```
+
+The response contains a job ID. Authenticated analysts can inspect its complete
+path through event, correlated incidents, and notification attempts at
+`GET /ingest/jobs/{job_id}/trace`. Senior analysts and administrators can manage
+configurable alert rules under `/alert-rules`, inspect `/ingest/dead-letter`, and
+retry a dead-lettered job through `POST /ingest/jobs/{job_id}/retry`.
+
+The frontend connects to `/api/realtime`, which proxies the authenticated SSE
+stream. Set `CYBERSENTINEL_NOTIFICATION_WEBHOOK_URL` or
+`CYBERSENTINEL_NOTIFICATION_SLACK_WEBHOOK_URL` to enable the corresponding
+notification channels. Failed jobs and deliveries use bounded exponential retry
+and transition to `DEAD_LETTER` after their configured maximum attempts.
 
 Check:
 

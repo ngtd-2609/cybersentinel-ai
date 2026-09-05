@@ -6,12 +6,16 @@ from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.orm import Session
 
 from cybersentinel_ai.db.models import (
+    AlertRule,
     AuditLog,
     DetectionEvent,
     Incident,
+    IncidentDetection,
     IncidentTimeline,
+    IngestionJob,
     MfaChallenge,
     MfaRecoveryCode,
+    NotificationDelivery,
     User,
     UserSession,
 )
@@ -32,6 +36,10 @@ def test_migrated_schema_supports_core_crud() -> None:
         "detection_events",
         "incident_timelines",
         "incidents",
+        "incident_detections",
+        "alert_rules",
+        "ingestion_jobs",
+        "notification_deliveries",
         "users",
         "user_sessions",
         "mfa_challenges",
@@ -46,6 +54,22 @@ def test_migrated_schema_supports_core_crud() -> None:
         index["name"]: index for index in inspector.get_indexes("detection_events")
     }
     assert detection_indexes["ix_detection_events_idempotency_key"]["unique"]
+    detection_columns = {
+        column["name"] for column in inspector.get_columns("detection_events")
+    }
+    assert {
+        "external_id",
+        "source_type",
+        "occurred_at",
+        "asset_id",
+        "hostname",
+        "affected_user",
+        "ioc_type",
+        "ioc_value",
+        "correlation_key",
+    } <= detection_columns
+    incident_columns = {column["name"] for column in inspector.get_columns("incidents")}
+    assert {"correlation_key", "event_count", "last_event_at"} <= incident_columns
     user_columns = {column["name"] for column in inspector.get_columns("users")}
     assert {
         "failed_login_attempts",
@@ -66,6 +90,15 @@ def test_migrated_schema_supports_core_crud() -> None:
     with Session(engine) as session:
         event = DetectionEvent(
             idempotency_key="ci-database-acceptance-event",
+            external_id="ci-edr-event-1",
+            source_type="ci-edr-agent",
+            occurred_at=now,
+            asset_id="ci-asset-1",
+            hostname="ci-workstation",
+            affected_user="ci-user@example.test",
+            ioc_type="ipv4",
+            ioc_value="198.51.100.10",
+            correlation_key="ci-asset-1:web-attack",
             source_ip="198.51.100.10",
             destination_ip="203.0.113.20",
             destination_port=443,
@@ -87,6 +120,9 @@ def test_migrated_schema_supports_core_crud() -> None:
             status="OPEN",
             description="Created by the disposable PostgreSQL integration test.",
             detection_event_id=event.id,
+            correlation_key="ci-asset-1:web-attack",
+            event_count=1,
+            last_event_at=now,
             created_at=now,
         )
         user = User(
@@ -101,6 +137,37 @@ def test_migrated_schema_supports_core_crud() -> None:
         )
         session.add_all([incident, user])
         session.flush()
+
+        session.add_all(
+            [
+                IncidentDetection(
+                    incident_id=incident.id,
+                    detection_event_id=event.id,
+                ),
+                AlertRule(
+                    name="CI critical event rule",
+                    enabled=True,
+                    priority=1,
+                    min_risk_score=90,
+                    severities="CRITICAL",
+                    auto_create_incident=True,
+                    notification_channels="webhook",
+                ),
+                IngestionJob(
+                    idempotency_key="ci-ingestion-job",
+                    source_type="ci-edr-agent",
+                    external_id="ci-edr-event-1",
+                    payload={"external_id": "ci-edr-event-1"},
+                    status="COMPLETED",
+                    detection_event_id=event.id,
+                ),
+                NotificationDelivery(
+                    detection_event_id=event.id,
+                    incident_id=incident.id,
+                    channel="webhook",
+                ),
+            ]
+        )
 
         user_session = UserSession(
             user_id=user.id,
@@ -155,6 +222,10 @@ def test_migrated_schema_supports_core_crud() -> None:
         assert stored is not None
         assert stored.detection_event is not None
         assert stored.detection_event.risk_score == 92.0
+        assert stored.correlation_key == "ci-asset-1:web-attack"
+        assert session.scalar(select(IncidentDetection.incident_id)) == stored.id
+        assert session.scalar(select(IngestionJob.status)) == "COMPLETED"
+        assert session.scalar(select(NotificationDelivery.channel)) == "webhook"
         timeline = session.scalar(
             select(IncidentTimeline).where(IncidentTimeline.incident_id == stored.id)
         )

@@ -33,6 +33,22 @@ class Settings(BaseSettings):
 
     trust_proxy_headers: bool = False
 
+    ingestion_api_keys: str = ""
+
+    ingestion_batch_size: int = Field(default=500, ge=1, le=5000)
+
+    ingestion_max_attempts: int = Field(default=5, ge=1, le=20)
+
+    ingestion_worker_poll_seconds: float = Field(default=1.0, ge=0.1, le=60.0)
+
+    correlation_window_minutes: int = Field(default=30, ge=1, le=10080)
+
+    notification_webhook_url: str | None = None
+
+    notification_slack_webhook_url: str | None = None
+
+    realtime_channel: str = "cybersentinel:soc-updates"
+
     public_registration_enabled: bool = False
 
     account_lockout_attempts: int = Field(default=5, ge=1)
@@ -57,6 +73,10 @@ class Settings(BaseSettings):
     def trusted_host_list(self) -> list[str]:
         return [item.strip() for item in self.trusted_hosts.split(",") if item.strip()]
 
+    @property
+    def ingestion_api_key_list(self) -> list[str]:
+        return [item.strip() for item in self.ingestion_api_keys.split(",") if item.strip()]
+
     @model_validator(mode="after")
     def validate_production_secret(self) -> "Settings":
         if (
@@ -74,6 +94,12 @@ class Settings(BaseSettings):
             and not self.redis_url
         ):
             raise ValueError("CYBERSENTINEL_REDIS_URL is required in production")
+        if (
+            self.environment.lower() == "production"
+            and self.enforce_production_config
+            and not self.ingestion_api_key_list
+        ):
+            raise ValueError("CYBERSENTINEL_INGESTION_API_KEYS is required in production")
         return self
 
     model_config = SettingsConfigDict(

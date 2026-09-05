@@ -2,6 +2,15 @@ import { apiFetch } from "@/lib/api/client";
 
 export interface DetectionEvent {
   id: number;
+  external_id: string | null;
+  source_type: string | null;
+  occurred_at: string | null;
+  asset_id: string | null;
+  hostname: string | null;
+  affected_user: string | null;
+  ioc_type: string | null;
+  ioc_value: string | null;
+  correlation_key: string | null;
   source_ip: string | null;
   destination_ip: string | null;
   destination_port: number | null;
