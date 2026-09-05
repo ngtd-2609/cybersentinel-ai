@@ -12,6 +12,26 @@ Free-tier cold starts and modest quotas are acceptable when they are documented
 and the UI explains that the demo may need time to wake up. A custom domain, VPS,
 Kubernetes, Kafka and a self-hosted observability stack are optional.
 
+## Current live deployment
+
+- Frontend: <https://cybersentinel-web-ppae.onrender.com>
+- API readiness: <https://cybersentinel-api-hrl8.onrender.com/ready>
+- Provider/database: Render Free Web Services and Neon Free PostgreSQL, Singapore
+- Deployed source: `8d74f029a91c7889a5d4e5d48505f2536d91a9f6`
+
+The first live deployment completed an empty-database migration through Alembic
+revision `c4a7e91b2d60` and an idempotent seed of 8 events and 3 incidents. Manual
+public smoke passed Login, Dashboard, Events, Incidents, Threat Intelligence,
+Copilot deterministic fallback and Reports on 2026-09-05.
+
+Re-run the automated no-mock public journey with:
+
+```bash
+PUBLIC_SMOKE=true \
+PLAYWRIGHT_BASE_URL=https://cybersentinel-web-ppae.onrender.com \
+npm run test:e2e:public
+```
+
 ## Preferred low-cost architecture
 
 The initial baseline is:

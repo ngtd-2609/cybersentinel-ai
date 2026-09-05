@@ -39,11 +39,16 @@ restricted one-click demo account with synthetic security data; no local Docker 
 developer laptop is required. Free-tier cold starts are expected and explained in
 the login UI.
 
+**Live demo:** [Open CyberSentinel AI](https://cybersentinel-web-ppae.onrender.com)
+
+On the login page, wait for the green service-ready indicator and choose
+**Explore with the safe demo account**. The first visit after an idle period can
+take about a minute while the two free services wake up.
+
 The infrastructure Blueprint and secret-safe setup steps are documented in
 [Public portfolio deployment](docs/portfolio-deployment.md). Provider credentials,
 database URLs and demo passwords must remain in provider secret settings and must
-never be committed. The final public URL will be added here only after the live
-Phase L smoke and the Phase M Final Release Gate pass.
+never be committed.
 
 It is not intended to replace a production IDS, IPS, SIEM, SOAR, EDR, or professional SOC workflow without additional security engineering, infrastructure hardening, model validation, authentication, authorization, and operational monitoring.
 
