@@ -73,6 +73,43 @@ test("successful login returns to the requested page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Security Overview" })).toBeVisible();
 });
 
+test("portfolio demo login waits for health and signs in safely", async ({ page }) => {
+  let signedIn = false;
+  await page.route("**/api/health", (route) =>
+    fulfillJson(route, { status: "ready" }),
+  );
+  await page.route("**/api/auth/me", (route) =>
+    signedIn
+      ? fulfillJson(route, viewerUser)
+      : fulfillJson(route, { detail: "Not authenticated" }, 401),
+  );
+  await page.route("**/api/auth/demo", async (route) => {
+    signedIn = true;
+    await page.context().addCookies([
+      {
+        name: "cybersentinel_access_token",
+        value: "portfolio-e2e-token",
+        url: "http://127.0.0.1:3100",
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    await fulfillJson(route, viewerUser);
+  });
+  await mockDashboard(page);
+
+  await page.goto("/login");
+  const demoButton = page.getByRole("button", {
+    name: "Explore with the safe demo account",
+  });
+  await expect(page.getByText("Portfolio demo services are ready.")).toBeVisible();
+  await expect(demoButton).toBeEnabled();
+  await demoButton.click();
+
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "Security Overview" })).toBeVisible();
+});
+
 test("administrator login completes an MFA challenge before navigation", async ({ page }) => {
   await page.route("**/api/auth/me", (route) =>
     fulfillJson(route, { detail: "Not authenticated" }, 401),

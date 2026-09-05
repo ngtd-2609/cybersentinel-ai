@@ -161,6 +161,51 @@ def test_staging_enforces_production_secret_policy():
         )
 
 
+def test_portfolio_accepts_hardened_config_without_external_redis():
+    settings = Settings(
+        _env_file=None,
+        environment="portfolio",
+        enforce_production_config=True,
+        secret_key="a-unique-portfolio-secret-with-32-characters",
+        ingestion_api_keys="portfolio-ingestion-key",
+        rate_limit_fail_closed=False,
+        demo_seed_enabled=True,
+        demo_user_password="PortfolioDemo123!",
+        embedded_worker_enabled=True,
+    )
+
+    assert settings.environment == "portfolio"
+    assert settings.demo_seed_enabled is True
+    assert settings.embedded_worker_enabled is True
+
+
+def test_demo_seed_is_rejected_outside_portfolio():
+    with pytest.raises(ValidationError, match="portfolio environment"):
+        Settings(
+            _env_file=None,
+            demo_seed_enabled=True,
+            demo_user_password="PortfolioDemo123!",
+        )
+
+
+def test_demo_seed_requires_password_and_disabled_registration():
+    with pytest.raises(ValidationError, match="DEMO_USER_PASSWORD"):
+        Settings(
+            _env_file=None,
+            environment="portfolio",
+            demo_seed_enabled=True,
+        )
+
+    with pytest.raises(ValidationError, match="registration must remain disabled"):
+        Settings(
+            _env_file=None,
+            environment="portfolio",
+            demo_seed_enabled=True,
+            demo_user_password="PortfolioDemo123!",
+            public_registration_enabled=True,
+        )
+
+
 def test_request_id_header_is_preserved_and_invalid_value_is_replaced():
     supplied = client.get("/health", headers={"X-Request-ID": "trace-test-123"})
     invalid = client.get("/health", headers={"X-Request-ID": "invalid request id"})

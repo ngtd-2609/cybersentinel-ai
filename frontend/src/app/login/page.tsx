@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, ShieldCheck } from "lucide-react";
+import { LoaderCircle, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import type { AuthUser } from "@/lib/auth";
 
 export default function LoginPage() {
+  const demoLoginEnabled =
+    process.env.NEXT_PUBLIC_DEMO_LOGIN_ENABLED === "true";
   const router = useRouter();
   const { setUser } = useAuth();
   const [email, setEmail] = useState("");
@@ -25,6 +27,78 @@ export default function LoginPage() {
   const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serviceStatus, setServiceStatus] = useState<
+    "checking" | "ready" | "waking"
+  >("checking");
+
+  useEffect(() => {
+    if (!demoLoginEnabled) {
+      return;
+    }
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    async function checkService() {
+      try {
+        const response = await fetch("/api/health", { cache: "no-store" });
+        if (cancelled) {
+          return;
+        }
+        if (response.ok) {
+          setServiceStatus("ready");
+          return;
+        }
+      } catch {
+        // A sleeping free-tier backend is expected to fail initial checks.
+      }
+      if (!cancelled) {
+        setServiceStatus("waking");
+        retryTimer = setTimeout(checkService, 3000);
+      }
+    }
+
+    void checkService();
+    return () => {
+      cancelled = true;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
+  }, [demoLoginEnabled]);
+
+  function finishLogin(user: AuthUser) {
+    setUser(user);
+    const requestedPath = new URLSearchParams(window.location.search).get(
+      "returnTo",
+    );
+    const returnTo =
+      requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+        ? requestedPath
+        : "/";
+    router.replace(returnTo);
+    router.refresh();
+  }
+
+  async function handleDemoLogin() {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/demo", { method: "POST" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.detail ?? "Unable to start the portfolio demo");
+      }
+      finishLogin((await response.json()) as AuthUser);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to start the portfolio demo",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,18 +131,7 @@ export default function LoginPage() {
         return;
       }
 
-      const user = (await response.json()) as AuthUser;
-      setUser(user);
-
-      const requestedPath = new URLSearchParams(
-        window.location.search,
-      ).get("returnTo");
-      const returnTo =
-        requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
-          ? requestedPath
-          : "/";
-      router.replace(returnTo);
-      router.refresh();
+      finishLogin((await response.json()) as AuthUser);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -119,6 +182,25 @@ export default function LoginPage() {
                 ? "Enter a current authenticator code or a one-time recovery code."
                 : "Use your authorized SOC account to continue."}
             </CardDescription>
+            {demoLoginEnabled && !mfaToken && (
+              <div
+                aria-live="polite"
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+                  serviceStatus === "ready"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-800"
+                }`}
+              >
+                {serviceStatus === "ready" ? (
+                  <span className="size-2 rounded-full bg-emerald-500" />
+                ) : (
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                )}
+                {serviceStatus === "ready"
+                  ? "Portfolio demo services are ready."
+                  : "Waking free-tier demo services. This can take about a minute."}
+              </div>
+            )}
           </CardHeader>
 
           <CardContent className="px-7 pb-8 sm:px-9">
@@ -188,6 +270,23 @@ export default function LoginPage() {
                     : "Sign in securely"}
               </Button>
             </form>
+            {demoLoginEnabled && !mfaToken && (
+              <div className="mt-5 space-y-4 border-t pt-5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting || serviceStatus !== "ready"}
+                  className="h-11 w-full"
+                  onClick={handleDemoLogin}
+                >
+                  <Sparkles className="size-4" />
+                  Explore with the safe demo account
+                </Button>
+                <p className="text-center text-xs leading-5 text-slate-500">
+                  Uses synthetic security data and a restricted analyst account.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

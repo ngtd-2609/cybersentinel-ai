@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -85,6 +85,16 @@ class Settings(BaseSettings):
 
     enforce_production_config: bool = False
 
+    demo_seed_enabled: bool = False
+
+    demo_user_email: str = "demo@cybersentinel.local"
+
+    demo_user_username: str = "portfolio-demo"
+
+    demo_user_password: SecretStr | None = None
+
+    embedded_worker_enabled: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
@@ -116,7 +126,8 @@ class Settings(BaseSettings):
                 raise ValueError(f"Secret file must not be empty: {path}")
             setattr(self, value_field, secret_value)
 
-        hardened_environment = self.environment.lower() in {"production", "staging"}
+        environment = self.environment.lower()
+        hardened_environment = environment in {"production", "staging", "portfolio"}
         if (
             hardened_environment
             and self.enforce_production_config
@@ -130,6 +141,7 @@ class Settings(BaseSettings):
             hardened_environment
             and self.enforce_production_config
             and not self.redis_url
+            and environment != "portfolio"
         ):
             raise ValueError("CYBERSENTINEL_REDIS_URL is required in production")
         if (
@@ -138,6 +150,13 @@ class Settings(BaseSettings):
             and not self.ingestion_api_key_list
         ):
             raise ValueError("CYBERSENTINEL_INGESTION_API_KEYS is required in production")
+        if self.demo_seed_enabled:
+            if environment != "portfolio":
+                raise ValueError("Demo seed may only be enabled in the portfolio environment")
+            if self.public_registration_enabled:
+                raise ValueError("Public registration must remain disabled for the demo")
+            if self.demo_user_password is None:
+                raise ValueError("CYBERSENTINEL_DEMO_USER_PASSWORD is required for demo seed")
         return self
 
     model_config = SettingsConfigDict(

@@ -31,6 +31,20 @@ The complete pipeline covers:
 
 CyberSentinel AI is intended for defensive cybersecurity research, portfolio demonstration, learning, and experimentation.
 
+## Public portfolio deployment
+
+The deployment target is an interactive HTTPS portfolio: Next.js frontend/BFF and
+FastAPI on Render Free Web Services, backed by Neon PostgreSQL. Reviewers can use a
+restricted one-click demo account with synthetic security data; no local Docker or
+developer laptop is required. Free-tier cold starts are expected and explained in
+the login UI.
+
+The infrastructure Blueprint and secret-safe setup steps are documented in
+[Public portfolio deployment](docs/portfolio-deployment.md). Provider credentials,
+database URLs and demo passwords must remain in provider secret settings and must
+never be committed. The final public URL will be added here only after the live
+Phase L smoke and the Phase M Final Release Gate pass.
+
 It is not intended to replace a production IDS, IPS, SIEM, SOAR, EDR, or professional SOC workflow without additional security engineering, infrastructure hardening, model validation, authentication, authorization, and operational monitoring.
 
 ---

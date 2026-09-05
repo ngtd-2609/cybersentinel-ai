@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -25,6 +28,7 @@ from cybersentinel_ai.audit.context import (
 from cybersentinel_ai.auth.router import router as auth_router
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import get_db
+from cybersentinel_ai.ingestion.worker import run_forever
 from cybersentinel_ai.mlops.routes import router as mlops_router
 from cybersentinel_ai.observability.logging import configure_json_logging
 from cybersentinel_ai.observability.metrics import DEPENDENCY_UP
@@ -38,12 +42,38 @@ configure_json_logging()
 login_rate_limiter = LoginRateLimiter(settings.redis_url)
 login_failures = login_rate_limiter.local_attempts
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    worker_task = None
+    if settings.embedded_worker_enabled:
+        worker_task = asyncio.create_task(
+            run_forever(),
+            name="cybersentinel-embedded-ingestion-worker",
+        )
+    try:
+        yield
+    finally:
+        if worker_task is not None:
+            worker_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await worker_task
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     description="AI-powered network intrusion detection and SOC assistant.",
-    docs_url=None if settings.environment.lower() == "production" else "/docs",
-    redoc_url=None if settings.environment.lower() == "production" else "/redoc",
+    docs_url=(
+        None
+        if settings.environment.lower() in {"production", "portfolio"}
+        else "/docs"
+    ),
+    redoc_url=(
+        None
+        if settings.environment.lower() in {"production", "portfolio"}
+        else "/redoc"
+    ),
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -75,7 +105,7 @@ async def security_headers(request, call_next) -> Response:
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
-    if settings.environment.lower() == "production":
+    if settings.environment.lower() in {"production", "portfolio"}:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 

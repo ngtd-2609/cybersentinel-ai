@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+
+services:
+  - type: web
+    name: cybersentinel-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    envVars:
+      - key: CYBERSENTINEL_ENVIRONMENT
+        value: portfolio
+      - key: CYBERSENTINEL_DATABASE_URL
+        sync: false
+      - key: CYBERSENTINEL_SECRET_KEY
+        generateValue: true
+      - key: CYBERSENTINEL_INGESTION_API_KEYS
+        generateValue: true
+      - key: CYBERSENTINEL_ENFORCE_PRODUCTION_CONFIG
+        value: "true"
+      - key: CYBERSENTINEL_PUBLIC_REGISTRATION_ENABLED
+        value: "false"
+      - key: CYBERSENTINEL_RATE_LIMIT_FAIL_CLOSED
+        value: "false"
+      - key: CYBERSENTINEL_TRUST_PROXY_HEADERS
+        value: "true"
+      - key: CYBERSENTINEL_TRUSTED_HOSTS
+        value: "*.onrender.com,localhost,127.0.0.1"
+      - key: CYBERSENTINEL_CORS_ORIGINS
+        fromService:
+          type: web
+          name: cybersentinel-web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: CYBERSENTINEL_DEMO_SEED_ENABLED
+        value: "true"
+      - key: CYBERSENTINEL_DEMO_USER_EMAIL
+        value: demo@cybersentinel.local
+      - key: CYBERSENTINEL_DEMO_USER_USERNAME
+        value: portfolio-demo
+      - key: CYBERSENTINEL_DEMO_USER_PASSWORD
+        sync: false
+      - key: CYBERSENTINEL_EMBEDDED_WORKER_ENABLED
+        value: "true"
+
+  - type: web
+    name: cybersentinel-web
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /login
+    envVars:
+      - key: NEXT_PUBLIC_DEMO_LOGIN_ENABLED
+        value: "true"
+      - key: CYBERSENTINEL_API_URL
+        fromService:
+          type: web
+          name: cybersentinel-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: CYBERSENTINEL_DEMO_EMAIL
+        value: demo@cybersentinel.local
+      - key: CYBERSENTINEL_DEMO_PASSWORD
+        fromService:
+          type: web
+          name: cybersentinel-api
+          envVarKey: CYBERSENTINEL_DEMO_USER_PASSWORD
