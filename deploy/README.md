@@ -41,6 +41,13 @@ the exact release source, materializes GitHub Environment secrets as mode-600
 Docker secret files, deploys, checks readiness and verifies public HTTPS. Protect
 the environment with required reviewers before using it for production-like data.
 
+After deployment, run the manual **Operate staging** workflow. The `status`
+operation lists the Compose services and checks HTTPS, `verify` additionally runs
+the k6 SLO gate and disposable backup/restore drill, and `rollback` restores the
+recorded previous release and verifies HTTPS. These operations consume the same
+GitHub `staging` Environment credentials, so operators never need to copy the SSH
+private key out of GitHub.
+
 ## Release and rollback
 
 `scripts/deploy-release.sh` records the current and previous immutable image tags.

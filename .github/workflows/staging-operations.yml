@@ -1,0 +1,108 @@
+name: Operate staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Staging operation to run
+        required: true
+        default: verify
+        type: choice
+        options:
+          - status
+          - verify
+          - rollback
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cybersentinel-staging
+  cancel-in-progress: false
+
+jobs:
+  operate:
+    name: ${{ inputs.operation }} staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://${{ vars.STAGING_HOSTNAME }}
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run staging operation
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          STAGING_HOSTNAME: ${{ vars.STAGING_HOSTNAME }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          test -n "$SSH_HOST" && test -n "$SSH_USER"
+          [[ "$STAGING_HOSTNAME" =~ ^[A-Za-z0-9.-]+$ ]]
+          ssh "$SSH_USER@$SSH_HOST" bash -s -- "$OPERATION" "$STAGING_HOSTNAME" <<'REMOTE'
+          set -euo pipefail
+
+          operation="${1:?Missing operation}"
+          staging_hostname="${2:?Missing staging hostname}"
+          deploy_root=/opt/cybersentinel/staging
+          release_dir="$(readlink -f "$deploy_root/current")"
+          test -d "$release_dir"
+          cd "$release_dir"
+
+          compose_files=(
+            -f docker-compose.yml
+            -f docker-compose.prod.yml
+            -f docker-compose.deploy.yml
+            -f docker-compose.staging.yml
+          )
+
+          compose() {
+            docker compose --project-name cybersentinel-staging \
+              "${compose_files[@]}" "$@"
+          }
+
+          status() {
+            compose ps
+            STAGING_URL="https://${staging_hostname}" \
+              bash scripts/staging-smoke.sh
+          }
+
+          verify() {
+            status
+            BASE_URL="https://${staging_hostname}" \
+              bash scripts/run-load-test.sh
+            export COMPOSE_PROJECT_NAME=cybersentinel-staging
+            export COMPOSE_FILE='docker-compose.yml:docker-compose.prod.yml:docker-compose.deploy.yml:docker-compose.staging.yml'
+            POSTGRES_USER=cybersentinel \
+              POSTGRES_DB=cybersentinel_staging \
+              bash scripts/backup-restore-drill.sh
+          }
+
+          case "$operation" in
+            status)
+              status
+              ;;
+            verify)
+              verify
+              ;;
+            rollback)
+              DEPLOY_STATE_DIR="$deploy_root/state" \
+                DEPLOY_CURRENT_LINK="$deploy_root/current" \
+                bash scripts/rollback-release.sh staging
+              STAGING_URL="https://${staging_hostname}" \
+                bash scripts/staging-smoke.sh
+              ;;
+            *)
+              printf 'Unsupported staging operation: %s\n' "$operation" >&2
+              exit 2
+              ;;
+          esac
+          REMOTE
