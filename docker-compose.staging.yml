@@ -1,0 +1,35 @@
+services:
+  api:
+    environment:
+      CYBERSENTINEL_ENVIRONMENT: staging
+      CYBERSENTINEL_CORS_ORIGINS: https://${CYBERSENTINEL_HOSTNAME:?Set CYBERSENTINEL_HOSTNAME}
+      CYBERSENTINEL_TRUSTED_HOSTS: ${CYBERSENTINEL_HOSTNAME},api,localhost,127.0.0.1
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    container_name: cybersentinel-staging-caddy
+    environment:
+      CYBERSENTINEL_HOSTNAME: ${CYBERSENTINEL_HOSTNAME:?Set CYBERSENTINEL_HOSTNAME}
+    depends_on:
+      frontend:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  nginx:
+    profiles:
+      - manual-tls
+
+volumes:
+  caddy-data:
+  caddy-config:

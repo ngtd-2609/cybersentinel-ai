@@ -50,6 +50,8 @@ tmp/
 temp/
 backups/
 deploy/certs/
+deploy/secrets/
+deploy/state/
 
 # Local credentials
 *.pem

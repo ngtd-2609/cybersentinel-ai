@@ -21,6 +21,27 @@ jobs:
       - name: Scan tracked files
         run: bash scripts/check-secrets.sh
 
+      - name: Validate staging Compose and observability artifacts
+        env:
+          POSTGRES_USER: cybersentinel
+          POSTGRES_DB: cybersentinel_staging
+          CYBERSENTINEL_HOSTNAME: staging.example.test
+          ACME_EMAIL: sre@example.test
+          CYBERSENTINEL_API_IMAGE: ghcr.io/example/api:test
+          CYBERSENTINEL_FRONTEND_IMAGE: ghcr.io/example/frontend:test
+        run: |
+          touch .env
+          mkdir -p deploy/secrets
+          printf 'test-password' > deploy/secrets/postgres_password
+          printf 'postgresql+psycopg://test:test@postgres/test' > deploy/secrets/database_url
+          printf 'test-secret-key-at-least-32-characters' > deploy/secrets/app_secret_key
+          printf 'test-ingestion-key' > deploy/secrets/ingestion_api_keys
+          printf 'test-grafana-password' > deploy/secrets/grafana_admin_password
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+            -f docker-compose.deploy.yml -f docker-compose.staging.yml config --quiet
+          python -m json.tool monitoring/grafana/dashboards/cybersentinel-overview.json \
+            >/dev/null
+
   quality:
     name: Ruff and Pytest
     runs-on: ubuntu-latest
@@ -49,6 +70,9 @@ jobs:
 
       - name: Verify AI reliability report and DVC provenance
         run: uv run python -m cybersentinel_ai.evaluation.phase_k --check
+
+      - name: Verify deployment rollback state machine
+        run: bash scripts/rollback-drill.sh
 
   frontend:
     name: Frontend lint and build

@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -6,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/cybersentinel"
+
+    database_url_file: str | None = None
 
     ollama_url: str = "http://localhost:11434"
 
@@ -16,6 +19,8 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     secret_key: str = "change-this-in-production"
+
+    secret_key_file: str | None = None
 
     auto_incident_risk_threshold: float = 85.0
 
@@ -34,6 +39,8 @@ class Settings(BaseSettings):
     trust_proxy_headers: bool = False
 
     ingestion_api_keys: str = ""
+
+    ingestion_api_keys_file: str | None = None
 
     ingestion_batch_size: int = Field(default=500, ge=1, le=5000)
 
@@ -92,8 +99,26 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secret(self) -> "Settings":
+        for value_field, file_field in (
+            ("database_url", "database_url_file"),
+            ("secret_key", "secret_key_file"),
+            ("ingestion_api_keys", "ingestion_api_keys_file"),
+        ):
+            secret_path = getattr(self, file_field)
+            if not secret_path:
+                continue
+            path = Path(secret_path)
+            try:
+                secret_value = path.read_text(encoding="utf-8").strip()
+            except OSError as exc:
+                raise ValueError(f"Unable to read secret file: {path}") from exc
+            if not secret_value:
+                raise ValueError(f"Secret file must not be empty: {path}")
+            setattr(self, value_field, secret_value)
+
+        hardened_environment = self.environment.lower() in {"production", "staging"}
         if (
-            self.environment.lower() == "production"
+            hardened_environment
             and self.enforce_production_config
             and (self.secret_key == "change-this-in-production" or len(self.secret_key) < 32)
         ):
@@ -102,13 +127,13 @@ class Settings(BaseSettings):
                 "32 characters in production"
             )
         if (
-            self.environment.lower() == "production"
+            hardened_environment
             and self.enforce_production_config
             and not self.redis_url
         ):
             raise ValueError("CYBERSENTINEL_REDIS_URL is required in production")
         if (
-            self.environment.lower() == "production"
+            hardened_environment
             and self.enforce_production_config
             and not self.ingestion_api_key_list
         ):

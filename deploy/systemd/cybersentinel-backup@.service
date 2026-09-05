@@ -1,0 +1,14 @@
+[Unit]
+Description=CyberSentinel %i PostgreSQL backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=cybersentinel
+Group=cybersentinel
+WorkingDirectory=/opt/cybersentinel/%i/current
+EnvironmentFile=/etc/cybersentinel/%i-backup.env
+ExecStart=/usr/bin/bash scripts/backup-postgres.sh
+PrivateTmp=true
+NoNewPrivileges=true

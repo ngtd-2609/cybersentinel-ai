@@ -2243,7 +2243,34 @@ curl -s http://127.0.0.1:9091/api/v1/targets
 
 ---
 
-# 43. Responsible Use
+# 43. Staging and SRE operations
+
+Production-like staging is isolated with its own Compose project, PostgreSQL
+volume and HTTPS hostname. Deployment values come from GitHub Environment secrets
+and are mounted as Docker secret files; deployment secrets do not belong in `.env`.
+
+```bash
+# Validate the complete staging configuration without starting it.
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  -f docker-compose.deploy.yml -f docker-compose.staging.yml config --quiet
+
+# Verify backup and disposable restore against a running stack.
+POSTGRES_USER=cybersentinel POSTGRES_DB=cybersentinel \
+  scripts/backup-restore-drill.sh
+
+# Enforce the staging availability and latency SLO.
+BASE_URL=https://staging.example.com scripts/run-load-test.sh
+```
+
+The versioned dashboard combines Prometheus SLO signals with centralized Loki
+logs. Alerts cover service down, elevated 5xx rate, P95 latency over 500 ms,
+PostgreSQL unavailability and repeated Copilot fallback. See
+`docs/sre/SLO.md`, `docs/sre/incident-runbook.md`, and `deploy/README.md` for
+deployment, rollback and incident procedures.
+
+---
+
+# 44. Responsible Use
 
 CyberSentinel AI must be used only for authorized defensive cybersecurity activities.
 
@@ -2261,7 +2288,7 @@ The user is responsible for ensuring that data collection and network-security t
 
 ---
 
-# 44. Final Note
+# 45. Final Note
 
 CyberSentinel AI is intentionally built as more than a notebook-based classification experiment.
 

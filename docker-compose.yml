@@ -26,7 +26,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d cybersentinel"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -111,12 +111,13 @@ services:
       - no-new-privileges:true
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.5.0
     container_name: cybersentinel-prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     ports:
       - "9091:9090"
@@ -125,7 +126,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana-oss:latest
+    image: grafana/grafana-oss:12.1.0
     container_name: cybersentinel-grafana
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -135,7 +136,33 @@ services:
       - "3001:3000"
     depends_on:
       - prometheus
+      - loki
     restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.5.1
+    container_name: cybersentinel-loki
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./monitoring/loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  promtail:
+    image: grafana/promtail:3.5.1
+    container_name: cybersentinel-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   cybersentinel-data:
@@ -143,3 +170,4 @@ volumes:
   postgres-data:
   grafana-data:
   redis-data:
+  loki-data:

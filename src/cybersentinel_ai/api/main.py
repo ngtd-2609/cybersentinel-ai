@@ -26,12 +26,15 @@ from cybersentinel_ai.auth.router import router as auth_router
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import get_db
 from cybersentinel_ai.mlops.routes import router as mlops_router
+from cybersentinel_ai.observability.logging import configure_json_logging
+from cybersentinel_ai.observability.metrics import DEPENDENCY_UP
 from cybersentinel_ai.security.rate_limit import (
     LoginRateLimiter,
     RateLimitUnavailableError,
 )
 
 settings = get_settings()
+configure_json_logging()
 login_rate_limiter = LoginRateLimiter(settings.redis_url)
 login_failures = login_rate_limiter.local_attempts
 
@@ -170,11 +173,13 @@ def readiness_check(database: Session = Depends(get_db)) -> dict[str, str]:
     try:
         database.execute(text("SELECT 1"))
     except SQLAlchemyError as exc:
+        DEPENDENCY_UP.labels(dependency="postgresql").set(0)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database is unavailable",
         ) from exc
 
+    DEPENDENCY_UP.labels(dependency="postgresql").set(1)
     return {
         "status": "ready",
         "service": "cybersentinel-ai",

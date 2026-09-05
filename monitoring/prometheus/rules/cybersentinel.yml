@@ -1,0 +1,53 @@
+groups:
+  - name: cybersentinel-slo
+    interval: 30s
+    rules:
+      - record: cybersentinel:http_availability:ratio_5m
+        expr: 1 - (sum(rate(cybersentinel_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(cybersentinel_http_requests_total[5m])), 0.001))
+      - record: cybersentinel:http_latency_p95_seconds:5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(cybersentinel_http_request_duration_seconds_bucket[5m])))
+      - alert: CyberSentinelAPIDown
+        expr: up{job="cybersentinel-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: CyberSentinel API is unavailable
+          runbook_url: docs/sre/incident-runbook.md#api-or-service-down
+      - alert: CyberSentinelHighErrorRate
+        expr: cybersentinel:http_availability:ratio_5m < 0.995
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: API availability is below the 99.5% SLO
+          runbook_url: docs/sre/incident-runbook.md#high-error-rate
+      - alert: CyberSentinelHighLatency
+        expr: cybersentinel:http_latency_p95_seconds:5m > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: API P95 latency exceeds 500 ms
+          runbook_url: docs/sre/incident-runbook.md#high-latency
+      - alert: CyberSentinelDatabaseUnavailable
+        expr: cybersentinel_dependency_up{dependency="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: PostgreSQL readiness probe is failing
+          runbook_url: docs/sre/incident-runbook.md#database-unavailable
+      - alert: CyberSentinelCopilotTimeouts
+        expr: increase(cybersentinel_copilot_requests_total{outcome="fallback_unavailable"}[5m]) >= 3
+        for: 1m
+        labels:
+          severity: warning
+          service: copilot
+        annotations:
+          summary: SOC Copilot repeatedly used the unavailable-model fallback
+          runbook_url: docs/sre/incident-runbook.md#copilot-timeout

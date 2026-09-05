@@ -1,0 +1,144 @@
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA or protected ref to deploy
+        required: true
+        default: main
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cybersentinel-staging
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build immutable images
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.revision.outputs.commit_sha }}
+    steps:
+      - name: Checkout requested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Resolve immutable revision
+        id: revision
+        run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-api:${{ steps.revision.outputs.commit_sha }}"
+          docker build -f docker/Dockerfile \
+            -t "$image" .
+          docker push "$image"
+
+      - name: Build and push frontend image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-frontend:${{ steps.revision.outputs.commit_sha }}"
+          docker build -f frontend/Dockerfile \
+            -t "$image" frontend
+          docker push "$image"
+
+      - name: Package deployment source
+        run: tar --exclude=.git --exclude=.venv --exclude=frontend/node_modules -czf release.tgz .
+
+      - name: Upload deployment source
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-${{ steps.revision.outputs.commit_sha }}
+          path: release.tgz
+          retention-days: 7
+
+  deploy:
+    name: Deploy and verify HTTPS staging
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://${{ vars.STAGING_HOSTNAME }}
+    steps:
+      - name: Download deployment source
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-${{ needs.build.outputs.commit_sha }}
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install release and secret files
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          APP_SECRET_KEY: ${{ secrets.STAGING_APP_SECRET_KEY }}
+          INGESTION_API_KEYS: ${{ secrets.STAGING_INGESTION_API_KEYS }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.STAGING_GRAFANA_ADMIN_PASSWORD }}
+          STAGING_HOSTNAME: ${{ vars.STAGING_HOSTNAME }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          COMMIT_SHA: ${{ needs.build.outputs.commit_sha }}
+        run: |
+          test -n "$SSH_HOST" && test -n "$SSH_USER"
+          [[ "$STAGING_HOSTNAME" =~ ^[A-Za-z0-9.-]+$ ]]
+          release_dir="/opt/cybersentinel/staging/releases/$COMMIT_SHA"
+          # shellcheck disable=SC2029
+          ssh "$SSH_USER@$SSH_HOST" "mkdir -p '$release_dir' /opt/cybersentinel/staging/secrets /opt/cybersentinel/staging/state"
+          scp release.tgz "$SSH_USER@$SSH_HOST:$release_dir/release.tgz"
+          # shellcheck disable=SC2029
+          ssh "$SSH_USER@$SSH_HOST" "tar -xzf '$release_dir/release.tgz' -C '$release_dir' && rm '$release_dir/release.tgz'"
+          printf '%s' "$POSTGRES_PASSWORD" | ssh "$SSH_USER@$SSH_HOST" "umask 077; cat > /opt/cybersentinel/staging/secrets/postgres_password"
+          printf '%s' "$DATABASE_URL" | ssh "$SSH_USER@$SSH_HOST" "umask 077; cat > /opt/cybersentinel/staging/secrets/database_url"
+          printf '%s' "$APP_SECRET_KEY" | ssh "$SSH_USER@$SSH_HOST" "umask 077; cat > /opt/cybersentinel/staging/secrets/app_secret_key"
+          printf '%s' "$INGESTION_API_KEYS" | ssh "$SSH_USER@$SSH_HOST" "umask 077; cat > /opt/cybersentinel/staging/secrets/ingestion_api_keys"
+          printf '%s' "$GRAFANA_ADMIN_PASSWORD" | ssh "$SSH_USER@$SSH_HOST" "umask 077; cat > /opt/cybersentinel/staging/secrets/grafana_admin_password"
+          printf '%s\n' \
+            "POSTGRES_USER=cybersentinel" \
+            "POSTGRES_DB=cybersentinel_staging" \
+            "CYBERSENTINEL_HOSTNAME=$STAGING_HOSTNAME" \
+            "ACME_EMAIL=$ACME_EMAIL" \
+            "CYBERSENTINEL_SECRETS_DIR=/opt/cybersentinel/staging/secrets" \
+            > runtime.env
+          scp runtime.env "$SSH_USER@$SSH_HOST:$release_dir/.env"
+
+      - name: Deploy immutable release with rollback guard
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          GHCR_USER: ${{ secrets.GHCR_PULL_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          STAGING_HOSTNAME: ${{ vars.STAGING_HOSTNAME }}
+          COMMIT_SHA: ${{ needs.build.outputs.commit_sha }}
+        run: |
+          release_dir="/opt/cybersentinel/staging/releases/$COMMIT_SHA"
+          # shellcheck disable=SC2029
+          printf '%s' "$GHCR_TOKEN" | ssh "$SSH_USER@$SSH_HOST" \
+            "docker login ghcr.io --username '$GHCR_USER' --password-stdin"
+          # shellcheck disable=SC2029
+          ssh "$SSH_USER@$SSH_HOST" \
+            "cd '$release_dir' && chmod +x scripts/*.sh && DEPLOY_STATE_DIR=/opt/cybersentinel/staging/state DEPLOY_CURRENT_LINK=/opt/cybersentinel/staging/current bash scripts/deploy-release.sh staging '$COMMIT_SHA' 'https://$STAGING_HOSTNAME'"
+
+      - name: Verify public HTTPS
+        env:
+          STAGING_URL: https://${{ vars.STAGING_HOSTNAME }}
+        run: bash <(tar -xOf release.tgz ./scripts/staging-smoke.sh)

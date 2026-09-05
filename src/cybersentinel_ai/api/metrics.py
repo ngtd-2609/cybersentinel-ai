@@ -1,24 +1,15 @@
+import logging
 from time import perf_counter
 
 from fastapi import FastAPI, Request, Response
-from prometheus_client import (
-    CONTENT_TYPE_LATEST,
-    Counter,
-    Histogram,
-    generate_latest,
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+from cybersentinel_ai.observability.metrics import (
+    HTTP_REQUEST_DURATION_SECONDS,
+    HTTP_REQUESTS_TOTAL,
 )
 
-HTTP_REQUESTS_TOTAL = Counter(
-    "cybersentinel_http_requests_total",
-    "Total HTTP requests handled by CyberSentinel AI.",
-    ["method", "path", "status"],
-)
-
-HTTP_REQUEST_DURATION_SECONDS = Histogram(
-    "cybersentinel_http_request_duration_seconds",
-    "HTTP request latency in seconds.",
-    ["method", "path"],
-)
+logger = logging.getLogger("cybersentinel.http")
 
 
 def configure_metrics(app: FastAPI) -> None:
@@ -29,22 +20,39 @@ def configure_metrics(app: FastAPI) -> None:
     ) -> Response:
         start_time = perf_counter()
 
-        response = await call_next(request)
+        status_code = 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        finally:
+            duration = perf_counter() - start_time
+            route = request.scope.get("route")
+            path = getattr(route, "path", request.url.path)
 
-        duration = perf_counter() - start_time
+            HTTP_REQUESTS_TOTAL.labels(
+                method=request.method,
+                path=path,
+                status=str(status_code),
+            ).inc()
 
-        path = request.url.path
-
-        HTTP_REQUESTS_TOTAL.labels(
-            method=request.method,
-            path=path,
-            status=str(response.status_code),
-        ).inc()
-
-        HTTP_REQUEST_DURATION_SECONDS.labels(
-            method=request.method,
-            path=path,
-        ).observe(duration)
+            HTTP_REQUEST_DURATION_SECONDS.labels(
+                method=request.method,
+                path=path,
+            ).observe(duration)
+            logger.info(
+                "request_completed",
+                extra={
+                    "request_id": getattr(
+                        getattr(request.state, "audit_context", None),
+                        "request_id",
+                        request.headers.get("x-request-id"),
+                    ),
+                    "method": request.method,
+                    "path": path,
+                    "status": status_code,
+                    "duration_ms": round(duration * 1000, 3),
+                },
+            )
 
         return response
 

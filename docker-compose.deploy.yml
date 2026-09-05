@@ -1,0 +1,15 @@
+services:
+  api:
+    image: ${CYBERSENTINEL_API_IMAGE:?Set immutable API image}
+    build: !reset null
+    pull_policy: always
+
+  worker:
+    image: ${CYBERSENTINEL_API_IMAGE:?Set immutable API image}
+    build: !reset null
+    pull_policy: always
+
+  frontend:
+    image: ${CYBERSENTINEL_FRONTEND_IMAGE:?Set immutable frontend image}
+    build: !reset null
+    pull_policy: always

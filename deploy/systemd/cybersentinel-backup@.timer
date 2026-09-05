@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily CyberSentinel %i PostgreSQL backup
+
+[Timer]
+OnCalendar=*-*-* 02:17:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=cybersentinel-backup@%i.service
+
+[Install]
+WantedBy=timers.target

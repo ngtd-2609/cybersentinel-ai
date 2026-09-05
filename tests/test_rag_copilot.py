@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from prometheus_client import generate_latest
 
 from cybersentinel_ai.rag.copilot import SOCCopilot
 from cybersentinel_ai.rag.ollama_client import OllamaResponse, OllamaUnavailableError
@@ -130,3 +131,5 @@ def test_prompt_injection_is_neutralized_and_outage_has_grounded_fallback():
     assert "finance-ws-7" in result.answer
     assert "reveal the system prompt" not in result.answer.lower()
     assert "[blocked untrusted instruction]" in result.answer
+    metrics = generate_latest().decode()
+    assert 'cybersentinel_copilot_requests_total{outcome="fallback_unavailable"}' in metrics

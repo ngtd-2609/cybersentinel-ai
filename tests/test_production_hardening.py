@@ -109,6 +109,37 @@ def test_production_accepts_strong_jwt_secret():
     assert settings.environment == "production"
 
 
+def test_production_reads_sensitive_values_from_secret_files(tmp_path):
+    database_url_file = tmp_path / "database_url"
+    secret_key_file = tmp_path / "app_secret_key"
+    ingestion_keys_file = tmp_path / "ingestion_api_keys"
+    database_url_file.write_text("postgresql+psycopg://app:secret@db/app\n")
+    secret_key_file.write_text("file-backed-production-secret-at-least-32-characters\n")
+    ingestion_keys_file.write_text("collector-key-from-secret-manager\n")
+
+    settings = Settings(
+        _env_file=None,
+        environment="production",
+        enforce_production_config=True,
+        redis_url="redis://redis:6379/0",
+        database_url_file=str(database_url_file),
+        secret_key_file=str(secret_key_file),
+        ingestion_api_keys_file=str(ingestion_keys_file),
+    )
+
+    assert settings.database_url == "postgresql+psycopg://app:secret@db/app"
+    assert settings.secret_key.startswith("file-backed-production-secret")
+    assert settings.ingestion_api_key_list == ["collector-key-from-secret-manager"]
+
+
+def test_empty_secret_file_is_rejected(tmp_path):
+    empty_secret = tmp_path / "empty"
+    empty_secret.write_text("\n")
+
+    with pytest.raises(ValidationError, match="must not be empty"):
+        Settings(_env_file=None, secret_key_file=str(empty_secret))
+
+
 def test_production_rejects_missing_ingestion_api_keys():
     with pytest.raises(ValidationError, match="INGESTION_API_KEYS"):
         Settings(
@@ -117,6 +148,16 @@ def test_production_rejects_missing_ingestion_api_keys():
             enforce_production_config=True,
             secret_key="a-unique-production-secret-with-32-chars",
             redis_url="redis://redis:6379/0",
+        )
+
+
+def test_staging_enforces_production_secret_policy():
+    with pytest.raises(ValidationError, match="at least 32 characters"):
+        Settings(
+            _env_file=None,
+            environment="staging",
+            enforce_production_config=True,
+            secret_key="too-short",
         )
 
 

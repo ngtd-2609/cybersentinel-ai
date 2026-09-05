@@ -2,6 +2,7 @@ import json
 import re
 from dataclasses import dataclass
 
+from cybersentinel_ai.observability.metrics import COPILOT_REQUESTS_TOTAL
 from cybersentinel_ai.rag.knowledge_base import build_default_knowledge_base
 from cybersentinel_ai.rag.ollama_client import (
     ExternalAIBlockedError,
@@ -342,7 +343,22 @@ class SOCCopilot:
                 format_schema=COPILOT_RESPONSE_SCHEMA,
                 contains_sensitive_data=bool(safe_alert_context),
             )
-        except (OllamaUnavailableError, ExternalAIBlockedError):
+        except OllamaUnavailableError:
+            COPILOT_REQUESTS_TOTAL.labels(outcome="fallback_unavailable").inc()
+            evidence = safe_alert_context or "No alert context was supplied."
+            return CopilotAnswer(
+                answer=(
+                    "1. Assessment\nAutomated model analysis is unavailable; "
+                    "analyst review is required.\n\n"
+                    f"2. Supporting Evidence\n{evidence[:800]}\n\n"
+                    "3. Recommended Actions\nValidate the detection against the cited "
+                    "sources and collect additional telemetry before containment."
+                ),
+                sources=sources,
+                model="deterministic-fallback",
+            )
+        except ExternalAIBlockedError:
+            COPILOT_REQUESTS_TOTAL.labels(outcome="fallback_policy_blocked").inc()
             evidence = safe_alert_context or "No alert context was supplied."
             return CopilotAnswer(
                 answer=(
@@ -356,6 +372,7 @@ class SOCCopilot:
                 model="deterministic-fallback",
             )
 
+        COPILOT_REQUESTS_TOTAL.labels(outcome="success").inc()
         return CopilotAnswer(
             answer=self._format_response(response.response),
             sources=sources,

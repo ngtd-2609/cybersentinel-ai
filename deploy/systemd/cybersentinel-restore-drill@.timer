@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly CyberSentinel %i restore drill
+
+[Timer]
+OnCalendar=Mon *-*-* 03:17:00 UTC
+Persistent=true
+RandomizedDelaySec=30m
+Unit=cybersentinel-restore-drill@%i.service
+
+[Install]
+WantedBy=timers.target

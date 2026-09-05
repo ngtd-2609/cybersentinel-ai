@@ -2,19 +2,36 @@ services:
   postgres:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    secrets:
+      - postgres_password
     ports: !reset []
 
   api:
     environment:
-      CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
-      CYBERSENTINEL_SECRET_KEY: ${CYBERSENTINEL_SECRET_KEY:?Set CYBERSENTINEL_SECRET_KEY}
+      CYBERSENTINEL_DATABASE_URL_FILE: /run/secrets/database_url
+      CYBERSENTINEL_SECRET_KEY_FILE: /run/secrets/app_secret_key
+      CYBERSENTINEL_INGESTION_API_KEYS_FILE: /run/secrets/ingestion_api_keys
       CYBERSENTINEL_ENVIRONMENT: production
       CYBERSENTINEL_ENFORCE_PRODUCTION_CONFIG: "true"
       CYBERSENTINEL_CORS_ORIGINS: https://${CYBERSENTINEL_HOSTNAME:?Set CYBERSENTINEL_HOSTNAME}
       CYBERSENTINEL_TRUSTED_HOSTS: ${CYBERSENTINEL_HOSTNAME},api,localhost,127.0.0.1
     ports: !reset []
+    secrets:
+      - database_url
+      - app_secret_key
+      - ingestion_api_keys
+
+  worker:
+    environment:
+      CYBERSENTINEL_DATABASE_URL_FILE: /run/secrets/database_url
+      CYBERSENTINEL_SECRET_KEY_FILE: /run/secrets/app_secret_key
+      CYBERSENTINEL_INGESTION_API_KEYS_FILE: /run/secrets/ingestion_api_keys
+    secrets:
+      - database_url
+      - app_secret_key
+      - ingestion_api_keys
 
   frontend:
     ports: !reset []
@@ -23,6 +40,13 @@ services:
     ports: !reset []
 
   grafana:
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+    ports: !reset []
+    secrets:
+      - grafana_admin_password
+
+  loki:
     ports: !reset []
 
   nginx:
@@ -42,3 +66,15 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+
+secrets:
+  postgres_password:
+    file: ${CYBERSENTINEL_SECRETS_DIR:-./deploy/secrets}/postgres_password
+  database_url:
+    file: ${CYBERSENTINEL_SECRETS_DIR:-./deploy/secrets}/database_url
+  app_secret_key:
+    file: ${CYBERSENTINEL_SECRETS_DIR:-./deploy/secrets}/app_secret_key
+  ingestion_api_keys:
+    file: ${CYBERSENTINEL_SECRETS_DIR:-./deploy/secrets}/ingestion_api_keys
+  grafana_admin_password:
+    file: ${CYBERSENTINEL_SECRETS_DIR:-./deploy/secrets}/grafana_admin_password
