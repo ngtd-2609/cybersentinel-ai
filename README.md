@@ -2243,11 +2243,18 @@ curl -s http://127.0.0.1:9091/api/v1/targets
 
 ---
 
-# 43. Staging and SRE operations
+# 43. Portfolio deployment and optional SRE operations
 
-Production-like staging is isolated with its own Compose project, PostgreSQL
-volume and HTTPS hostname. Deployment values come from GitHub Environment secrets
-and are mounted as Docker secret files; deployment secrets do not belong in `.env`.
+The primary Phase L target is a public HTTPS portfolio deployment with a static
+frontend, a hosted FastAPI service, managed PostgreSQL and safe demo data. It must
+work without the viewer installing Docker and without the developer laptop being
+online. A provider URL is sufficient; a paid VPS and custom domain are optional.
+See `docs/portfolio-deployment.md` for the required gates and target architecture.
+
+The advanced self-hosted staging path is isolated with its own Compose project,
+PostgreSQL volume and HTTPS hostname. Deployment values come from GitHub Environment
+secrets and are mounted as Docker secret files; deployment secrets do not belong
+in `.env`.
 
 ```bash
 # Validate the complete staging configuration without starting it.

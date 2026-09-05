@@ -1,6 +1,24 @@
-# Phase L verification evidence
+# Phase L public portfolio verification evidence
 
 This file is updated only with evidence from the exact deployed commit.
+
+## Required public portfolio gates
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Public HTTPS URL | PENDING | Provider deployment not created yet |
+| Hosted frontend and API | PENDING | Must work without Docker on the viewer's machine |
+| Managed PostgreSQL and migration | PENDING | Empty hosted database must migrate to Alembic head |
+| Safe demo seed and restricted account | PENDING | Idempotent seed/reseed and non-admin demo access required |
+| Main demo journey | PENDING | Login, Dashboard, Events, Incidents, Threat Intel, Copilot and Reports |
+| Laptop independence | PENDING | Public deployment must remain available when the developer laptop is off |
+| Secret hygiene | PASS | CI scans tracked files; provider values must remain outside Git |
+| Cold-start UX | PENDING | Free-tier wake-up behavior must be tested and documented |
+
+Phase L remains open until every required public portfolio row records a UTC
+timestamp, commit/deployment ID and successful run or public URL evidence.
+
+## Advanced self-hosted SRE evidence (non-blocking)
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
@@ -11,10 +29,7 @@ This file is updated only with evidence from the exact deployed commit.
 | Backup/restore automation | IMPLEMENTED | `scripts/backup-restore-drill.sh`; runtime result pending exact Phase L commit |
 | Load gate | IMPLEMENTED | k6 99.5%/500 ms thresholds; staging result pending |
 | Rollback | IMPLEMENTED | immutable image state and automatic/manual rollback; staging drill pending |
-| HTTPS staging URL | BLOCKED | No staging environment, host, DNS or deployment secrets currently configured in GitHub |
-
-Phase L remains open until the final four runtime rows contain UTC timestamps,
-commit SHA and successful run/deployment URLs.
+| HTTPS self-hosted URL | OPTIONAL | No VPS/DNS/SSH credentials required for portfolio Definition of Done |
 
 ## Local preflight — 2026-09-05 UTC
 

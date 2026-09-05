@@ -1,4 +1,16 @@
-# Production deployment
+# Deployment options
+
+Phase L primarily targets a public portfolio deployment on low-cost or free PaaS:
+static frontend hosting, one FastAPI web service and managed PostgreSQL. The public
+demo must use HTTPS, safe seed data and a restricted demo account, and must not
+depend on a developer laptop. A custom domain and paid VPS are not required. See
+`docs/portfolio-deployment.md` for the active Definition of Done.
+
+The Compose/Caddy workflow below is retained as an advanced self-hosted option. It
+is useful operational evidence, but its VPS, SSH, Grafana/Loki and systemd gates do
+not block the portfolio release.
+
+## Advanced self-hosted deployment
 
 CyberSentinel uses the base Compose file for local development and
 `docker-compose.prod.yml` for the production network boundary and TLS proxy.
