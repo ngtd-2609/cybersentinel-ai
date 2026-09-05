@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "release": {
+    "name": "CyberSentinel AI",
+    "version": "1.1.0",
+    "tag": "v1.1.0",
+    "commit_resolution": "git rev-list -n 1 v1.1.0",
+    "date": "2026-09-05",
+    "phase": "M",
+    "status": "release-ready"
+  },
+  "deployment": {
+    "web_url": "https://cybersentinel-web-ppae.onrender.com",
+    "api_ready_url": "https://cybersentinel-api-hrl8.onrender.com/ready",
+    "web_provider": "Render Free Web Service",
+    "api_provider": "Render Free Web Service",
+    "database_provider": "Neon Free PostgreSQL",
+    "synthetic_events": 8,
+    "demo_incidents": 3
+  },
+  "gates": [
+    {"id": "clean_git_tree", "status": "pass", "evidence": "pre-tag git status"},
+    {"id": "fresh_clone", "status": "pass", "evidence": "GitHub Actions fresh checkout release gate"},
+    {"id": "one_command_startup", "status": "pass", "evidence": "scripts/start-demo.sh"},
+    {"id": "fresh_database_migration", "status": "pass", "evidence": "CI PostgreSQL integration job"},
+    {"id": "full_e2e", "status": "pass", "evidence": "CI frontend Playwright job"},
+    {"id": "security_scan", "status": "pass", "evidence": "Security workflow"},
+    {"id": "backup_restore", "status": "pass", "evidence": "Security DAST backup/restore drill"},
+    {"id": "public_staging_smoke", "status": "pass", "evidence": "Playwright no-mock public smoke"},
+    {"id": "final_tag", "status": "tag-time", "evidence": "annotated v1.1.0 after green gates"},
+    {"id": "release_notes", "status": "pass", "evidence": "docs/releases/v1.1.0.md"},
+    {"id": "final_handoff", "status": "pass", "evidence": "docs/releases/v1.1.0-handoff.md"},
+    {"id": "state_json", "status": "pass", "evidence": "this file; parsed by CI"}
+  ],
+  "quality": {
+    "python_tests_collected": 179,
+    "model_quality_gate": "pass",
+    "rag_quality_gate": "pass",
+    "public_smoke": "pass",
+    "ci_workflow": "https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/ci.yml",
+    "security_workflow": "https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/security.yml"
+  },
+  "video": {
+    "target_length_minutes": "5-8",
+    "status": "optional-deferred",
+    "blocks_release": false
+  },
+  "secrets_committed": false,
+  "next_phase": null
+}

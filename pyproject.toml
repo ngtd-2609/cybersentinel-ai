@@ -1,7 +1,7 @@
 [project]
 name = "cybersentinel-ai"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.1.0"
+description = "AI-assisted network detection, incident response, threat intelligence, and SOC Copilot platform"
 readme = "README.md"
 authors = [
     { name = "Nguyễn Tùng Dương", email = "duong.nguyentung2609@gmail.com" }

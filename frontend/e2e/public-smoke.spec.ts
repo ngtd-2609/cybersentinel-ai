@@ -8,6 +8,10 @@ test.describe("public portfolio smoke", () => {
 
   test("reviewer can traverse the live SOC demo", async ({ page }) => {
     test.setTimeout(180_000);
+    const captureReadme = process.env.CAPTURE_README === "true";
+    if (captureReadme) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+    }
 
     await page.goto("/login");
     const demoButton = page.getByRole("button", {
@@ -18,6 +22,9 @@ test.describe("public portfolio smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Security Overview" }),
     ).toBeVisible();
+    if (captureReadme) {
+      await page.screenshot({ path: "../docs/assets/dashboard.png" });
+    }
 
     await page.goto("/events");
     await expect(
@@ -30,6 +37,9 @@ test.describe("public portfolio smoke", () => {
       page.getByRole("heading", { name: "Incident Management" }),
     ).toBeVisible();
     await expect(page.getByText("[DEMO] Ransomware containment")).toBeVisible();
+    if (captureReadme) {
+      await page.screenshot({ path: "../docs/assets/incidents.png" });
+    }
 
     await page.goto("/threat-intel");
     await expect(
@@ -42,6 +52,9 @@ test.describe("public portfolio smoke", () => {
     await page.getByRole("button", { name: "Ask Copilot" }).click();
     await expect(page.getByRole("heading", { name: "Analysis" })).toBeVisible();
     await expect(page.getByText("deterministic-fallback")).toBeVisible();
+    if (captureReadme) {
+      await page.screenshot({ path: "../docs/assets/copilot.png" });
+    }
 
     await page.goto("/reports");
     await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();

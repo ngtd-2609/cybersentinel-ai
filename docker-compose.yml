@@ -1,7 +1,6 @@
 services:
   redis:
     image: redis:8-alpine
-    container_name: cybersentinel-redis
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
@@ -16,7 +15,6 @@ services:
 
   postgres:
     image: postgres:16
-    container_name: cybersentinel-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -36,11 +34,11 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: cybersentinel-api
     ports:
       - "8001:8000"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-cybersentinel}
       CYBERSENTINEL_REDIS_URL: redis://redis:6379/0
@@ -71,10 +69,10 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: cybersentinel-worker
     command: [".venv/bin/python", "-m", "cybersentinel_ai.ingestion.worker"]
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       CYBERSENTINEL_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-cybersentinel}
       CYBERSENTINEL_REDIS_URL: redis://redis:6379/0
@@ -97,7 +95,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: cybersentinel-frontend
     ports:
       - "3002:3000"
     environment:
@@ -112,7 +109,6 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.5.0
-    container_name: cybersentinel-prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
@@ -127,7 +123,6 @@ services:
 
   grafana:
     image: grafana/grafana-oss:12.1.0
-    container_name: cybersentinel-grafana
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -141,7 +136,6 @@ services:
 
   loki:
     image: grafana/loki:3.5.1
-    container_name: cybersentinel-loki
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ./monitoring/loki/config.yml:/etc/loki/config.yml:ro
@@ -152,7 +146,6 @@ services:
 
   promtail:
     image: grafana/promtail:3.5.1
-    container_name: cybersentinel-promtail
     command: -config.file=/etc/promtail/config.yml
     volumes:
       - ./monitoring/promtail/config.yml:/etc/promtail/config.yml:ro

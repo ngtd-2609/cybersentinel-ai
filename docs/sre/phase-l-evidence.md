@@ -6,17 +6,16 @@ This file is updated only with evidence from the exact deployed commit.
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
-| Public HTTPS URL | PENDING | Provider deployment not created yet |
-| Hosted frontend and API | PENDING | Must work without Docker on the viewer's machine |
-| Managed PostgreSQL and migration | PENDING | Empty hosted database must migrate to Alembic head |
-| Safe demo seed and restricted account | PENDING | Idempotent seed/reseed and non-admin demo access required |
-| Main demo journey | PENDING | Login, Dashboard, Events, Incidents, Threat Intel, Copilot and Reports |
-| Laptop independence | PENDING | Public deployment must remain available when the developer laptop is off |
+| Public HTTPS URL | PASS | `https://cybersentinel-web-ppae.onrender.com` |
+| Hosted frontend and API | PASS | Render Web Services; API `/ready` returns database connected |
+| Managed PostgreSQL and migration | PASS | Neon empty DB migrated through `c4a7e91b2d60` |
+| Safe demo seed and restricted account | PASS | 8 synthetic events, 3 incidents, restricted Analyst |
+| Main demo journey | PASS | Manual and Playwright no-mock public journey |
+| Laptop independence | PASS | Render + Neon runtime does not use the developer laptop |
 | Secret hygiene | PASS | CI scans tracked files; provider values must remain outside Git |
-| Cold-start UX | PENDING | Free-tier wake-up behavior must be tested and documented |
+| Cold-start UX | PASS | Login readiness polling and reviewer message verified |
 
-Phase L remains open until every required public portfolio row records a UTC
-timestamp, commit/deployment ID and successful run or public URL evidence.
+Phase L closed on 2026-09-05 at commit `6cbfc4d`, tagged `v1.1.0-rc.1`.
 
 ## Advanced self-hosted SRE evidence (non-blocking)
 

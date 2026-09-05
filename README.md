@@ -1,2359 +1,470 @@
+<div align="center">
+
 # CyberSentinel AI
 
-> End-to-end AI-assisted Network Intrusion Detection, Risk Scoring, Threat Intelligence Enrichment, and SOC Copilot platform.
-
-CyberSentinel AI is a defensive cybersecurity project that combines traditional machine learning, anomaly detection, rule-based security logic, threat-intelligence enrichment, Retrieval-Augmented Generation (RAG), REST APIs, experiment tracking, data/model versioning, containerization, monitoring, and CI into one reproducible system.
-
-The main experimental dataset is CIC-IDS2017. The project is designed not only to train a high-performing intrusion-detection model, but also to demonstrate how an ML model can be integrated into a practical SOC-oriented architecture.
-
-The complete pipeline covers:
-
-- Network security dataset ingestion and validation
-- Leakage-aware preprocessing and dataset splitting
-- Binary intrusion detection
-- Multiclass attack classification
-- Unsupervised anomaly detection
-- Rule-based network security signals
-- Weighted cyber-risk scoring
-- MITRE ATT&CK contextual mapping
-- NVD CVE enrichment
-- Local Retrieval-Augmented Generation
-- Ollama-powered SOC Copilot
-- FastAPI REST services
-- SQLite event persistence
-- MLflow experiment tracking
-- DVC dataset and model versioning
-- Prometheus monitoring
-- Grafana dashboards
-- Docker deployment
-- Automated testing
-- GitHub Actions CI
-
-CyberSentinel AI is intended for defensive cybersecurity research, portfolio demonstration, learning, and experimentation.
-
-## Public portfolio deployment
-
-The deployment target is an interactive HTTPS portfolio: Next.js frontend/BFF and
-FastAPI on Render Free Web Services, backed by Neon PostgreSQL. Reviewers can use a
-restricted one-click demo account with synthetic security data; no local Docker or
-developer laptop is required. Free-tier cold starts are expected and explained in
-the login UI.
-
-**Live demo:** [Open CyberSentinel AI](https://cybersentinel-web-ppae.onrender.com)
-
-On the login page, wait for the green service-ready indicator and choose
-**Explore with the safe demo account**. The first visit after an idle period can
-take about a minute while the two free services wake up.
-
-The infrastructure Blueprint and secret-safe setup steps are documented in
-[Public portfolio deployment](docs/portfolio-deployment.md). Provider credentials,
-database URLs and demo passwords must remain in provider secret settings and must
-never be committed.
-
-It is not intended to replace a production IDS, IPS, SIEM, SOAR, EDR, or professional SOC workflow without additional security engineering, infrastructure hardening, model validation, authentication, authorization, and operational monitoring.
-
----
-
-# Table of Contents
-
-1. Project Overview
-2. Project Objectives
-3. System Architecture
-4. End-to-End Data Flow
-5. Technology Stack
-6. Repository Structure
-7. Dataset
-8. Data Validation
-9. Feature Engineering
-10. Dataset Splitting Strategy
-11. Binary Intrusion Detection
-12. Multiclass Attack Classification
-13. Anomaly Detection
-14. Risk Scoring Engine
-15. Rule-Based Security Signals
-16. MITRE ATT&CK Mapping
-17. NVD CVE Enrichment
-18. SOC RAG Knowledge Base
-19. Ollama SOC Copilot
-20. FastAPI Service
-21. Database Layer
-22. Monitoring and Observability
-23. MLflow Experiment Tracking
-24. DVC Data and Model Versioning
-25. Docker Deployment
-26. Development Setup
-27. Running the Application
-28. API Usage Examples
-29. Testing
-30. Code Quality
-31. Continuous Integration
-32. Reproducibility
-33. Model Evaluation Summary
-34. Known Limitations
-35. Security Considerations
-36. Future Improvements
-37. Project Status
-38. Author Notes
-
----
-
-# 1. Project Overview
-
-Modern intrusion-detection projects often stop after training a classifier and reporting accuracy.
-
-CyberSentinel AI intentionally goes further.
+### AI-assisted Security Operations, from network flow to incident response
+
+[![CI](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/ci.yml)
+[![Security](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/security.yml/badge.svg)](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/security.yml)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Release](https://img.shields.io/github/v/release/ngtd-2609/cybersentinel-ai?include_prereleases)](https://github.com/ngtd-2609/cybersentinel-ai/releases)
+
+[**Live Demo**](https://cybersentinel-web-ppae.onrender.com) ·
+[Architecture](#architecture) · [Quick Start](#quick-start) ·
+[Documentation](#documentation) · [Security](SECURITY.md)
+
+</div>
+
+CyberSentinel AI is a full-stack defensive security portfolio project that turns
+network telemetry into explainable detections, risk-ranked incidents, threat
+context, and grounded SOC Copilot guidance. It combines machine learning with
+deterministic security rules and human-review workflows instead of treating a
+classifier prediction as a complete security decision.
+
+The public demo is a real Next.js + FastAPI application backed by managed
+PostgreSQL. It is not a static mock, and the viewer does not need Docker or a
+running developer laptop.
+
+> [!IMPORTANT]
+> This is a defensive research and portfolio system, not a replacement for a
+> production SIEM, EDR, IDS/IPS, SOAR, or staffed SOC. Use it only on data and
+> systems you are authorized to analyze.
+
+## Table of contents
+
+- [Live demo](#live-demo)
+- [Why this project](#why-this-project)
+- [Feature tour](#feature-tour)
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Detection and AI design](#detection-and-ai-design)
+- [Model evaluation](#model-evaluation)
+- [Security engineering](#security-engineering)
+- [Quick start](#quick-start)
+- [Local development](#local-development)
+- [API overview](#api-overview)
+- [Testing and release quality](#testing-and-release-quality)
+- [Deployment](#deployment)
+- [Repository structure](#repository-structure)
+- [Documentation](#documentation)
+- [Roadmap and project status](#roadmap-and-project-status)
+- [Limitations](#limitations)
+- [Contributing](#contributing)
+- [Author and license](#author-and-license)
+
+## Live demo
+
+**Portfolio URL:** <https://cybersentinel-web-ppae.onrender.com>
+
+1. Open the URL and wait for the green service-ready indicator.
+2. Select **Explore with the safe demo account**.
+3. Follow Dashboard → Events → Incidents → Threat Intel → Copilot → Reports.
+
+The account is a restricted `ANALYST`; it cannot manage users or secrets. The
+dataset contains eight synthetic RFC 5737 events and three demo incidents. Render
+Free services can sleep when idle, so the first request may take about a minute.
+
+| Live component | URL / provider | State |
+| --- | --- | --- |
+| Web application | [CyberSentinel AI](https://cybersentinel-web-ppae.onrender.com) | HTTPS, public |
+| API readiness | [FastAPI `/ready`](https://cybersentinel-api-hrl8.onrender.com/ready) | PostgreSQL-aware |
+| Application hosting | Render Free Web Services | Next.js BFF + FastAPI |
+| Database | Neon Free PostgreSQL | Durable managed data |
+
+## Why this project
+
+Many intrusion-detection projects end at a notebook and an accuracy score.
+CyberSentinel AI demonstrates the harder engineering around the model:
+
+- leakage-aware, day-based CIC-IDS2017 evaluation with a locked Friday test set;
+- binary classification, multiclass classification, anomaly detection, and rules;
+- risk scoring that combines confidence, anomalies, indicators, and asset context;
+- persisted detection events, incident workflow, timelines, and audit trails;
+- MITRE ATT&CK mapping and optional NVD CVE enrichment;
+- retrieval-augmented SOC guidance with evidence preservation and safe fallback;
+- session rotation, RBAC, administrator MFA, lockout, rate limiting, and CORS;
+- model registry, promotion gates, drift monitoring, DVC, and MLflow provenance;
+- real-time ingestion, Redis-backed quotas, SSE updates, and bounded retries;
+- observability, backup/restore, load testing, DAST, container scanning, and CI;
+- a publicly accessible, secret-safe portfolio deployment.
+
+## Feature tour
+
+| Area | What a reviewer can inspect |
+| --- | --- |
+| Dashboard | Severity distribution, recent alerts, attack trends, and live SOC metrics |
+| Detection Events | Filterable detections with risk, confidence, evidence, and traceability |
+| Incidents | Status, ownership, linked detections, and investigation timeline |
+| Threat Intelligence | Observed indicators, ATT&CK tactics/techniques, and defensive context |
+| SOC Copilot | Grounded investigation summary, recommended actions, and knowledge sources |
+| Reports | Browser-generated detection and incident CSV exports from authorized APIs |
+| Model Monitor | Registry stages, model provenance, quality thresholds, and drift reports |
+| Monitoring | Application health and operational signals |
+| Administration | RBAC-protected users and audit logs; unavailable to the demo Analyst |
 
-The project demonstrates an end-to-end cybersecurity AI workflow in which machine-learning outputs are treated as only one component of a larger defensive decision system.
+## Screenshots
 
-Instead of returning only:
+<p align="center">
+  <img src="docs/assets/dashboard.png" alt="CyberSentinel AI security dashboard" width="49%">
+  <img src="docs/assets/incidents.png" alt="CyberSentinel AI incident management" width="49%">
+</p>
 
-```text
-ATTACK
-```
-
-the architecture is designed to eventually provide richer SOC context such as:
-
-```text
-Predicted attack
-Classifier confidence
-Anomaly signal
-Rule-based indicators
-Risk score
-Severity
-MITRE ATT&CK context
-Optional vulnerability context
-Recommended analyst actions
-Human-review recommendation
-```
-
-The project therefore combines three major areas:
-
-### Machine Learning
-
-- Data ingestion
-- Data validation
-- Feature engineering
-- Binary classification
-- Multiclass classification
-- Anomaly detection
-- Threshold selection
-- Evaluation
-
-### Cybersecurity Intelligence
-
-- Rule-based network indicators
-- Risk scoring
-- MITRE ATT&CK mapping
-- NVD CVE context
-- SOC playbooks
-
-### MLOps and Software Engineering
-
-- MLflow
-- DVC
-- FastAPI
-- SQLAlchemy
-- SQLite
-- Docker
-- Prometheus
-- Grafana
-- Ruff
-- Pytest
-- pre-commit
-- GitHub Actions
-
----
-
-# 2. Project Objectives
-
-CyberSentinel AI has the following objectives.
-
-## 2.1 Build a reproducible intrusion-detection pipeline
-
-The pipeline must support:
-
-- raw dataset ingestion
-- validation
-- preprocessing
-- training
-- validation
-- locked test evaluation
-- artifact persistence
-- experiment tracking
-
-## 2.2 Reduce common machine-learning evaluation mistakes
-
-Particular attention is given to:
-
-- train/test contamination
-- leakage
-- class imbalance
-- rare attack categories
-- inappropriate threshold tuning
-- validation/test separation
-- temporal distribution shift
-
-## 2.3 Combine multiple security signals
-
-A production security alert should not depend exclusively on one classifier probability.
-
-CyberSentinel AI therefore combines:
-
-- supervised classifier confidence
-- anomaly signal
-- rule-based signals
-- asset criticality
-- vulnerability context
-
-into a unified risk score.
-
-## 2.4 Add threat-intelligence context
-
-Predictions can be enriched with:
-
-- MITRE ATT&CK techniques
-- tactic context
-- NVD CVE information
-- CVSS information
-
-## 2.5 Add analyst-oriented AI assistance
-
-A local RAG pipeline supplies relevant defensive knowledge to an Ollama-hosted LLM.
-
-The SOC Copilot is instructed to:
-
-- use supplied evidence
-- avoid inventing indicators
-- avoid inventing CVEs
-- avoid inventing hosts or users
-- disclose insufficient evidence
-- provide practical analyst recommendations
-
-## 2.6 Demonstrate MLOps practices
-
-The project integrates:
-
-- data versioning
-- model artifact versioning
-- experiment tracking
-- automated testing
-- linting
-- containerization
-- observability
-- continuous integration
-
----
-
-# 3. System Architecture
-
-The high-level system architecture is:
-
-```text
-                         ┌──────────────────────┐
-                         │     CIC-IDS2017      │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │      Ingestion       │
-                         │     + Validation     │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │ Feature Engineering  │
-                         │ + Dataset Splitting  │
-                         └──────────┬───────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-                    ▼                               ▼
-          ┌──────────────────┐            ┌──────────────────┐
-          │ Supervised Model │            │ Isolation Forest │
-          │ XGBoost          │            │ Anomaly Detector │
-          └────────┬─────────┘            └────────┬─────────┘
-                   │                               │
-                   └──────────────┬────────────────┘
-                                  │
-                                  ▼
-                       ┌────────────────────┐
-                       │ Rule-Based Signals │
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │    Risk Engine     │
-                       │    Score 0-100     │
-                       └─────────┬──────────┘
-                                 │
-                 ┌───────────────┴───────────────┐
-                 │                               │
-                 ▼                               ▼
-       ┌───────────────────┐          ┌────────────────────┐
-       │   MITRE ATT&CK    │          │      NVD CVE       │
-       │     Mapping       │          │    Enrichment      │
-       └─────────┬─────────┘          └──────────┬─────────┘
-                 │                               │
-                 └───────────────┬───────────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │   SOC Knowledge    │
-                       │      Retriever     │
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │   Ollama + RAG     │
-                       │    SOC Copilot     │
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │      FastAPI       │
-                       └─────────┬──────────┘
-                                 │
-                  ┌──────────────┴───────────────┐
-                  │                              │
-                  ▼                              ▼
-        ┌──────────────────┐           ┌──────────────────┐
-        │      SQLite      │           │    Prometheus    │
-        │ Detection Events │           │     Metrics      │
-        └──────────────────┘           └────────┬─────────┘
-                                               │
-                                               ▼
-                                      ┌──────────────────┐
-                                      │     Grafana      │
-                                      │    Dashboard     │
-                                      └──────────────────┘
-```
-
-Cross-cutting MLOps components include:
-
-```text
-DVC
-MLflow
-Pytest
-Ruff
-pre-commit
-Docker
-GitHub Actions
-```
-
----
-
-# 4. End-to-End Data Flow
-
-A simplified CyberSentinel AI workflow is:
-
-```text
-Raw network flow
-      │
-      ▼
-Schema validation
-      │
-      ▼
-Feature preprocessing
-      │
-      ▼
-Classifier prediction
-      │
-      ├───────────────┐
-      ▼               ▼
-Confidence       Anomaly detector
-      │               │
-      └───────┬───────┘
-              ▼
-       Security rules
-              │
-              ▼
-         Risk engine
-              │
-              ▼
-      Severity assignment
-              │
-              ▼
-      Threat enrichment
-              │
-              ▼
-     Detection event API
-              │
-              ├────────────► SQLite
-              │
-              ▼
-        SOC RAG Copilot
-              │
-              ▼
-      Analyst recommendation
-```
-
----
-
-# 5. Technology Stack
-
-## Core Language
-
-```text
-Python 3.12
-```
-
-## Data and Machine Learning
-
-```text
-NumPy
-Pandas
-Scikit-learn
-XGBoost
-Joblib
-PyArrow
-```
-
-## Experiment Tracking
-
-```text
-MLflow
-```
-
-## Data and Artifact Versioning
-
-```text
-DVC
-```
-
-## Backend
-
-```text
-FastAPI
-Uvicorn
-Pydantic
-SQLAlchemy
-SQLite
-HTTPX
-```
-
-## Local AI
-
-```text
-Ollama
-Qwen models
-TF-IDF retrieval
-Retrieval-Augmented Generation
-```
-
-## Threat Intelligence
-
-```text
-MITRE ATT&CK contextual mapping
-NVD CVE API
-CVSS enrichment
-```
-
-## Monitoring
-
-```text
-Prometheus
-Grafana
-```
-
-## Infrastructure
-
-```text
-Docker
-Docker Compose
-```
-
-## Quality
-
-```text
-Pytest
-Ruff
-pre-commit
-```
-
-## Continuous Integration
-
-```text
-GitHub Actions
-```
-
----
-
-# 6. Repository Structure
-
-```text
-cybersentinel-ai/
-│
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-│
-├── artifacts/
-│   ├── isolation_forest/
-│   ├── xgboost/
-│   └── xgboost_multiclass/
-│
-├── data/
-│   ├── external/
-│   ├── interim/
-│   ├── processed/
-│   └── raw/
-│
-├── docker/
-│   └── Dockerfile
-│
-├── docs/
-│
-├── monitoring/
-│   ├── grafana/
-│   │   ├── dashboards/
-│   │   └── provisioning/
-│   └── prometheus/
-│
-├── notebooks/
-│
-├── scripts/
-│   ├── audit_cicids2017.py
-│   ├── build_binary_dataset.py
-│   ├── build_multiclass_dataset.py
-│   ├── check_real_schema.py
-│   ├── check_split_policy.py
-│   ├── evaluate_xgboost_multiclass_test.py
-│   ├── evaluate_xgboost_test.py
-│   ├── train_baseline.py
-│   ├── train_hist_gradient_boosting.py
-│   ├── train_isolation_forest.py
-│   ├── train_xgboost.py
-│   └── train_xgboost_multiclass.py
-│
-├── src/
-│   └── cybersentinel_ai/
-│       │
-│       ├── api/
-│       │   ├── copilot_routes.py
-│       │   ├── main.py
-│       │   ├── metrics.py
-│       │   ├── routes.py
-│       │   └── schemas.py
-│       │
-│       ├── db/
-│       │   ├── database.py
-│       │   ├── models.py
-│       │   └── repository.py
-│       │
-│       ├── features/
-│       │   ├── dataset.py
-│       │   ├── labels.py
-│       │   ├── preprocessing.py
-│       │   ├── selection.py
-│       │   └── splitting.py
-│       │
-│       ├── ingestion/
-│       │   └── cicids2017.py
-│       │
-│       ├── models/
-│       │   ├── anomaly.py
-│       │   ├── baseline.py
-│       │   ├── hist_gradient_boosting.py
-│       │   ├── xgboost_model.py
-│       │   └── xgboost_multiclass.py
-│       │
-│       ├── rag/
-│       │   ├── copilot.py
-│       │   ├── knowledge_base.py
-│       │   ├── ollama_client.py
-│       │   └── retriever.py
-│       │
-│       ├── risk/
-│       │   ├── engine.py
-│       │   ├── rules.py
-│       │   └── scoring.py
-│       │
-│       ├── threat_intel/
-│       │   ├── attack_mapping.py
-│       │   ├── enrichment.py
-│       │   └── nvd.py
-│       │
-│       ├── training/
-│       │   ├── metrics.py
-│       │   ├── mlflow_utils.py
-│       │   ├── multiclass_metrics.py
-│       │   └── thresholds.py
-│       │
-│       └── validation/
-│           ├── cicids2017.py
-│           └── schema.py
-│
-├── tests/
-│
-├── .dockerignore
-├── .gitignore
-├── docker-compose.yml
-├── pyproject.toml
-├── uv.lock
-└── README.md
-```
-
----
-
-# 7. Dataset
-
-CyberSentinel AI currently uses CIC-IDS2017 as its primary benchmark dataset.
-
-The development copy contains:
-
-```text
-CSV files:          8
-Total rows:         2,830,743
-Original columns:   79
-Labels:             15
-```
-
-CIC-IDS2017 includes benign traffic and multiple attack categories including:
-
-```text
-BENIGN
-Bot
-DDoS
-DoS GoldenEye
-DoS Hulk
-DoS Slowhttptest
-DoS slowloris
-FTP-Patator
-Heartbleed
-Infiltration
-PortScan
-SSH-Patator
-Web Attack - Brute Force
-Web Attack - Sql Injection
-Web Attack - XSS
-```
-
-Large raw datasets are intentionally excluded from Git.
-
-DVC is used for version-controlled dataset references.
-
----
-
-# 8. Data Validation
-
-Before model training, the ingestion pipeline checks dataset structure and schema assumptions.
-
-Validation responsibilities include:
-
-- expected columns
-- label presence
-- invalid values
-- numeric compatibility
-- dataset consistency
-- schema verification
-
-Relevant modules:
-
-```text
-src/cybersentinel_ai/ingestion/
-src/cybersentinel_ai/validation/
-```
-
-Relevant scripts:
-
-```text
-scripts/audit_cicids2017.py
-scripts/check_real_schema.py
-```
-
----
-
-# 9. Feature Engineering
-
-The original CIC-IDS2017 data contains 79 columns.
-
-The project removes problematic or redundant features, including constant or duplicated training features.
-
-The resulting model representation contains:
-
-```text
-67 model features
-1 target label
-```
-
-Feature preprocessing is implemented under:
-
-```text
-src/cybersentinel_ai/features/
-```
-
-Major responsibilities include:
-
-- feature selection
-- label handling
-- preprocessing
-- dataset preparation
-- splitting logic
-
----
-
-# 10. Dataset Splitting Strategy
-
-Evaluation leakage is a major problem in intrusion-detection research.
-
-For the binary experiment, CyberSentinel AI uses a day-based split.
-
-```text
-TRAIN
-Monday
-Tuesday
-Wednesday
-
-VALIDATION
-Thursday
-
-LOCKED TEST
-Friday
-```
-
-Dataset sizes:
-
-```text
-Train:       1,668,530 rows
-Validation:    458,968 rows
-Test:          703,245 rows
-```
-
-The Friday test set is treated as locked evaluation data.
-
-Model thresholds are not selected using the test set.
-
-This strategy intentionally exposes distribution shift between different collection days rather than hiding it behind a fully randomized split.
-
----
-
-# 11. Binary Intrusion Detection
-
-Binary classification converts the problem into:
-
-```text
-BENIGN
-ATTACK
-```
-
-The primary model is XGBoost.
-
-## Validation Results
-
-```text
-Accuracy:   0.999076
-Precision:  0.921846
-Recall:     0.883574
-F1 Score:   0.902304
-ROC-AUC:    0.996336
-PR-AUC:     0.821719
-```
-
-Validation confusion matrix:
-
-```text
-True Negative:   456,586
-False Positive:      166
-False Negative:      258
-True Positive:     1,958
-```
-
-The validation-selected decision threshold is:
-
-```text
-0.461
-```
-
-## Locked Test Results
-
-```text
-Accuracy:   0.703743
-Precision:  0.998898
-Recall:     0.279213
-F1 Score:   0.436433
-ROC-AUC:    0.777590
-PR-AUC:     0.780250
-```
-
-The large validation-to-test degradation is not hidden.
-
-It demonstrates that extremely strong validation results on intrusion datasets do not necessarily indicate strong temporal generalization.
-
-The model was not retuned against the locked test set.
-
----
-
-# 12. Multiclass Attack Classification
-
-CyberSentinel AI also trains a classifier over all 15 CIC-IDS2017 labels.
-
-The multiclass split contains all classes across train, validation, and test sets.
-
-Approximate sizes:
-
-```text
-Train:       2,264,609
-Validation:    277,952
-Test:          288,182
-```
-
-## Validation Results
-
-```text
-Accuracy:      0.998482
-Macro F1:      0.870790
-Weighted F1:   0.998538
-```
-
-## Locked Test Results
-
-```text
-Accuracy:      0.998546
-Macro F1:      0.872429
-Weighted F1:   0.998585
-```
-
-Macro F1 is especially important because CIC-IDS2017 is highly imbalanced.
-
-A high accuracy score alone would hide poor performance on rare attack categories.
-
----
-
-# 13. Anomaly Detection
-
-CyberSentinel AI includes an Isolation Forest detector.
-
-The anomaly model is not treated as the primary intrusion classifier.
-
-It acts as an auxiliary signal for the risk engine.
-
-Validation results:
-
-```text
-Threshold:   0.08
-
-Accuracy:    0.975362
-Precision:   0.012336
-Recall:      0.051895
-F1 Score:    0.019934
-ROC-AUC:     0.728262
-PR-AUC:      0.009430
-```
-
-These results illustrate an important security lesson:
-
-```text
-High overall accuracy does not imply useful anomaly detection.
-```
-
-Because benign traffic dominates the dataset, precision, recall, PR-AUC, and attack-class behavior must be evaluated separately.
-
----
-
-# 14. Risk Scoring Engine
-
-CyberSentinel AI combines several independent signals into a unified risk score.
-
-The default weighting strategy is:
-
-```text
-Classifier confidence:   45%
-Anomaly signal:          20%
-Rule-based score:        15%
-Asset criticality:       10%
-Vulnerability context:   10%
-```
-
-The result is normalized to:
-
-```text
-0 - 100
-```
-
-Severity thresholds are:
-
-```text
-0  - 39     LOW
-40 - 69     MEDIUM
-70 - 89     HIGH
-90 - 100    CRITICAL
-```
-
-The risk engine is implemented in:
-
-```text
-src/cybersentinel_ai/risk/scoring.py
-src/cybersentinel_ai/risk/engine.py
-```
-
-The engine can also flag uncertain detections for analyst review.
-
-An example review condition is:
-
-```text
-low classifier confidence
-+
-high anomaly signal
-```
-
----
-
-# 15. Rule-Based Security Signals
-
-Machine-learning predictions are supplemented with deterministic network rules.
-
-Current signals include:
-
-- suspicious destination ports
-- unusually high packet rate
-- high SYN count
-- high RST count
-- invalid or zero flow duration
-
-Example suspicious ports include:
-
-```text
-21
-22
-23
-25
-53
-80
-110
-135
-139
-443
-445
-1433
-3306
-3389
-8080
-```
-
-Rule logic is located in:
-
-```text
-src/cybersentinel_ai/risk/rules.py
-```
-
-Rules should be treated as contextual indicators, not standalone proof of malicious behavior.
-
----
-
-# 16. MITRE ATT&CK Mapping
-
-CyberSentinel AI provides contextual ATT&CK mappings for detected attack labels.
-
-Examples:
-
-## Network Service Discovery
-
-```text
-PortScan
-→ T1046
-→ Network Service Discovery
-→ Discovery
-```
-
-## Brute Force
-
-```text
-FTP-Patator
-SSH-Patator
-Web Attack - Brute Force
-→ T1110
-→ Brute Force
-→ Credential Access
-```
-
-## Network Denial of Service
-
-```text
-DDoS
-DoS variants
-→ T1498
-→ Network Denial of Service
-→ Impact
-```
-
-## Exploit Public-Facing Application
-
-```text
-SQL Injection
-XSS
-Heartbleed
-→ T1190
-→ Exploit Public-Facing Application
-→ Initial Access
-```
-
-The mapping implementation is located in:
-
-```text
-src/cybersentinel_ai/threat_intel/attack_mapping.py
-```
-
-Important:
-
-These mappings are contextual approximations.
-
-They do not constitute proof that a specific ATT&CK technique was observed in a real environment.
-
----
-
-# 17. NVD CVE Enrichment
-
-CyberSentinel AI contains an NVD CVE enrichment client.
-
-The client can retrieve:
-
-- CVE identifier
-- description
-- CVSS score
-- CVSS severity
-- references
-
-Supported CVSS parsing includes:
-
-```text
-CVSS v4
-CVSS v3.1
-CVSS v3.0
-CVSS v2
-```
-
-Implementation:
-
-```text
-src/cybersentinel_ai/threat_intel/nvd.py
-```
-
-Threat-context composition:
-
-```text
-src/cybersentinel_ai/threat_intel/enrichment.py
-```
-
-NVD enrichment is optional and only applies when an appropriate CVE identifier is available.
-
----
-
-# 18. SOC RAG Knowledge Base
-
-The SOC Copilot does not send an unconstrained prompt directly to an LLM.
-
-CyberSentinel AI first retrieves defensive knowledge from a local knowledge base.
-
-The current RAG system uses:
-
-```text
-TF-IDF
-Cosine similarity
-Deterministic ATT&CK injection
-SOC playbook documents
-```
-
-The knowledge base includes material for areas such as:
-
-```text
-DDoS
-Port scanning
-Brute force
-Web attacks
-MITRE ATT&CK context
-SOC response actions
-```
-
-Relevant modules:
-
-```text
-src/cybersentinel_ai/rag/retriever.py
-src/cybersentinel_ai/rag/knowledge_base.py
-```
-
----
-
-# 19. Ollama SOC Copilot
-
-CyberSentinel AI uses a local Ollama instance for LLM inference.
-
-The Ollama client supports environment configuration.
-
-Supported variables:
-
-```text
-CYBERSENTINEL_OLLAMA_URL
-CYBERSENTINEL_OLLAMA_MODEL
-```
-
-Default native configuration:
-
-```text
-URL:
-http://127.0.0.1:11434
-
-Model:
-qwen2.5:3b
-```
-
-Docker Compose currently connects the API container to a host Ollama instance through:
-
-```text
-http://host.docker.internal:11434
-```
-
-The current Docker model configuration is:
-
-```text
-qwen3:4b
-```
-
-The connection path has been tested successfully:
-
-```text
-Docker API
-→ host.docker.internal
-→ Ollama
-→ qwen3:4b
-→ generated response
-```
-
-The SOC Copilot was also tested end-to-end through:
-
-```text
-POST /copilot/ask
-```
-
-with an HTTP 200 response.
-
----
-
-# 20. SOC Copilot Safety Design
-
-The Copilot system prompt directs the LLM to:
-
-- use supplied context
-- state when evidence is insufficient
-- avoid inventing network indicators
-- avoid inventing CVEs
-- avoid inventing MITRE mappings
-- avoid inventing usernames
-- avoid inventing hosts
-- avoid inventing security evidence
-- provide practical defensive recommendations
-
-The goal is to reduce unsupported SOC conclusions.
-
-LLM output must still be reviewed by a human analyst.
-
----
-
-# 21. FastAPI Service
-
-CyberSentinel AI exposes its application layer through FastAPI.
-
-Application entry point:
-
-```text
-src/cybersentinel_ai/api/main.py
-```
-
-Start locally:
-
-```bash
-uv run uvicorn cybersentinel_ai.api.main:app --host 0.0.0.0 --port 8000
-```
-
-Main local address:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger UI:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-OpenAPI specification:
-
-```text
-http://127.0.0.1:8000/openapi.json
-```
-
----
-
-# 22. Main API Endpoints
-
-## Health
-
-```text
-GET /health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok",
-  "service": "cybersentinel-ai"
-}
-```
-
-## Prometheus Metrics
-
-```text
-GET /metrics
-```
-
-## Detection Events
-
-```text
-POST /events
-GET /events
-GET /events/{id}
-```
-
-## SOC Copilot
-
-```text
-POST /copilot/ask
-```
-
-Example body:
-
-```json
-{
-  "question": "What should a SOC analyst do for a PortScan alert?",
-  "alert_context": "Detected label: PortScan. Risk score: 78. Severity: HIGH.",
-  "top_k": 4
-}
-```
-
-The response contains:
-
-```text
-answer
-model
-sources
-```
-
----
-
-# 23. Database Layer
+<p align="center">
+  <img src="docs/assets/copilot.png" alt="CyberSentinel AI grounded SOC Copilot" width="70%">
+</p>
 
-CyberSentinel AI currently uses SQLAlchemy with SQLite.
+The screenshots use only the synthetic portfolio dataset. A narrated 5–8 minute
+video walkthrough is **planned but intentionally not part of this release gate**.
 
-Default local database:
+## Architecture
 
-```text
-sqlite:///./cybersentinel.db
-```
-
-The database URL can be controlled through:
-
-```text
-CYBERSENTINEL_DATABASE_URL
-```
-
-Detection events can store information including:
-
-```text
-source IP
-destination IP
-destination port
-predicted label
-classifier confidence
-anomaly score
-rule score
-risk score
-severity
-requires review
-creation timestamp
-```
-
-Relevant modules:
-
-```text
-src/cybersentinel_ai/db/database.py
-src/cybersentinel_ai/db/models.py
-src/cybersentinel_ai/db/repository.py
-```
-
-SQLite is suitable for development and demonstration.
-
-A production deployment would typically migrate to a dedicated database service.
-
----
-
-# 24. Monitoring and Observability
-
-CyberSentinel AI exports Prometheus-compatible HTTP metrics.
-
-Current metrics include:
-
-```text
-cybersentinel_http_requests_total
-cybersentinel_http_request_duration_seconds
-```
-
-Prometheus configuration:
-
-```text
-monitoring/prometheus/prometheus.yml
-```
-
-Prometheus scrapes:
-
-```text
-api:8000/metrics
-```
-
-The target has been verified as:
-
-```text
-cybersentinel-api up
-```
-
----
-
-# 25. Grafana Dashboard
-
-Grafana is automatically provisioned through repository configuration.
-
-Dashboard:
-
-```text
-CyberSentinel AI Overview
-```
-
-Dashboard UID:
-
-```text
-cybersentinel-overview
-```
-
-Current panels include:
-
-- HTTP Request Rate
-- Requests by Status
-- Average API Latency
-- Requests by Endpoint
-
-Relevant files:
-
-```text
-monitoring/grafana/dashboards/cybersentinel-overview.json
-
-monitoring/grafana/provisioning/dashboards/default.yml
-
-monitoring/grafana/provisioning/datasources/prometheus.yml
-```
-
----
-
-# 26. MLflow Experiment Tracking
-
-CyberSentinel AI uses MLflow for experiment tracking.
-
-Local tracking backend:
-
-```text
-sqlite:///mlflow.db
-```
-
-Experiments have been created for:
-
-```text
-Binary XGBoost
-Multiclass XGBoost
-Isolation Forest
-```
-
-Training scripts log:
-
-- parameters
-- validation metrics
-- model information
-- selected artifacts
-
-Relevant module:
-
-```text
-src/cybersentinel_ai/training/mlflow_utils.py
-```
-
-MLflow runtime files are intentionally ignored by Git.
-
-Start the UI when required:
-
-```bash
-uv run mlflow ui --backend-store-uri sqlite:///mlflow.db
-```
-
----
-
-# 27. DVC Data and Model Versioning
-
-CyberSentinel AI uses DVC for large data and model artifacts.
-
-DVC prevents large datasets and trained binaries from being committed directly to Git.
-
-Production model artifacts currently include:
-
-```text
-artifacts/xgboost/model.joblib.dvc
-
-artifacts/xgboost_multiclass/model.joblib.dvc
-
-artifacts/isolation_forest/model.joblib.dvc
-```
-
-Check DVC state:
-
-```bash
-uv run dvc status
-```
-
-Restore data or model objects:
-
-```bash
-uv run dvc pull
-```
-
-Push DVC objects:
-
-```bash
-uv run dvc push
-```
-
-The development machine currently uses a local DVC remote outside the Git repository.
-
-Because that remote is machine-local, GitHub Actions does not automatically attempt a DVC pull.
+```mermaid
+flowchart LR
+    A[Network flow / API batch] --> B[Validation and ingestion]
+    B --> C[ML classifiers]
+    B --> D[Anomaly detector]
+    B --> E[Security rules]
+    C --> F[Risk engine]
+    D --> F
+    E --> F
+    F --> G[(PostgreSQL)]
+    F --> H[Incident correlation]
+    H --> I[MITRE / NVD context]
+    G --> J[FastAPI + SSE]
+    I --> K[RAG SOC Copilot]
+    K --> J
+    J --> L[Next.js BFF]
+    L --> M[Analyst browser]
+    J --> N[Prometheus / Grafana / Loki]
+    O[Redis] --> B
+    O --> J
+```
+
+The browser talks to a Next.js backend-for-frontend. Session tokens remain in
+HTTP-only cookies; the BFF proxies authenticated API and SSE requests. PostgreSQL
+is authoritative. Redis provides distributed login quota and real-time delivery,
+but portfolio mode can use bounded local fallbacks when a free provider does not
+supply a worker or Redis service.
 
----
+### Detection flow
 
-# 28. Docker Deployment
-
-CyberSentinel AI includes a complete Docker Compose observability stack.
-
-Services:
-
 ```text
-cybersentinel-api
-cybersentinel-worker
-cybersentinel-postgres
-cybersentinel-redis
-cybersentinel-frontend
-cybersentinel-prometheus
-cybersentinel-grafana
-```
-
-Build and start:
-
-```bash
-docker compose up -d --build
-```
-
-Public registration is disabled by default. Bootstrap the first administrator
-once, using the hidden password prompt so the password is not stored in shell
-history or Docker Compose environment configuration:
-
-```bash
-docker compose exec api /app/.venv/bin/python -m cybersentinel_ai.auth.bootstrap \
-  --email admin@example.com \
-  --username admin \
-  --full-name "SOC Administrator"
-```
-
-The command refuses to run after any administrator exists. For non-interactive
-automation, pass `--password-stdin` and supply the password through standard input
-from an appropriate secret manager. Public registration can be deliberately enabled
-with `CYBERSENTINEL_PUBLIC_REGISTRATION_ENABLED=true`; do not enable it on an
-internet-facing deployment without email verification and abuse controls.
-
-Login protection defaults to five failed attempts followed by a 15-minute
-database-backed account lock. Configure it with
-`CYBERSENTINEL_ACCOUNT_LOCKOUT_ATTEMPTS` and
-`CYBERSENTINEL_ACCOUNT_LOCKOUT_MINUTES`.
-
-Configure at least one agent ingestion secret before starting the stack:
-
-```bash
-CYBERSENTINEL_INGESTION_API_KEYS=replace-with-a-long-random-secret
-```
-
-Agents and collectors submit validated batches to `POST /ingest/events` with the
-secret in `X-Ingestion-Key`. The dedicated worker performs deduplication,
-correlation, incident creation, and notification delivery asynchronously:
-
-```bash
-curl -X POST http://127.0.0.1:8001/ingest/events \
-  -H 'Content-Type: application/json' \
-  -H 'X-Ingestion-Key: replace-with-a-long-random-secret' \
-  -d '{"events":[{"external_id":"edr-2026-0001","source_type":"edr-agent","occurred_at":"2026-09-05T12:00:00Z","hostname":"workstation-42","affected_user":"analyst@example.com","ioc_type":"sha256","ioc_value":"0123456789abcdef","predicted_label":"Ransomware","classifier_confidence":0.98,"anomaly_score":0.94,"rule_score":0.90,"risk_score":96,"severity":"CRITICAL","requires_review":true}]}'
-```
-
-The response contains a job ID. Authenticated analysts can inspect its complete
-path through event, correlated incidents, and notification attempts at
-`GET /ingest/jobs/{job_id}/trace`. Senior analysts and administrators can manage
-configurable alert rules under `/alert-rules`, inspect `/ingest/dead-letter`, and
-retry a dead-lettered job through `POST /ingest/jobs/{job_id}/retry`.
-
-The frontend connects to `/api/realtime`, which proxies the authenticated SSE
-stream. Set `CYBERSENTINEL_NOTIFICATION_WEBHOOK_URL` or
-`CYBERSENTINEL_NOTIFICATION_SLACK_WEBHOOK_URL` to enable the corresponding
-notification channels. Failed jobs and deliveries use bounded exponential retry
-and transition to `DEAD_LETTER` after their configured maximum attempts.
-
-AI reliability and MLOps are exposed under `/mlops`. Every production detection is
-linked to a registered model version containing its DVC artifact hash, dataset hash,
-Git commit, and fixed evaluation metrics. Candidate models must pass configurable
-precision, recall, F1, and false-positive-rate gates before promotion to staging;
-production promotion additionally requires a healthy feature/prediction drift report.
-The API also supports champion/challenger comparison and analyst true-positive or
-false-positive feedback.
-
-The committed reliability report is generated from the locked XGBoost test artifact,
-DVC descriptors, and fixed RAG/Copilot evaluation cases. Verify it without retraining
-or rebuilding images:
-
-```bash
-uv run python -m cybersentinel_ai.evaluation.phase_k --check
-```
-
-The Copilot treats alert/context text as untrusted data, neutralizes common prompt
-injection instructions, preserves supplied evidence in a deterministic outage
-fallback, and uses bounded retry plus a circuit breaker for Ollama. External AI
-endpoints are disabled by default; sending sensitive security context externally
-requires both external-AI policy flags to be explicitly enabled.
-
-Check:
-
-```bash
-docker compose ps
+Raw flow → schema validation → classification + anomaly + rules
+         → risk score (0–100) → severity → persistence/correlation
+         → ATT&CK/CVE context → grounded analyst recommendation
 ```
 
-Current host mappings:
+### MLOps flow
 
 ```text
-CyberSentinel API
-Host port: 8001
-Container port: 8000
-
-Prometheus
-Host port: 9091
-Container port: 9090
-
-Grafana
-Host port: 3001
-Container port: 3000
+CIC-IDS2017 → day-based split → training/MLflow → DVC artifacts
+            → fixed evaluation → candidate → staging → production
+            → drift + analyst TP/FP feedback → promotion/archive decision
 ```
-
-Therefore:
 
-```text
-API
-http://127.0.0.1:8001
+## Technology stack
 
-Swagger
-http://127.0.0.1:8001/docs
+| Layer | Technologies |
+| --- | --- |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/base-ui, Recharts |
+| Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic, Uvicorn |
+| Security data | PostgreSQL 16/Neon, Redis 8, Server-Sent Events |
+| ML | Pandas, NumPy, scikit-learn, XGBoost, Isolation Forest, Joblib |
+| AI and enrichment | TF-IDF RAG, Ollama-compatible local LLM, MITRE ATT&CK, NVD |
+| MLOps | MLflow, DVC, fixed model/RAG evaluation reports |
+| Observability | Prometheus, Grafana, Loki, Promtail, structured JSON logs |
+| Delivery | Docker Compose, Render Blueprint, GitHub Actions, k6, OWASP ZAP, Trivy |
 
-Prometheus
-http://127.0.0.1:9091
+## Detection and AI design
 
-Grafana
-http://127.0.0.1:3001
-```
+### Leakage-aware evaluation
 
-Stop:
+The main binary experiment uses collection days rather than a random split:
 
-```bash
-docker compose down
-```
+| Partition | CIC-IDS2017 days | Purpose |
+| --- | --- | --- |
+| Train | Monday–Wednesday | Fit preprocessing and model parameters |
+| Validation | Thursday | Select threshold and compare candidates |
+| Locked test | Friday | Final temporal-distribution evaluation only |
 
----
+This makes distribution shift visible. It produces a less flattering but more
+honest test result than choosing a threshold on the test set.
 
-# 29. Docker API Runtime
+### Layered security decision
 
-The image is based on:
+A detection is not accepted solely because an ML probability crosses a threshold.
+The risk engine incorporates supervised confidence, anomaly evidence,
+deterministic network signals, asset criticality, and available vulnerability
+context. The result includes severity, evidence, ATT&CK context, and whether human
+review is required.
 
-```text
-python:3.12-slim
-```
+### Grounded SOC Copilot
 
-Dependencies are installed using `uv`.
+The Copilot treats questions, alerts, and retrieved documents as untrusted input.
+It preserves supplied IPs/hostnames/evidence, rejects prompt-injection patterns,
+does not invent IOC/CVE/ATT&CK facts, and returns a structured deterministic
+fallback with sources when Ollama is unavailable. External AI and transmission of
+sensitive context are disabled by default.
 
-The application runs directly from the image virtual environment:
+## Model evaluation
 
-```text
-/app/.venv/bin/uvicorn
-```
+The fixed Phase K release report is committed at
+[`reports/phase_k_ai_reliability.json`](reports/phase_k_ai_reliability.json).
 
-This avoids unnecessary dependency synchronization during each container startup.
+| Metric | Locked Friday test |
+| --- | ---: |
+| Precision | 0.998898 |
+| Recall | 0.279213 |
+| F1 | 0.436433 |
+| False-positive rate | 0.000214809 |
+| ROC-AUC | 0.777590 |
+| PR-AUC | 0.780250 |
 
-The image build excludes unnecessary local content through `.dockerignore`.
+The high precision and low false-positive rate come with limited recall under
+temporal shift. This trade-off is documented, not hidden. The fixed RAG suite has
+three adversarial/evidence cases and passes groundedness, citation accuracy,
+indicator preservation, hallucination safety, and prompt-injection resistance.
 
-Examples include:
+## Security engineering
 
-```text
-.git
-.github
-.venv
-data
-artifacts
-MLflow runtime
-local database
-environment files
-credentials
-notebooks
-temporary directories
-```
+- short-lived access tokens and rotating refresh-token families;
+- replay detection and family revocation;
+- role-based authorization for Analyst, Responder, and Admin workflows;
+- TOTP/recovery-code MFA for administrators;
+- account lockout and Redis-backed login rate limiting;
+- HTTP-only session cookies in the Next.js BFF;
+- trusted-host, CORS, proxy-header, CSP, HSTS, and frame protections;
+- audit events with request metadata for privileged mutations;
+- public registration and API documentation disabled in portfolio mode;
+- generated/provider-managed secrets—never credentials in source control;
+- Bandit, pip-audit, npm audit, Trivy, secret hygiene, and OWASP ZAP in CI.
 
----
+See [SECURITY.md](SECURITY.md) for reporting and supported-use guidance.
 
-# 30. Development Setup
+## Quick start
 
-## Requirements
+### Option A — use the hosted demo
 
-Recommended local tools:
+Open <https://cybersentinel-web-ppae.onrender.com>. No installation is required.
 
-```text
-Python 3.12
-uv
-Git
-Git LFS
-DVC
-Docker
-Docker Compose
-Ollama
-```
+### Option B — one-command local demo
 
-Clone the repository:
+Requirements: Git, Docker Engine/Desktop, Docker Compose v2, and approximately
+8 GB free RAM for the complete stack.
 
 ```bash
 git clone https://github.com/ngtd-2609/cybersentinel-ai.git
 cd cybersentinel-ai
+./scripts/start-demo.sh
 ```
 
-Install dependencies:
+The script creates a gitignored local secret file using cryptographic randomness,
+builds the stack, migrates a fresh PostgreSQL database, inserts the safe demo
+dataset, waits for readiness, and prints the URLs. Then open:
+
+- application: <http://localhost:3002>
+- API readiness: <http://localhost:8001/ready>
+- Prometheus: <http://localhost:9091>
+- Grafana: <http://localhost:3001> (local default `admin` / `admin`)
+
+Stop and remove containers with:
 
 ```bash
-uv sync
+./scripts/stop-demo.sh
 ```
 
-Verify environment:
+Add `--volumes` only when you explicitly want to erase local demo databases and
+monitoring volumes.
+
+## Local development
+
+### Prerequisites
+
+- Python 3.12
+- [uv](https://docs.astral.sh/uv/)
+- Node.js 22 and npm
+- PostgreSQL 16 and Redis 8, or Docker Compose
+
+### Backend
 
 ```bash
-uv run python --version
+git clone https://github.com/ngtd-2609/cybersentinel-ai.git
+cd cybersentinel-ai
+uv sync --locked --dev
+uv run alembic upgrade head
+uv run uvicorn cybersentinel_ai.api.main:app --reload --port 8001
 ```
 
----
+Use `.env.example` as a key reference, but create your own `.env` and replace all
+placeholder credentials before enabling hardened production/staging mode.
 
-# 31. Running Tests
-
-Run the entire test suite:
+### Frontend
 
 ```bash
-uv run pytest
+cd frontend
+npm ci
+CYBERSENTINEL_API_URL=http://localhost:8001 npm run dev -- --port 3002
 ```
 
-At the current project state:
-
-```text
-94 tests passed
-```
-
-The suite covers:
-
-- anomaly models
-- API
-- Copilot API
-- event API
-- Prometheus metrics
-- MITRE mapping
-- baseline models
-- CIC-IDS2017 ingestion
-- CIC-IDS2017 validation
-- database
-- database models
-- dataset preparation
-- event repository
-- feature selection
-- gradient boosting
-- labels
-- MLflow utilities
-- multiclass metrics
-- NVD integration
-- Ollama client
-- preprocessing
-- RAG Copilot
-- RAG knowledge base
-- RAG retrieval
-- risk engine
-- security rules
-- risk scoring
-- schemas
-- smoke tests
-- split policy
-- threat enrichment
-- thresholds
-- training metrics
-- XGBoost
-- multiclass XGBoost
-
----
-
-# 32. Code Quality
-
-Run Ruff:
-
-```bash
-uv run ruff check .
-```
-
-The repository also uses pre-commit hooks.
-
-Before commits, quality checks execute automatically.
-
-Typical checks include:
-
-```text
-Ruff
-Pytest
-```
-
----
-
-# 33. Continuous Integration
-
-GitHub Actions is configured in:
-
-```text
-.github/workflows/ci.yml
-```
-
-The workflow runs on:
-
-```text
-push to main
-pull requests
-```
-
-CI jobs include:
-
-## Quality
-
-```text
-Install Python 3.12
-Install dependencies
-Ruff
-Pytest
-```
-
-## Docker Build
-
-```text
-Build CyberSentinel API image
-```
-
-The latest project CI runs have completed successfully.
-
----
-
-# 34. Reproducibility
-
-CyberSentinel AI separates four forms of state.
-
-## Git
-
-Stores:
-
-```text
-source code
-tests
-configuration
-DVC metadata
-Docker configuration
-monitoring configuration
-documentation
-```
-
-## DVC
-
-Stores references for:
-
-```text
-large datasets
-trained production model artifacts
-```
-
-## MLflow
-
-Tracks:
-
-```text
-model experiments
-training parameters
-metrics
-artifacts
-```
-
-## Docker
-
-Defines:
-
-```text
-portable application runtime
-monitoring services
-observability stack
-```
-
-This structure prevents model development from depending solely on an undocumented local environment.
-
----
-
-# 35. Model Evaluation Summary
-
-## Binary XGBoost
-
-### Validation
-
-| Metric | Score |
-|---|---:|
-| Accuracy | 0.999076 |
-| Precision | 0.921846 |
-| Recall | 0.883574 |
-| F1 | 0.902304 |
-| ROC-AUC | 0.996336 |
-| PR-AUC | 0.821719 |
-
-### Locked Test
-
-| Metric | Score |
-|---|---:|
-| Accuracy | 0.703743 |
-| Precision | 0.998898 |
-| Recall | 0.279213 |
-| F1 | 0.436433 |
-| ROC-AUC | 0.777590 |
-| PR-AUC | 0.780250 |
-
----
-
-## Multiclass XGBoost
-
-### Validation
-
-| Metric | Score |
-|---|---:|
-| Accuracy | 0.998482 |
-| Macro F1 | 0.870790 |
-| Weighted F1 | 0.998538 |
-
-### Locked Test
-
-| Metric | Score |
-|---|---:|
-| Accuracy | 0.998546 |
-| Macro F1 | 0.872429 |
-| Weighted F1 | 0.998585 |
-
----
-
-## Isolation Forest
-
-| Metric | Score |
-|---|---:|
-| Threshold | 0.08 |
-| Accuracy | 0.975362 |
-| Precision | 0.012336 |
-| Recall | 0.051895 |
-| F1 | 0.019934 |
-| ROC-AUC | 0.728262 |
-| PR-AUC | 0.009430 |
-
----
-
-# 36. Interpretation of Results
-
-Several important conclusions can be drawn from the current experiments.
-
-## Binary model
-
-The binary model achieves excellent validation performance but substantially lower recall on the locked Friday test set.
-
-This indicates temporal distribution shift.
-
-Rather than tuning against the test set, CyberSentinel AI preserves this result as evidence of a genuine generalization problem.
-
-## Multiclass model
-
-Multiclass performance is very strong overall.
-
-However, weighted metrics are influenced heavily by common classes.
-
-Macro F1 is therefore retained as a more meaningful indicator across classes.
-
-## Isolation Forest
-
-Isolation Forest provides useful ranking information but performs poorly as a direct standalone attack detector.
-
-It is therefore used only as an auxiliary signal in the risk architecture.
-
----
-
-# 37. Known Limitations
-
-CyberSentinel AI currently has several known limitations.
-
-## Dataset age
-
-CIC-IDS2017 is a historical benchmark.
-
-Modern enterprise traffic, cloud-native workloads, encrypted protocols, modern malware, identity attacks, and current adversary behavior are not fully represented.
-
-## Dataset realism
-
-Benchmark traffic differs from production environments.
-
-Strong benchmark results should not be interpreted directly as equivalent production IDS performance.
-
-## Temporal generalization
-
-Binary test results demonstrate substantial distribution shift between collection days.
-
-This is a critical research result rather than a hidden failure.
-
-## Rare classes
-
-Several CIC-IDS2017 attack classes contain very few observations.
-
-Performance estimates for these classes may therefore be unstable.
-
-## Anomaly calibration
-
-The anomaly component currently acts as an auxiliary score.
-
-Further normalization and calibration are appropriate before production use.
-
-## Multiclass split validation
-
-Additional global duplicate/leakage auditing would strengthen the deterministic label-aware multiclass splitting strategy.
-
-## ATT&CK mapping
-
-Current mappings are contextual approximations.
-
-They do not establish forensic proof of an ATT&CK technique.
-
-## NVD context
-
-NVD enrichment requires an appropriate CVE identifier.
-
-The system does not automatically prove that a detected network event exploits a given CVE.
-
-## LLM reliability
-
-The SOC Copilot may still generate incorrect or incomplete reasoning.
-
-Retrieved evidence and analyst review remain necessary.
-
-## Authentication
-
-The API implements password authentication, RBAC, short-lived access tokens,
-rotating refresh sessions, explicit session revocation, one-time first-admin
-bootstrap, closed-by-default public registration, and database-backed account
-lockout. Reuse of an already-rotated refresh token is treated as compromise and
-revokes every descendant session in that rotation chain.
-
-An authenticated user can change their password with `POST /auth/change-password`
-using `current_password` and a policy-compliant `new_password`. A successful change
-revokes every session for that user, including the session making the request, so
-the client must sign in again. The remaining production hardening work includes:
-
-```text
-password reset and email verification
-administrator MFA/TOTP
-distributed Redis rate limiting
-OAuth
-API keys
-```
-
-## Transport security
-
-The local demonstration stack does not provide production TLS termination.
-
-## Database scalability
-
-SQLite is appropriate for development but not intended for high-volume distributed event ingestion.
-
-## Distributed inference
-
-The current architecture is a single-node demonstration and does not include:
-
-```text
-Kafka
-Redis
-Celery
-Kubernetes deployment
-distributed inference workers
-horizontal autoscaling
-```
-
----
-
-# 38. Security Considerations
-
-CyberSentinel AI is a defensive project.
-
-Before exposing the application to an untrusted network, additional protections should be implemented.
-
-Recommended production controls include:
-
-- API authentication
-- authorization
-- RBAC
-- HTTPS/TLS
-- secure secret management
-- database access controls
-- request rate limiting
-- input size limits
-- structured audit logging
-- dependency vulnerability scanning
-- container vulnerability scanning
-- network segmentation
-- firewall controls
-- reverse proxy
-- secure HTTP headers
-- strict CORS policy
-- model artifact integrity verification
-- DVC remote access control
-- MLflow access control
-- Grafana authentication hardening
-- Prometheus access restrictions
-
-Do not expose Ollama directly to an untrusted network.
-
----
-
-# 39. Future Improvements
-
-Planned or possible future work includes:
-
-## Machine Learning
-
-- additional feature analysis
-- better probability calibration
-- anomaly-score normalization
-- drift detection
-- model monitoring
-- explainability with SHAP
-- additional datasets such as UNSW-NB15
-- ToN-IoT evaluation
-- cross-dataset generalization
-- stronger imbalance handling
-- rare-class analysis
-- incremental learning
-
-## Threat Intelligence
-
-- richer ATT&CK mapping
-- STIX/TAXII integration
-- IOC enrichment
-- reputation services
-- improved CVE correlation
-- threat-feed ingestion
-
-## SOC Copilot
-
-- vector database retrieval
-- embedding-based retrieval
-- reranking
-- evidence citations
-- conversation history
-- alert-specific playbooks
-- structured Copilot output
-- analyst feedback loop
-- response confidence scoring
-
-## Backend
-
-- PostgreSQL
-- migrations
-- API authentication
-- RBAC
-- background workers
-- message queues
-- event streaming
-- WebSocket updates
-
-## Monitoring
-
-- detection-level Prometheus metrics
-- attack-class counters
-- severity counters
-- review-required counters
-- model latency
-- inference errors
-- model-confidence monitoring
-- drift dashboards
-- alerting rules
-
-## Infrastructure
-
-- Kubernetes
-- Helm
-- OpenTofu/Terraform
-- external secrets
-- production reverse proxy
-- HTTPS
-- container registry
-- staged CI/CD deployment
-
----
-
-# 40. Project Status
-
-Current implementation status:
-
-```text
-[✓] Project scope and architecture
-[✓] Repository structure
-[✓] CIC-IDS2017 ingestion
-[✓] Dataset audit
-[✓] DVC dataset tracking
-[✓] Feature preprocessing
-[✓] Leakage-aware binary splitting
-[✓] Binary baseline model
-[✓] Binary XGBoost model
-[✓] Validation threshold selection
-[✓] Locked binary test evaluation
-[✓] Multiclass dataset preparation
-[✓] Multiclass XGBoost
-[✓] Locked multiclass test evaluation
-[✓] Isolation Forest anomaly detector
-[✓] Rule-based security signals
-[✓] Weighted risk engine
-[✓] MLflow tracking
-[✓] Production model artifact versioning with DVC
-[✓] FastAPI application
-[✓] SQLite persistence
-[✓] Detection-event API
-[✓] MITRE ATT&CK mapping
-[✓] NVD CVE client
-[✓] Threat-intelligence enrichment
-[✓] TF-IDF RAG retriever
-[✓] SOC knowledge base
-[✓] Ollama client
-[✓] SOC RAG Copilot
-[✓] Copilot FastAPI endpoint
-[✓] Prometheus instrumentation
-[✓] Prometheus deployment
-[✓] Grafana deployment
-[✓] Grafana datasource provisioning
-[✓] Grafana dashboard provisioning
-[✓] Docker API deployment
-[✓] Docker-to-Ollama integration
-[✓] Docker hardening rules
-[✓] Ruff
-[✓] Pytest
-[✓] pre-commit
-[✓] GitHub Actions
-[✓] CI Docker build
-[✓] End-to-end Docker Copilot test
-
-[ ] Final documentation validation
-[ ] Final demonstration checklist
-[ ] Final release snapshot
-```
-
----
-
-# 41. Current Verification State
-
-At the current project checkpoint:
-
-```text
-Python tests:
-94 passed
-
-Ruff:
-Passed
-
-Docker API:
-Running
-
-API health:
-HTTP 200
-
-Prometheus:
-Healthy
-
-Prometheus API target:
-cybersentinel-api up
-
-Grafana:
-HTTP 200
-
-Grafana dashboard:
-CyberSentinel AI Overview
-
-Docker → Ollama:
-Verified
-
-SOC Copilot through Docker API:
-HTTP 200
-
-GitHub Actions:
-Successful
-
-Git working tree:
-Clean before documentation update
-```
-
----
-
-# 42. Example Local Verification Commands
-
-Run quality checks:
+### Optional local Ollama
+
+The application works safely without an LLM by returning its grounded fallback.
+To use a local model, run an Ollama-compatible endpoint, configure
+`CYBERSENTINEL_OLLAMA_URL` and `CYBERSENTINEL_OLLAMA_MODEL`, and keep external AI
+permissions disabled unless the data-handling policy has been reviewed.
+
+## API overview
+
+| Group | Representative routes | Protection |
+| --- | --- | --- |
+| Health | `GET /health`, `GET /ready`, `GET /metrics` | health public; metrics deployment-controlled |
+| Authentication | `/auth/login`, refresh, logout, MFA, password change | rate limited / authenticated |
+| Detections | `/events`, `/events/page`, `/events/{id}` | authenticated; writes use scoped roles/keys |
+| Ingestion | batch submit, job state, dead-letter replay | ingestion API key / privileged role |
+| Incidents | create, list, update, timeline | Analyst/Responder/Admin policy |
+| Dashboard | `/dashboard/summary` | authenticated |
+| Realtime | `/realtime/soc` | authenticated SSE |
+| Copilot | `/copilot/ask` | authenticated and safety-filtered |
+| MLOps | models, promotions, monitoring, feedback | authenticated; mutations role-gated |
+| Administration | users, status, audit logs | Admin only |
+
+Interactive OpenAPI documentation is available in development mode. It is hidden
+on the public portfolio deployment to reduce unnecessary attack surface.
+
+## Testing and release quality
+
+The repository currently collects **179 Python tests** plus the Playwright browser
+suite. Release checks cover:
 
 ```bash
 uv run ruff check .
 uv run pytest
+uv run python -m cybersentinel_ai.evaluation.phase_k --check
+cd frontend && npm run lint && npm run build && npm run test:e2e
 ```
 
-Check DVC:
+GitHub Actions additionally verifies:
 
-```bash
-uv run dvc status
-```
+- clean fresh checkout and Phase M release metadata;
+- secret hygiene and Compose/observability configuration;
+- empty PostgreSQL migration, downgrade/re-upgrade, schema, and CRUD;
+- API and frontend production container builds;
+- Python and Node dependency audits plus Bandit SAST;
+- Redis integration and rate-limit fail-closed behavior;
+- Trivy critical container vulnerabilities;
+- PostgreSQL backup → checksum → disposable restore;
+- k6 availability/latency SLO;
+- OWASP ZAP active API scan;
+- no-mock public browser journey on the hosted portfolio.
 
-Check Docker:
+The final gate and immutable evidence are documented in
+[`docs/releases/v1.1.0-handoff.md`](docs/releases/v1.1.0-handoff.md) and
+[`docs/releases/v1.1.0-state.json`](docs/releases/v1.1.0-state.json).
 
-```bash
-docker compose ps
-```
+## Deployment
 
-Check API:
-
-```bash
-curl http://127.0.0.1:8001/health
-```
-
-Check Prometheus:
-
-```bash
-curl http://127.0.0.1:9091/-/healthy
-```
-
-Check Grafana:
-
-```bash
-curl -I http://127.0.0.1:3001/login
-```
-
-Check Prometheus target:
-
-```bash
-curl -s http://127.0.0.1:9091/api/v1/targets
-```
-
----
-
-# 43. Portfolio deployment and optional SRE operations
-
-The primary Phase L target is a public HTTPS portfolio deployment with a static
-frontend, a hosted FastAPI service, managed PostgreSQL and safe demo data. It must
-work without the viewer installing Docker and without the developer laptop being
-online. A provider URL is sufficient; a paid VPS and custom domain are optional.
-See `docs/portfolio-deployment.md` for the required gates and target architecture.
-
-The advanced self-hosted staging path is isolated with its own Compose project,
-PostgreSQL volume and HTTPS hostname. Deployment values come from GitHub Environment
-secrets and are mounted as Docker secret files; deployment secrets do not belong
-in `.env`.
-
-```bash
-# Validate the complete staging configuration without starting it.
-docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-  -f docker-compose.deploy.yml -f docker-compose.staging.yml config --quiet
-
-# Verify backup and disposable restore against a running stack.
-POSTGRES_USER=cybersentinel POSTGRES_DB=cybersentinel \
-  scripts/backup-restore-drill.sh
-
-# Enforce the staging availability and latency SLO.
-BASE_URL=https://staging.example.com scripts/run-load-test.sh
-```
-
-The versioned dashboard combines Prometheus SLO signals with centralized Loki
-logs. Alerts cover service down, elevated 5xx rate, P95 latency over 500 ms,
-PostgreSQL unavailability and repeated Copilot fallback. See
-`docs/sre/SLO.md`, `docs/sre/incident-runbook.md`, and `deploy/README.md` for
-deployment, rollback and incident procedures.
-
----
-
-# 44. Responsible Use
-
-CyberSentinel AI must be used only for authorized defensive cybersecurity activities.
-
-Appropriate uses include:
-
-- learning intrusion detection
-- cybersecurity research
-- testing defensive machine-learning pipelines
-- SOC workflow demonstrations
-- authorized network-security labs
-- MLOps education
-- portfolio demonstrations
-
-The user is responsible for ensuring that data collection and network-security testing comply with applicable laws, policies, and authorization requirements.
-
----
-
-# 45. Final Note
-
-CyberSentinel AI is intentionally built as more than a notebook-based classification experiment.
-
-The project demonstrates the integration of:
+The official portfolio architecture uses the root [`render.yaml`](render.yaml):
 
 ```text
-Data Engineering
-+
-Machine Learning
-+
-Cybersecurity
-+
-Threat Intelligence
-+
-Local Generative AI
-+
-Backend Engineering
-+
-MLOps
-+
-Observability
-+
-DevOps
-+
-Automated Quality Assurance
+Internet → Render Next.js Web Service → Render FastAPI Web Service
+                                      → Neon PostgreSQL
 ```
 
-The main engineering principle of the project is:
+Render generates application secrets and receives only two user-managed values:
+the Neon pooled URL and a strong demo password. Provider URLs and credentials stay
+in provider secret settings. The Blueprint runs Alembic and the idempotent seed at
+API startup.
+
+For setup, recovery, cold-start, cost, and verification details, see
+[`docs/portfolio-deployment.md`](docs/portfolio-deployment.md).
+
+The Compose/Caddy staging path, immutable images, Prometheus/Grafana/Loki,
+scheduled backup drills, and rollback tooling remain available as advanced SRE
+evidence; a paid VPS is not required for this portfolio release.
+
+## Repository structure
 
 ```text
-A model prediction is not a complete security decision.
+cybersentinel-ai/
+├── src/cybersentinel_ai/   # API, auth, ingestion, detection, MLOps, RAG
+├── frontend/               # Next.js BFF, SOC UI, Playwright E2E
+├── alembic/                # PostgreSQL schema migrations
+├── tests/                  # unit, API, security, and integration tests
+├── evaluation/             # fixed Copilot and model evaluation inputs
+├── reports/                # immutable quantitative release reports
+├── data/ + artifacts/      # DVC metadata; large content stays outside Git
+├── monitoring/             # Prometheus, Grafana, Loki, Promtail
+├── deploy/                 # Caddy/Nginx, secrets, systemd operations
+├── load/                   # k6 SLO scenario
+├── scripts/                # startup, release, backup, restore, rollback
+├── docs/                   # deployment, SRE, and release evidence
+├── render.yaml             # public portfolio Blueprint
+└── docker-compose*.yml     # local, demo, staging, and production layouts
 ```
 
-CyberSentinel AI therefore combines model outputs with anomaly signals, deterministic rules, risk scoring, threat context, RAG-based knowledge retrieval, human-review indicators, persistence, observability, and reproducible infrastructure.
+## Documentation
 
----
+| Document | Purpose |
+| --- | --- |
+| [Portfolio deployment](docs/portfolio-deployment.md) | Render + Neon setup and operations |
+| [Release notes](docs/releases/v1.1.0.md) | User-facing v1.1.0 changes |
+| [Final handoff](docs/releases/v1.1.0-handoff.md) | Phase M Final Release Gate evidence |
+| [Machine-readable state](docs/releases/v1.1.0-state.json) | Release status and evidence map |
+| [SLO](docs/sre/SLO.md) | Availability and latency objectives |
+| [Incident runbook](docs/sre/incident-runbook.md) | Diagnosis, containment, and recovery |
+| [Phase L evidence](docs/sre/phase-l-evidence.md) | Public deployment and optional SRE proof |
+| [Deploy operations](deploy/README.md) | Self-hosted staging/rollback details |
+| [Changelog](CHANGELOG.md) | Version history |
 
-# License
+## Roadmap and project status
 
-A production-use license has not yet been declared for this repository.
+The official implementation order was `G → H → I → J → K → L → M`; completed
+phases are not replayed unless a regression is found.
 
-Until a license is explicitly added, normal copyright restrictions apply.
+- [x] G — core platform and data pipeline
+- [x] H — authentication, authorization, and identity hardening
+- [x] I — SOC frontend and analyst workflows
+- [x] J — real-time ingestion and incident operations
+- [x] K — AI reliability and MLOps lifecycle
+- [x] L — public HTTPS portfolio deployment
+- [x] M — final release gate and portfolio documentation
+- [ ] Optional — record and publish a 5–8 minute demonstration video
+
+## Limitations
+
+- CIC-IDS2017 is dated and does not represent every modern network environment.
+- Temporal shift produces low locked-test recall; retraining on representative,
+  authorized modern telemetry would be required for operational deployment.
+- ATT&CK mapping and NVD enrichment are contextual aids, not attribution proof.
+- Copilot output always requires analyst judgment, even when grounded.
+- The free public tier has cold starts and modest quotas; it is sized for portfolio
+  review rather than production traffic.
+- The repository intentionally has no declared open-source license yet. Source is
+  visible for review, but reuse rights are not granted by default.
+
+## Contributing
+
+This is primarily a portfolio project, but well-scoped bug reports and defensive
+improvements are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), avoid sensitive
+or unauthorized telemetry, and report security issues privately as described in
+[SECURITY.md](SECURITY.md).
+
+## Author and license
+
+**Nguyễn Tùng Dương** — [GitHub @ngtd-2609](https://github.com/ngtd-2609)
+
+No open-source license has been declared. Unless a license is added later, normal
+copyright restrictions apply. The project and demo data are intended for
+authorized defensive research, education, and portfolio evaluation.
+
+## Acknowledgments
+
+The project builds on CIC-IDS2017, MITRE ATT&CK, NVD, FastAPI, Next.js, XGBoost,
+scikit-learn, MLflow, DVC, PostgreSQL, Redis, Prometheus, Grafana, Loki, Docker,
+Playwright, OWASP ZAP, Trivy, and the broader open-source security community.
+
+<p align="right"><a href="#cybersentinel-ai">Back to top ↑</a></p>

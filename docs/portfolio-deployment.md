@@ -17,7 +17,8 @@ Kubernetes, Kafka and a self-hosted observability stack are optional.
 - Frontend: <https://cybersentinel-web-ppae.onrender.com>
 - API readiness: <https://cybersentinel-api-hrl8.onrender.com/ready>
 - Provider/database: Render Free Web Services and Neon Free PostgreSQL, Singapore
-- Deployed source: `8d74f029a91c7889a5d4e5d48505f2536d91a9f6`
+- Phase L deployed source: `6cbfc4daf1d5bf56b18606862abd03de3fe27535`
+- Release candidate: `v1.1.0-rc.1`
 
 The first live deployment completed an empty-database migration through Alembic
 revision `c4a7e91b2d60` and an idempotent seed of 8 events and 3 incidents. Manual

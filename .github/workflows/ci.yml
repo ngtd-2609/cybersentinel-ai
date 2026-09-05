@@ -10,6 +10,19 @@ permissions:
   contents: read
 
 jobs:
+  release-readiness:
+    name: Fresh checkout release gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Phase M release artifacts and one-command configuration
+        run: bash scripts/phase-m-release-gate.sh
+
   secrets:
     name: Secret hygiene
     runs-on: ubuntu-latest
