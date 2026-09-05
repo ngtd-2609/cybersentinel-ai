@@ -31,5 +31,6 @@ def binary_classification_metrics(
         "fp": int(fp),
         "fn": int(fn),
         "tp": int(tp),
+        "false_positive_rate": float(fp / (fp + tn)) if fp + tn else 0.0,
         "predicted_attack_rate": float(np.mean(y_pred)),
     }

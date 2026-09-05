@@ -14,6 +14,7 @@ def test_binary_classification_metrics():
     assert metrics["fp"] == 1
     assert metrics["fn"] == 0
     assert metrics["tp"] == 2
+    assert metrics["false_positive_rate"] == 0.5
     assert metrics["recall"] == pytest.approx(1.0)
     assert metrics["precision"] == pytest.approx(2 / 3)
     assert 0.0 <= metrics["roc_auc"] <= 1.0

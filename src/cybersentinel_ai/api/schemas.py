@@ -13,6 +13,7 @@ class DetectionEventCreate(BaseModel):
     ioc_type: str | None = Field(default=None, max_length=32)
     ioc_value: str | None = Field(default=None, max_length=512)
     correlation_key: str | None = Field(default=None, max_length=255)
+    model_version_id: int | None = Field(default=None, ge=1)
     source_ip: str | None = None
     destination_ip: str | None = None
     destination_port: int | None = Field(default=None, ge=0, le=65535)

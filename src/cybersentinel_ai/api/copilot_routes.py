@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -28,6 +29,7 @@ class CopilotResponse(BaseModel):
     sources: list[CopilotSourceResponse]
 
 
+@lru_cache(maxsize=1)
 def get_copilot() -> SOCCopilot:
     return SOCCopilot()
 

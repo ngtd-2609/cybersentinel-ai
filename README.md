@@ -1488,6 +1488,28 @@ stream. Set `CYBERSENTINEL_NOTIFICATION_WEBHOOK_URL` or
 notification channels. Failed jobs and deliveries use bounded exponential retry
 and transition to `DEAD_LETTER` after their configured maximum attempts.
 
+AI reliability and MLOps are exposed under `/mlops`. Every production detection is
+linked to a registered model version containing its DVC artifact hash, dataset hash,
+Git commit, and fixed evaluation metrics. Candidate models must pass configurable
+precision, recall, F1, and false-positive-rate gates before promotion to staging;
+production promotion additionally requires a healthy feature/prediction drift report.
+The API also supports champion/challenger comparison and analyst true-positive or
+false-positive feedback.
+
+The committed reliability report is generated from the locked XGBoost test artifact,
+DVC descriptors, and fixed RAG/Copilot evaluation cases. Verify it without retraining
+or rebuilding images:
+
+```bash
+uv run python -m cybersentinel_ai.evaluation.phase_k --check
+```
+
+The Copilot treats alert/context text as untrusted data, neutralizes common prompt
+injection instructions, preserves supplied evidence in a deterministic outage
+fallback, and uses bounded retry plus a circuit breaker for Ollama. External AI
+endpoints are disabled by default; sending sensitive security context externally
+requires both external-AI policy flags to be explicitly enabled.
+
 Check:
 
 ```bash

@@ -16,6 +16,7 @@ from cybersentinel_ai.db.models import (
     IncidentDetection,
     IncidentTimeline,
     IngestionJob,
+    ModelVersion,
     NotificationDelivery,
 )
 
@@ -167,8 +168,25 @@ def process_ingestion_job(database: Session, job_id: int) -> dict[str, int | str
         select(DetectionEvent).where(DetectionEvent.idempotency_key == job.idempotency_key)
     )
     if event is None:
+        model_version_id = payload.model_version_id
+        if model_version_id is None:
+            model_version_id = database.scalar(
+                select(ModelVersion.id)
+                .where(
+                    ModelVersion.task == "BINARY_CLASSIFICATION",
+                    ModelVersion.stage == "PRODUCTION",
+                )
+                .order_by(ModelVersion.updated_at.desc(), ModelVersion.id.desc())
+                .limit(1)
+            )
         event_data = payload.model_dump(
-            exclude={"external_id", "source_type", "occurred_at", "correlation_key"}
+            exclude={
+                "external_id",
+                "source_type",
+                "occurred_at",
+                "correlation_key",
+                "model_version_id",
+            }
         )
         event = DetectionEvent(
             **event_data,
@@ -177,6 +195,7 @@ def process_ingestion_job(database: Session, job_id: int) -> dict[str, int | str
             idempotency_key=job.idempotency_key,
             occurred_at=payload.occurred_at or datetime.now(UTC),
             correlation_key=_derive_correlation_key(payload),
+            model_version_id=model_version_id,
         )
         database.add(event)
         database.flush()

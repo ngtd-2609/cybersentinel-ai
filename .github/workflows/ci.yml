@@ -47,6 +47,9 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
+      - name: Verify AI reliability report and DVC provenance
+        run: uv run python -m cybersentinel_ai.evaluation.phase_k --check
+
   frontend:
     name: Frontend lint and build
     runs-on: ubuntu-latest

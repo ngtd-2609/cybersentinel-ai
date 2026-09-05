@@ -3,7 +3,11 @@ import json
 import httpx
 import pytest
 
-from cybersentinel_ai.rag.ollama_client import OllamaClient
+from cybersentinel_ai.rag.ollama_client import (
+    ExternalAIBlockedError,
+    OllamaClient,
+    OllamaUnavailableError,
+)
 
 
 def test_ollama_generate():
@@ -36,7 +40,7 @@ def test_ollama_generate():
 
 
 def test_empty_prompt():
-    client = OllamaClient()
+    client = OllamaClient(allow_external=True)
 
     with pytest.raises(ValueError):
         client.generate("   ")
@@ -52,7 +56,7 @@ def test_ollama_uses_environment_configuration(monkeypatch):
         "custom-model",
     )
 
-    client = OllamaClient()
+    client = OllamaClient(allow_external=True)
 
     assert client.base_url == "http://ollama.internal:11434"
     assert client.model == "custom-model"
@@ -71,6 +75,7 @@ def test_explicit_configuration_overrides_environment(monkeypatch):
     client = OllamaClient(
         base_url="http://explicit:11434/",
         model="explicit-model",
+        allow_external=True,
     )
 
     assert client.base_url == "http://explicit:11434"
@@ -159,3 +164,75 @@ def test_ollama_sends_structured_output_schema():
     )
 
     client.generate("Analyze this alert", format_schema=schema)
+
+
+def test_ollama_retries_transient_failures_then_succeeds():
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            return httpx.Response(503, request=request)
+        return httpx.Response(
+            200,
+            json={"model": "qwen3:4b", "response": "Recovered", "done": True},
+        )
+
+    client = OllamaClient(
+        transport=httpx.MockTransport(handler),
+        max_retries=2,
+        sleeper=lambda _seconds: None,
+    )
+    assert client.generate("Analyze alert").response == "Recovered"
+    assert attempts == 3
+
+
+def test_circuit_breaker_opens_and_resets():
+    attempts = 0
+    current_time = 100.0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        raise httpx.ConnectError("offline")
+
+    client = OllamaClient(
+        transport=httpx.MockTransport(handler),
+        max_retries=0,
+        failure_threshold=2,
+        circuit_reset_seconds=30,
+        sleeper=lambda _seconds: None,
+        clock=lambda: current_time,
+    )
+    with pytest.raises(OllamaUnavailableError):
+        client.generate("first")
+    with pytest.raises(OllamaUnavailableError):
+        client.generate("second")
+    with pytest.raises(OllamaUnavailableError, match="circuit breaker"):
+        client.generate("blocked")
+    assert attempts == 2
+
+    current_time = 131.0
+    with pytest.raises(OllamaUnavailableError, match="after retries"):
+        client.generate("half-open probe")
+    assert attempts == 3
+
+
+def test_external_ai_policy_blocks_endpoint_and_sensitive_context():
+    blocked_client = OllamaClient(base_url="https://external-ai.example")
+    with pytest.raises(ExternalAIBlockedError, match="disabled"):
+        blocked_client.generate("summarize this alert")
+
+    client = OllamaClient(
+        base_url="https://external-ai.example",
+        allow_external=True,
+        allow_sensitive_external=False,
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200, json={"response": "ok", "done": True}
+            )
+        ),
+    )
+    with pytest.raises(ExternalAIBlockedError, match="sensitive"):
+        client.generate("source IP 10.0.0.1", contains_sensitive_data=True)

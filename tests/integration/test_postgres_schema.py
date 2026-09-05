@@ -9,12 +9,16 @@ from cybersentinel_ai.db.models import (
     AlertRule,
     AuditLog,
     DetectionEvent,
+    DetectionFeedback,
     Incident,
     IncidentDetection,
     IncidentTimeline,
     IngestionJob,
     MfaChallenge,
     MfaRecoveryCode,
+    ModelMonitoringReport,
+    ModelStageTransition,
+    ModelVersion,
     NotificationDelivery,
     User,
     UserSession,
@@ -40,6 +44,10 @@ def test_migrated_schema_supports_core_crud() -> None:
         "alert_rules",
         "ingestion_jobs",
         "notification_deliveries",
+        "model_versions",
+        "model_stage_transitions",
+        "model_monitoring_reports",
+        "detection_feedback",
         "users",
         "user_sessions",
         "mfa_challenges",
@@ -67,6 +75,7 @@ def test_migrated_schema_supports_core_crud() -> None:
         "ioc_type",
         "ioc_value",
         "correlation_key",
+        "model_version_id",
     } <= detection_columns
     incident_columns = {column["name"] for column in inspector.get_columns("incidents")}
     assert {"correlation_key", "event_count", "last_event_at"} <= incident_columns
@@ -88,6 +97,11 @@ def test_migrated_schema_supports_core_crud() -> None:
 
     now = datetime.now(UTC)
     with Session(engine) as session:
+        registered_model = session.scalar(
+            select(ModelVersion).where(ModelVersion.stage == "PRODUCTION")
+        )
+        assert registered_model is not None
+        assert registered_model.artifact_hash == "35755c3ff01fa2973db3a8673f4f9e03"
         event = DetectionEvent(
             idempotency_key="ci-database-acceptance-event",
             external_id="ci-edr-event-1",
@@ -99,6 +113,7 @@ def test_migrated_schema_supports_core_crud() -> None:
             ioc_type="ipv4",
             ioc_value="198.51.100.10",
             correlation_key="ci-asset-1:web-attack",
+            model_version_id=registered_model.id,
             source_ip="198.51.100.10",
             destination_ip="203.0.113.20",
             destination_port=443,
@@ -166,6 +181,28 @@ def test_migrated_schema_supports_core_crud() -> None:
                     incident_id=incident.id,
                     channel="webhook",
                 ),
+                ModelStageTransition(
+                    model_version_id=registered_model.id,
+                    from_stage="STAGING",
+                    to_stage="PRODUCTION",
+                    reason="CI acceptance transition",
+                    actor_id=user.id,
+                ),
+                ModelMonitoringReport(
+                    model_version_id=registered_model.id,
+                    window_start=now - timedelta(hours=1),
+                    window_end=now,
+                    feature_drift_score=0.01,
+                    prediction_drift_score=0.02,
+                    status="HEALTHY",
+                    details={"feature_psi": {"flow_duration": 0.01}},
+                ),
+                DetectionFeedback(
+                    detection_event_id=event.id,
+                    analyst_id=user.id,
+                    verdict="TRUE_POSITIVE",
+                    notes="CI confirmed",
+                ),
             ]
         )
 
@@ -223,6 +260,7 @@ def test_migrated_schema_supports_core_crud() -> None:
         assert stored.detection_event is not None
         assert stored.detection_event.risk_score == 92.0
         assert stored.correlation_key == "ci-asset-1:web-attack"
+        assert stored.detection_event.model_version_id == registered_model.id
         assert session.scalar(select(IncidentDetection.incident_id)) == stored.id
         assert session.scalar(select(IngestionJob.status)) == "COMPLETED"
         assert session.scalar(select(NotificationDelivery.channel)) == "webhook"

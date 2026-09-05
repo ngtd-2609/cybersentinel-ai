@@ -25,6 +25,7 @@ from cybersentinel_ai.audit.context import (
 from cybersentinel_ai.auth.router import router as auth_router
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import get_db
+from cybersentinel_ai.mlops.routes import router as mlops_router
 from cybersentinel_ai.security.rate_limit import (
     LoginRateLimiter,
     RateLimitUnavailableError,
@@ -147,6 +148,7 @@ app.include_router(auth_router)
 app.include_router(copilot_router)
 app.include_router(incident_router)
 app.include_router(ingestion_router)
+app.include_router(mlops_router)
 app.include_router(realtime_router)
 app.include_router(rule_router)
 app.include_router(user_admin_router)

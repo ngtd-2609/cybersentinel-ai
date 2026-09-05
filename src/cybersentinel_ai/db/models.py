@@ -46,6 +46,12 @@ class DetectionEvent(Base):
     correlation_key: Mapped[str | None] = mapped_column(
         String(255), nullable=True, index=True
     )
+    model_version_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("model_versions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     source_ip: Mapped[str | None] = mapped_column(
         String(45),
@@ -323,6 +329,115 @@ class NotificationDelivery(Base):
     )
     sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+
+
+class ModelVersion(Base):
+    __tablename__ = "model_versions"
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="uq_model_name_version"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    version: Mapped[str] = mapped_column(String(64), nullable=False)
+    task: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    stage: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="CANDIDATE", index=True
+    )
+    artifact_uri: Mapped[str] = mapped_column(String(512), nullable=False)
+    artifact_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    dataset_uri: Mapped[str] = mapped_column(String(512), nullable=False)
+    dataset_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    git_commit: Mapped[str] = mapped_column(String(64), nullable=False)
+    metrics: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class ModelStageTransition(Base):
+    __tablename__ = "model_stage_transitions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    model_version_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("model_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    from_stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    to_stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason: Mapped[str] = mapped_column(String(1000), nullable=False)
+    actor_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class ModelMonitoringReport(Base):
+    __tablename__ = "model_monitoring_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    model_version_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("model_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    feature_drift_score: Mapped[float] = mapped_column(Float, nullable=False)
+    prediction_drift_score: Mapped[float] = mapped_column(Float, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class DetectionFeedback(Base):
+    __tablename__ = "detection_feedback"
+    __table_args__ = (
+        UniqueConstraint(
+            "detection_event_id", "analyst_id", name="uq_detection_feedback_analyst"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    detection_event_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("detection_events.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    analyst_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    verdict: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
 

@@ -49,6 +49,19 @@ class Settings(BaseSettings):
 
     realtime_channel: str = "cybersentinel:soc-updates"
 
+    model_min_precision: float = Field(default=0.8, ge=0.0, le=1.0)
+    model_min_recall: float = Field(default=0.25, ge=0.0, le=1.0)
+    model_min_f1: float = Field(default=0.4, ge=0.0, le=1.0)
+    model_max_false_positive_rate: float = Field(default=0.05, ge=0.0, le=1.0)
+    drift_warning_threshold: float = Field(default=0.2, ge=0.0)
+    drift_critical_threshold: float = Field(default=0.3, ge=0.0)
+
+    ollama_max_retries: int = Field(default=2, ge=0, le=5)
+    ollama_circuit_failure_threshold: int = Field(default=3, ge=1, le=20)
+    ollama_circuit_reset_seconds: float = Field(default=30.0, ge=1.0, le=3600.0)
+    allow_external_ai: bool = False
+    allow_sensitive_external_ai: bool = False
+
     public_registration_enabled: bool = False
 
     account_lockout_attempts: int = Field(default=5, ge=1)
