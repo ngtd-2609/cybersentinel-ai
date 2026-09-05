@@ -10,6 +10,7 @@ services:
     container_name: cybersentinel-staging-caddy
     environment:
       CYBERSENTINEL_HOSTNAME: ${CYBERSENTINEL_HOSTNAME:?Set CYBERSENTINEL_HOSTNAME}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
     depends_on:
       frontend:
         condition: service_healthy
