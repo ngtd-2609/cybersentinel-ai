@@ -1,0 +1,19 @@
+{
+  "source": "artifacts/xgboost/test_metrics.json",
+  "model_artifact_hash": "35755c3ff01fa2973db3a8673f4f9e03",
+  "dataset_hash": "136d82c2aa02afd4668d9bcc18d39a1a.dir",
+  "selected_threshold": 0.461,
+  "test_metrics": {
+    "accuracy": 0.7037433611330333,
+    "precision": 0.9988979692917286,
+    "recall": 0.2792128006423857,
+    "f1": 0.43643337670382465,
+    "roc_auc": 0.7775898320765913,
+    "pr_auc": 0.7802497441360099,
+    "tn": 414233,
+    "fp": 89,
+    "fn": 208252,
+    "tp": 80671,
+    "predicted_attack_rate": 0.11483906746581916
+  }
+}

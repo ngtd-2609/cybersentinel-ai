@@ -9,6 +9,7 @@ from cybersentinel_ai.core.config import get_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CASES = PROJECT_ROOT / "evaluation" / "rag_copilot_cases.json"
+DEFAULT_MODEL_METRICS = PROJECT_ROOT / "evaluation" / "xgboost_binary_test_metrics.json"
 DEFAULT_REPORT = PROJECT_ROOT / "reports" / "phase_k_ai_reliability.json"
 
 
@@ -58,7 +59,7 @@ def evaluate_rag_cases(path: Path = DEFAULT_CASES) -> dict[str, float | int]:
 
 def build_reliability_report() -> dict:
     metrics_payload = json.loads(
-        (PROJECT_ROOT / "artifacts" / "xgboost" / "test_metrics.json").read_text()
+        DEFAULT_MODEL_METRICS.read_text(encoding="utf-8")
     )
     metrics = metrics_payload["test_metrics"]
     false_positive_rate = metrics["fp"] / (metrics["fp"] + metrics["tn"])
