@@ -7,7 +7,7 @@
     "commit_resolution": "git rev-list -n 1 v1.1.0",
     "date": "2026-09-05",
     "phase": "M",
-    "status": "release-ready"
+    "status": "released"
   },
   "deployment": {
     "web_url": "https://cybersentinel-web-ppae.onrender.com",
@@ -27,7 +27,7 @@
     {"id": "security_scan", "status": "pass", "evidence": "Security workflow"},
     {"id": "backup_restore", "status": "pass", "evidence": "Security DAST backup/restore drill"},
     {"id": "public_staging_smoke", "status": "pass", "evidence": "Playwright no-mock public smoke"},
-    {"id": "final_tag", "status": "tag-time", "evidence": "annotated v1.1.0 after green gates"},
+    {"id": "final_tag", "status": "pass", "evidence": "annotated v1.1.0 resolves this state-bearing release"},
     {"id": "release_notes", "status": "pass", "evidence": "docs/releases/v1.1.0.md"},
     {"id": "final_handoff", "status": "pass", "evidence": "docs/releases/v1.1.0-handoff.md"},
     {"id": "state_json", "status": "pass", "evidence": "this file; parsed by CI"}
@@ -36,6 +36,9 @@
     "python_tests_collected": 179,
     "model_quality_gate": "pass",
     "rag_quality_gate": "pass",
+    "verification_commit": "8774803aebd78a0368da5d08c29332fc6df53626",
+    "ci_run_id": 33978607784,
+    "security_run_id": 33978607785,
     "public_smoke": "pass",
     "ci_workflow": "https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/ci.yml",
     "security_workflow": "https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/security.yml"

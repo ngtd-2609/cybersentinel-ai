@@ -55,11 +55,13 @@ gates = {gate["id"]: gate["status"] for gate in state["gates"]}
 missing = required - gates.keys()
 if missing:
     raise SystemExit(f"Missing Phase M gates: {sorted(missing)}")
-invalid = {name: status for name, status in gates.items() if status not in {"pass", "tag-time"}}
+invalid = {name: status for name, status in gates.items() if status != "pass"}
 if invalid:
     raise SystemExit(f"Invalid Phase M gate states: {invalid}")
 if state["release"]["version"] != "1.1.0":
     raise SystemExit("Release state must describe v1.1.0")
+if state["release"]["status"] != "released":
+    raise SystemExit("Phase M state must be final, not provisional")
 if state["video"]["status"] != "optional-deferred":
     raise SystemExit("The optional video must not block this release")
 print("PHASE_M_STATE_OK")
