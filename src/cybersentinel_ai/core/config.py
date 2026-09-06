@@ -171,17 +171,6 @@ class Settings(BaseSettings):
                 raise ValueError("Demo seed may only be enabled in the portfolio environment")
             if self.demo_user_password is None:
                 raise ValueError("CYBERSENTINEL_DEMO_USER_PASSWORD is required for demo seed")
-        bootstrap_values = (
-            self.bootstrap_admin_email,
-            self.bootstrap_admin_username,
-            self.bootstrap_admin_password,
-        )
-        if any(value is not None for value in bootstrap_values) and not all(
-            value is not None for value in bootstrap_values
-        ):
-            raise ValueError(
-                "Bootstrap admin email, username and password must be configured together"
-            )
         return self
 
     model_config = SettingsConfigDict(
