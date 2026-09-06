@@ -2,6 +2,7 @@ import argparse
 import getpass
 import sys
 
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from cybersentinel_ai.auth.schemas import UserCreate
@@ -112,6 +113,12 @@ def main() -> int:
             admin = bootstrap_first_admin(database, payload)
             admin_email = admin.email
             admin_id = admin.id
+    except ValidationError:
+        print(
+            "Bootstrap failed: administrator configuration did not pass validation.",
+            file=sys.stderr,
+        )
+        return 1
     except (ValueError, EOFError, AttributeError) as exc:
         print(f"Bootstrap failed: {exc}", file=sys.stderr)
         return 1

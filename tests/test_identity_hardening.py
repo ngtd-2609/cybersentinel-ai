@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cybersentinel_ai.auth.bootstrap import main as bootstrap_main
 from cybersentinel_ai.auth.bootstrap import sync_existing_admin_identity
 from cybersentinel_ai.auth.router import router
 from cybersentinel_ai.auth.schemas import UserCreate
@@ -197,6 +198,25 @@ def test_existing_admin_identity_can_be_synced_without_changing_password(
         assert admin.email == "tungduong@cybersentinel.demo"
         assert admin.hashed_password == original_hash
         assert verify_password(original_password, admin.hashed_password)
+
+
+def test_bootstrap_validation_error_does_not_log_password(monkeypatch, capsys):
+    unsafe_password = "password-without-required-groups"
+    monkeypatch.setattr(
+        "cybersentinel_ai.auth.bootstrap.get_settings",
+        lambda: Settings(
+            _env_file=None,
+            bootstrap_admin_email="admin@example.test",
+            bootstrap_admin_username="owner-admin",
+            bootstrap_admin_password=unsafe_password,
+        ),
+    )
+    monkeypatch.setattr("sys.argv", ["bootstrap", "--from-env"])
+
+    assert bootstrap_main() == 1
+    captured = capsys.readouterr()
+    assert unsafe_password not in captured.err
+    assert "did not pass validation" in captured.err
 
 
 def test_failed_logins_lock_account_and_success_resets_state(
