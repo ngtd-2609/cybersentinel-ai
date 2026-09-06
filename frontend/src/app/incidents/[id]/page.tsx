@@ -85,11 +85,6 @@ export default function IncidentDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["incident-timeline", id] });
     },
   });
-  const copilotMutation = useMutation({
-    mutationFn: () =>
-      askCopilot(question.trim(), JSON.stringify(incidentQuery.data)),
-  });
-
   const incident = incidentQuery.data;
   const mayWrite = Boolean(user && incident && (
     canWrite(user.role) ||
@@ -101,6 +96,18 @@ export default function IncidentDetailPage() {
     queryFn: () => getIpThreatIntel(sourceIp!),
     enabled: Boolean(sourceIp),
     staleTime: 300_000,
+  });
+  const copilotMutation = useMutation({
+    mutationFn: () => askCopilot(question.trim(), JSON.stringify({
+      incident: incidentQuery.data,
+      threat_intelligence: threatIntelQuery.data ?? {
+        provider: "AbuseIPDB",
+        indicator: sourceIp ?? null,
+        available: false,
+      },
+      timeline: timelineQuery.data ?? [],
+      response_actions: responsesQuery.data ?? [],
+    })),
   });
   const error = statusMutation.error ?? priorityMutation.error ?? timelineMutation.error ?? responseMutation.error ?? copilotMutation.error;
 
@@ -194,8 +201,8 @@ export default function IncidentDetailPage() {
 
                   {sourceIp && (
                     <Card>
-                      <CardHeader><CardTitle>Threat intelligence · {sourceIp}</CardTitle></CardHeader>
-                      <CardContent className="text-sm">{threatIntelQuery.isLoading ? "Checking AbuseIPDB…" : threatIntelQuery.data?.available ? <div className="grid gap-3 sm:grid-cols-3"><div><p className="text-slate-400">Reputation</p><p className="font-semibold">{threatIntelQuery.data.reputation}</p></div><div><p className="text-slate-400">Confidence</p><p>{threatIntelQuery.data.abuse_confidence ?? 0}%</p></div><div><p className="text-slate-400">Reports / country</p><p>{threatIntelQuery.data.reports ?? 0} · {threatIntelQuery.data.country ?? "Unknown"}</p></div></div> : <p className="text-slate-500">Provider unavailable — local detection evidence remains usable.</p>}</CardContent>
+                      <CardHeader><CardTitle>AbuseIPDB intelligence · {sourceIp}</CardTitle></CardHeader>
+                      <CardContent className="text-sm">{threatIntelQuery.isLoading ? "Checking AbuseIPDB…" : threatIntelQuery.isError ? <p className="text-amber-700">Threat intelligence could not be loaded — local detection evidence remains usable.</p> : threatIntelQuery.data?.available ? <div className="grid gap-3 sm:grid-cols-4"><div><p className="text-slate-400">Reputation</p><p className="font-semibold">{threatIntelQuery.data.reputation}</p></div><div><p className="text-slate-400">Confidence</p><p>{threatIntelQuery.data.abuse_confidence ?? 0}%</p></div><div><p className="text-slate-400">Reports / country</p><p>{threatIntelQuery.data.reports ?? 0} · {threatIntelQuery.data.country ?? "Unknown"}</p></div><div><p className="text-slate-400">Source</p><p>AbuseIPDB{threatIntelQuery.data.cached ? " · cached" : " · live"}</p></div></div> : <p className="text-slate-500">Provider unavailable — local detection evidence remains usable.</p>}</CardContent>
                     </Card>
                   )}
 

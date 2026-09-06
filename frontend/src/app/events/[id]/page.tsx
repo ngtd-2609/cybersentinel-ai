@@ -10,7 +10,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { createIncident } from "@/lib/api/incidents";
+import { createIncident, getIpThreatIntel } from "@/lib/api/incidents";
 import { apiFetch } from "@/lib/api/client";
 import { canWrite } from "@/lib/auth";
 import {
@@ -108,6 +108,13 @@ export default function EventDetailPage() {
   } = useQuery({
     queryKey: ["event", id],
     queryFn: () => getEvent(id),
+  });
+
+  const threatIntelQuery = useQuery({
+    queryKey: ["threat-intel", event?.source_ip],
+    queryFn: () => getIpThreatIntel(event!.source_ip!),
+    enabled: Boolean(event?.source_ip),
+    staleTime: 300_000,
   });
 
   const createIncidentMutation = useMutation({
@@ -285,6 +292,30 @@ export default function EventDetailPage() {
                     <div><p className="text-slate-400">System</p><p>{event.asset.operating_system ?? "Unknown"}</p></div>
                     <div><p className="text-slate-400">Environment</p><p>{event.asset.environment} · {event.asset.criticality}</p></div>
                     <div><p className="text-slate-400">Ownership</p><p>{event.asset.owner_team ?? "Unassigned"} · {event.asset.internet_facing ? "Internet-facing" : "Internal"}</p></div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {event.source_ip && (
+                <Card className="mt-5">
+                  <CardHeader>
+                    <CardTitle>AbuseIPDB intelligence · {event.source_ip}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    {threatIntelQuery.isLoading ? (
+                      <p className="text-slate-500">Checking AbuseIPDB…</p>
+                    ) : threatIntelQuery.isError ? (
+                      <p className="text-amber-700">Threat intelligence could not be loaded. Local detection evidence remains available.</p>
+                    ) : threatIntelQuery.data?.available ? (
+                      <div className="grid gap-4 sm:grid-cols-4">
+                        <div><p className="text-slate-400">Reputation</p><p className="font-semibold">{threatIntelQuery.data.reputation}</p></div>
+                        <div><p className="text-slate-400">Abuse confidence</p><p className="font-semibold">{threatIntelQuery.data.abuse_confidence ?? 0}%</p></div>
+                        <div><p className="text-slate-400">Reports</p><p>{threatIntelQuery.data.reports ?? 0}</p></div>
+                        <div><p className="text-slate-400">Country / source</p><p>{threatIntelQuery.data.country ?? "Unknown"} · AbuseIPDB{threatIntelQuery.data.cached ? " (cached)" : " (live)"}</p></div>
+                      </div>
+                    ) : (
+                      <p className="text-slate-500">AbuseIPDB is not configured or this indicator cannot be enriched. Local detection evidence remains usable.</p>
+                    )}
                   </CardContent>
                 </Card>
               )}

@@ -59,6 +59,7 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
 }) => {
   let timelineAdded = false;
   let responseAdded = false;
+  let copilotContext = "";
   let currentIncident = incident;
   await page.route("**/api/backend/**", async (route) => {
     const url = new URL(route.request().url());
@@ -167,6 +168,15 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
         error: null,
       });
     }
+    if (url.pathname === "/api/backend/copilot/ask" && method === "POST") {
+      const payload = route.request().postDataJSON();
+      copilotContext = payload.alert_context;
+      return fulfillJson(route, {
+        answer: "AbuseIPDB reports a malicious source. Validate credentials and contain the source.",
+        model: "grounded-test",
+        sources: [],
+      });
+    }
     return fulfillJson(route, { detail: "Unexpected E2E request" }, 500);
   });
 
@@ -177,6 +187,16 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
   await expect(page.getByText("96/100")).toBeVisible();
   await expect(page.getByText("prod-web-01")).toBeVisible();
   await expect(page.getByText("92%")).toBeVisible();
+
+  await page.getByRole("button", { name: "Analyze incident" }).click();
+  await expect(page.getByText(/AbuseIPDB reports a malicious source/)).toBeVisible();
+  expect(JSON.parse(copilotContext)).toMatchObject({
+    threat_intelligence: {
+      provider: "abuseipdb",
+      indicator: "198.51.100.42",
+      abuse_confidence: 92,
+    },
+  });
 
   await page.getByPlaceholder("Describe the analyst action...").fill(
     "Validated source IP against authentication logs.",
@@ -191,6 +211,36 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
   await page.getByRole("combobox").first().click();
   await page.getByRole("option", { name: "Resolved" }).click();
   await expect(page.getByText("RESOLVED").first()).toBeVisible();
+});
+
+test("event detail shows live AbuseIPDB enrichment", async ({ page }) => {
+  await page.route("**/api/backend/events/19", (route) => fulfillJson(route, {
+    ...incident.detection_event,
+    destination_ip: "203.0.113.20",
+    destination_port: 22,
+    classifier_confidence: 0.98,
+    anomaly_score: 0.91,
+    rule_score: 0.85,
+    requires_review: true,
+    asset: null,
+    created_at: incident.created_at,
+  }));
+  await page.route("**/api/backend/threat-intel/ip/198.51.100.42", (route) => fulfillJson(route, {
+    provider: "AbuseIPDB",
+    indicator: "198.51.100.42",
+    reputation: "MALICIOUS",
+    abuse_confidence: 92,
+    country: "US",
+    reports: 47,
+    cached: false,
+    available: true,
+    error: null,
+  }));
+
+  await page.goto("/events/19");
+  await expect(page.getByText("AbuseIPDB intelligence · 198.51.100.42")).toBeVisible();
+  await expect(page.getByText("92%")).toBeVisible();
+  await expect(page.getByText("US · AbuseIPDB (live)")).toBeVisible();
 });
 
 test("SOC Copilot renders grounded analysis and sources", async ({ page }) => {

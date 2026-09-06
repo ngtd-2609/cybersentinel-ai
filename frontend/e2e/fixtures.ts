@@ -59,11 +59,12 @@ export async function fulfillJson(route: Route, body: unknown, status = 200) {
 }
 
 export async function authenticate(page: Page, user: TestUser) {
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100";
   await page.context().addCookies([
     {
       name: "cybersentinel_access_token",
       value: "e2e-token",
-      url: "http://127.0.0.1:3100",
+      url: baseURL,
       httpOnly: true,
       sameSite: "Lax",
     },
