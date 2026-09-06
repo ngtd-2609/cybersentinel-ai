@@ -12,7 +12,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![Release](https://img.shields.io/github/v/release/ngtd-2609/cybersentinel-ai?include_prereleases)](https://github.com/ngtd-2609/cybersentinel-ai/releases)
 
-[**Live Demo**](https://cybersentinel-web-ppae.onrender.com) ·
+[**Live Demo**](https://cybersentinel-ai-dun.vercel.app) ·
 [Architecture](#architecture) · [Quick Start](#quick-start) ·
 [Documentation](#documentation) · [Security](SECURITY.md)
 
@@ -58,7 +58,7 @@ running developer laptop.
 
 ## Live demo
 
-**Portfolio URL:** <https://cybersentinel-web-ppae.onrender.com>
+**Portfolio URL:** <https://cybersentinel-ai-dun.vercel.app>
 
 1. Open the URL and wait for the green service-ready indicator.
 2. Select **Explore with the safe demo account**, or create your own account.
@@ -74,9 +74,10 @@ can sleep when idle, so the first request may take about a minute.
 
 | Live component | URL / provider | State |
 | --- | --- | --- |
-| Web application | [CyberSentinel AI](https://cybersentinel-web-ppae.onrender.com) | HTTPS, public |
+| Web application | [CyberSentinel AI](https://cybersentinel-ai-dun.vercel.app) | Vercel HTTPS, public |
+| Web fallback | [Render frontend](https://cybersentinel-web-ppae.onrender.com) | HTTPS, public |
 | API readiness | [FastAPI `/ready`](https://cybersentinel-api-hrl8.onrender.com/ready) | PostgreSQL-aware |
-| Application hosting | Render Free Web Services | Next.js BFF + FastAPI |
+| Application hosting | Vercel + Render Free | Next.js BFF + FastAPI |
 | Database | Neon Free PostgreSQL | Durable managed data |
 
 ## Why this project
@@ -255,7 +256,7 @@ See [SECURITY.md](SECURITY.md) for reporting and supported-use guidance.
 
 ### Option A — use the hosted demo
 
-Open <https://cybersentinel-web-ppae.onrender.com>. No installation is required.
+Open <https://cybersentinel-ai-dun.vercel.app>. No installation is required.
 
 ### Option B — one-command local demo
 
@@ -375,11 +376,11 @@ The final gate and immutable evidence are documented in
 
 ## Deployment
 
-The live portfolio architecture uses the root [`render.yaml`](render.yaml):
+The live portfolio architecture uses Vercel for the public Next.js/BFF frontend
+and the root [`render.yaml`](render.yaml) for the API:
 
 ```text
-Internet → Render Next.js Web Service → Render FastAPI Web Service
-                                      → Neon PostgreSQL
+Internet → Vercel Next.js/BFF → Render FastAPI Web Service → Neon PostgreSQL
 ```
 
 Render generates application secrets and receives three user-managed values:
@@ -387,9 +388,9 @@ the Neon pooled URL, a strong demo password, and a separate Owner Admin password
 in provider secret settings. The Blueprint runs Alembic and the idempotent seed at
 API startup.
 
-The committed [`frontend/vercel.json`](frontend/vercel.json) also supports the
-handoff's optional Vercel + Render + Neon split. Vercel hosts only Next.js/BFF;
-FastAPI remains on Render and PostgreSQL remains on Neon.
+The committed [`frontend/vercel.json`](frontend/vercel.json) defines the Vercel
+frontend build. FastAPI remains on Render and PostgreSQL remains on Neon; the
+Render-hosted frontend is retained as a fallback.
 
 For setup, recovery, cold-start, cost, and verification details, see
 [`docs/portfolio-deployment.md`](docs/portfolio-deployment.md).

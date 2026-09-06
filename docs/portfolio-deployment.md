@@ -14,7 +14,8 @@ Kubernetes, Kafka and a self-hosted observability stack are optional.
 
 ## Current live deployment
 
-- Frontend: <https://cybersentinel-web-ppae.onrender.com>
+- Primary frontend: <https://cybersentinel-ai-dun.vercel.app>
+- Frontend fallback: <https://cybersentinel-web-ppae.onrender.com>
 - API readiness: <https://cybersentinel-api-hrl8.onrender.com/ready>
 - Provider/database: Render Free Web Services and Neon Free PostgreSQL, Singapore
 - Phase L deployed source: `6cbfc4daf1d5bf56b18606862abd03de3fe27535`
@@ -29,15 +30,15 @@ Re-run the automated no-mock public journey with:
 
 ```bash
 PUBLIC_SMOKE=true \
-PLAYWRIGHT_BASE_URL=https://cybersentinel-web-ppae.onrender.com \
+PLAYWRIGHT_BASE_URL=https://cybersentinel-ai-dun.vercel.app \
 npm run test:e2e:public
 ```
 
 ## Preferred low-cost architecture
 
-The initial baseline is:
+The current low-cost deployment is:
 
-1. Render Free Web Service for the Next.js frontend/BFF and managed HTTPS.
+1. Vercel Hobby for the primary Next.js frontend/BFF and managed HTTPS.
 2. Render Free Web Service for the FastAPI application.
 3. Neon Free PostgreSQL for durable demo data.
 4. A free managed Redis service when required for distributed rate limiting and
@@ -49,19 +50,20 @@ The initial baseline is:
 The frontend remains a web service rather than a static export because it owns the
 HTTP-only session cookies, server-side API proxy and authenticated SSE bridge.
 
-### Optional Vercel frontend
+### Vercel frontend
 
-The committed `frontend/vercel.json` also supports deploying only the Next.js
-frontend/BFF to Vercel while keeping FastAPI on Render and PostgreSQL on Neon.
-Import the repository with `frontend` as the Root Directory and configure:
+The committed `frontend/vercel.json` deploys only the Next.js frontend/BFF to
+Vercel while keeping FastAPI on Render and PostgreSQL on Neon. The project imports
+the repository with `frontend` as the Root Directory and configures:
 
 - `CYBERSENTINEL_API_URL`: the public Render API origin (no trailing slash).
-- `NEXT_PUBLIC_DEMO_LOGIN_ENABLED=true`.
+- `NEXT_PUBLIC_DEMO_LOGIN_ENABLED=false` until a server-only demo password is set.
 - `NEXT_PUBLIC_REGISTRATION_ENABLED=true`.
 - `CYBERSENTINEL_DEMO_EMAIL=demo@cybersentinel.local`.
 - `CYBERSENTINEL_DEMO_PASSWORD`: the same secret as the API demo password.
 
-If Vercel becomes the public frontend, add its exact HTTPS origin to
+Browser traffic reaches FastAPI through the same-origin BFF. If direct browser API
+access is introduced later, add the exact Vercel HTTPS origin to
 `CYBERSENTINEL_CORS_ORIGINS` on Render. Never prefix the demo password with
 `NEXT_PUBLIC_`; it is used only by the server-side demo-login route.
 
