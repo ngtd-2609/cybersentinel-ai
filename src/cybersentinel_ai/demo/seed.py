@@ -10,8 +10,11 @@ from cybersentinel_ai.core.config import Settings, get_settings
 from cybersentinel_ai.db.database import SessionLocal, atomic
 from cybersentinel_ai.db.models import (
     AlertRule,
+    Asset,
     DetectionEvent,
     Incident,
+    IncidentAsset,
+    IncidentDetection,
     IncidentTimeline,
     ModelVersion,
     User,
@@ -32,32 +35,45 @@ class DemoSeedResult:
 
 def _demo_events(now: datetime) -> list[dict]:
     templates = [
-        ("RANSOMWARE", "CRITICAL", 97.5, "198.51.100.23", "finance-ws-07", 1),
-        ("SSH-BRUTE-FORCE", "HIGH", 88.4, "203.0.113.44", "bastion-01", 3),
-        ("MALWARE", "HIGH", 84.2, "192.0.2.91", "engineering-lt-12", 5),
-        ("PORT-SCAN", "MEDIUM", 67.8, "198.51.100.77", "dmz-web-02", 7),
-        ("DATA-EXFILTRATION", "CRITICAL", 94.1, "203.0.113.109", "db-prod-01", 9),
-        ("PHISHING", "MEDIUM", 61.5, "192.0.2.36", "mail-gateway", 12),
-        ("WEB-ATTACK", "HIGH", 82.7, "198.51.100.158", "customer-portal", 16),
-        ("BENIGN", "LOW", 12.3, "192.0.2.10", "monitoring-01", 20),
+        ("RANSOMWARE", "CRITICAL", 97.5, "198.51.100.23", "prod-web-01", "prod-web-01", 1),
+        ("SSH-BRUTE-FORCE", "HIGH", 88.4, "203.0.113.44", "prod-web-01", "prod-web-01", 18),
+        ("PRIVILEGE-ESCALATION", "HIGH", 86.2, "203.0.113.44", "prod-web-01", "prod-web-01", 11),
+        ("MALICIOUS-PROCESS", "HIGH", 84.8, "203.0.113.44", "prod-web-01", "prod-web-01", 7),
+        ("C2-TRAFFIC", "CRITICAL", 94.1, "203.0.113.109", "prod-web-01", "prod-web-01", 4),
+        ("SUSPICIOUS-LOGIN", "MEDIUM", 71.5, "203.0.113.44", "prod-web-01", "prod-web-01", 15),
+        ("WEB-ATTACK", "HIGH", 82.7, "198.51.100.158", "customer-portal", "customer-portal", 45),
+        ("BENIGN", "LOW", 12.3, "192.0.2.10", "monitoring-01", "monitoring-01", 60),
     ]
     events = []
-    for index, (label, severity, risk, source_ip, hostname, hours_ago) in enumerate(
+    for index, (
+        label,
+        severity,
+        risk,
+        source_ip,
+        asset_id,
+        hostname,
+        minutes_ago,
+    ) in enumerate(
         templates,
         start=1,
     ):
+        ransomware_chain = index <= 6
         events.append(
             {
                 "idempotency_key": f"{DEMO_PREFIX}event:{index}",
                 "external_id": f"DEMO-{index:04d}",
                 "source_type": "portfolio-seed",
-                "occurred_at": now - timedelta(hours=hours_ago),
-                "asset_id": f"asset-{index:03d}",
+                "occurred_at": now - timedelta(minutes=minutes_ago),
+                "asset_id": asset_id,
                 "hostname": hostname,
                 "affected_user": "demo.user",
                 "ioc_type": "ipv4",
                 "ioc_value": source_ip,
-                "correlation_key": f"demo-{label.lower()}",
+                "correlation_key": (
+                    "prod-web-01:ransomware-chain"
+                    if ransomware_chain
+                    else f"demo-{label.lower()}"
+                ),
                 "source_ip": source_ip,
                 "destination_ip": "10.20.0.15",
                 "destination_port": 443 if index % 2 else 22,
@@ -68,7 +84,7 @@ def _demo_events(now: datetime) -> list[dict]:
                 "risk_score": risk,
                 "severity": severity,
                 "requires_review": severity in {"CRITICAL", "HIGH"},
-                "created_at": now - timedelta(hours=hours_ago),
+                "created_at": now - timedelta(minutes=minutes_ago),
             }
         )
     return events
@@ -132,6 +148,51 @@ def seed_demo_data(
     now = datetime.now(UTC).replace(microsecond=0)
     with atomic(database):
         user = _upsert_demo_user(database, settings, reset=reset)
+        asset_templates = (
+            {
+                "id": "prod-web-01",
+                "hostname": "PROD-WEB-01",
+                "primary_ip": "10.20.0.15",
+                "operating_system": "Ubuntu 24.04 LTS",
+                "environment": "PROD",
+                "criticality": "CRITICAL",
+                "owner_team": "Platform Team",
+                "internet_facing": True,
+                "status": "ONLINE",
+                "last_seen_at": now,
+            },
+            {
+                "id": "customer-portal",
+                "hostname": "CUSTOMER-PORTAL",
+                "primary_ip": "10.20.0.20",
+                "operating_system": "Debian 13",
+                "environment": "PROD",
+                "criticality": "HIGH",
+                "owner_team": "Web Platform",
+                "internet_facing": True,
+                "status": "ONLINE",
+                "last_seen_at": now - timedelta(minutes=45),
+            },
+            {
+                "id": "monitoring-01",
+                "hostname": "MONITORING-01",
+                "primary_ip": "10.20.0.30",
+                "operating_system": "Ubuntu 24.04 LTS",
+                "environment": "PROD",
+                "criticality": "MEDIUM",
+                "owner_team": "SRE",
+                "internet_facing": False,
+                "status": "ONLINE",
+                "last_seen_at": now - timedelta(minutes=60),
+            },
+        )
+        for asset_values in asset_templates:
+            asset = database.get(Asset, asset_values["id"])
+            if asset is None:
+                database.add(Asset(**asset_values))
+            elif reset:
+                for field, value in asset_values.items():
+                    setattr(asset, field, value)
         model = database.scalar(
             select(ModelVersion).where(
                 ModelVersion.name == "CyberSentinel Portfolio Classifier",
@@ -205,12 +266,22 @@ def seed_demo_data(
                 "detection_event_id": events[event_index].id,
                 "correlation_key": events[event_index].correlation_key,
                 "event_count": 1,
+                "priority": "P1" if severity == "CRITICAL" else "P2",
+                "tags": ["portfolio", "attack-chain" if event_index == 0 else "triage"],
+                "first_seen_at": events[event_index].created_at,
                 "last_event_at": events[event_index].created_at,
+                "resolved_at": now if incident_status == "RESOLVED" else None,
+                "resolution_reason": (
+                    "Validated and safely contained in the synthetic scenario."
+                    if incident_status == "RESOLVED"
+                    else None
+                ),
             }
             if incident is None:
                 incident = Incident(title=title, **values)
                 database.add(incident)
                 database.flush()
+                incident.display_id = f"CS-{now.year}-{incident.id:04d}"
             elif reset:
                 for field, value in values.items():
                     setattr(incident, field, value)
@@ -242,6 +313,37 @@ def seed_demo_data(
                         )
                     )
             incidents.append(incident)
+
+        ransomware_incident = incidents[0]
+        ransomware_incident.event_count = 6
+        ransomware_incident.first_seen_at = events[1].created_at
+        ransomware_incident.last_event_at = events[0].created_at
+        for event in events[:6]:
+            link = database.get(IncidentDetection, (ransomware_incident.id, event.id))
+            if link is None:
+                database.add(
+                    IncidentDetection(
+                        incident_id=ransomware_incident.id,
+                        detection_event_id=event.id,
+                    )
+                )
+        for incident in incidents:
+            event = next(item for item in events if item.id == incident.detection_event_id)
+            already_linked_in_chain = (
+                incident.id == ransomware_incident.id and event in events[:6]
+            )
+            if (
+                not already_linked_in_chain
+                and database.get(IncidentDetection, (incident.id, event.id)) is None
+            ):
+                database.add(
+                    IncidentDetection(
+                        incident_id=incident.id,
+                        detection_event_id=event.id,
+                    )
+                )
+            if event.asset_id and database.get(IncidentAsset, (incident.id, event.asset_id)) is None:
+                database.add(IncidentAsset(incident_id=incident.id, asset_id=event.asset_id))
 
         rule = database.scalar(
             select(AlertRule).where(AlertRule.name == "Portfolio critical detections")

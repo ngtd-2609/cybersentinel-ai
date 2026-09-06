@@ -9,7 +9,15 @@ from cybersentinel_ai.api.schemas import (
     IncidentTimelineCreate,
     IncidentUpdate,
 )
-from cybersentinel_ai.db.models import DetectionEvent, Incident, IncidentTimeline
+from cybersentinel_ai.db.models import (
+    Asset,
+    DetectionEvent,
+    Incident,
+    IncidentAsset,
+    IncidentDetection,
+    IncidentTimeline,
+    ResponseAction,
+)
 
 
 def event_visibility(user_id: int, role: str):
@@ -213,6 +221,13 @@ def create_incident(
 
     database.add(incident)
     database.flush()
+    incident.display_id = f"CS-{incident.created_at.year}-{incident.id:04d}"
+    incident.first_seen_at = (
+        incident.detection_event.occurred_at
+        if incident.detection_event and incident.detection_event.occurred_at
+        else incident.created_at
+    )
+    incident.last_event_at = incident.first_seen_at
 
     timeline = IncidentTimeline(
         incident_id=incident.id,
@@ -223,6 +238,18 @@ def create_incident(
     database.add(timeline)
 
     if incident.detection_event_id:
+        database.add(
+            IncidentDetection(
+                incident_id=incident.id,
+                detection_event_id=incident.detection_event_id,
+            )
+        )
+        if incident.detection_event and incident.detection_event.asset_id:
+            asset = database.get(Asset, incident.detection_event.asset_id)
+            if asset is not None:
+                database.add(
+                    IncidentAsset(incident_id=incident.id, asset_id=asset.id)
+                )
         detection_timeline = IncidentTimeline(
             incident_id=incident.id,
             action="DETECTION_RECEIVED",
@@ -250,10 +277,69 @@ def list_incidents(
     offset: int = 0,
     user_id: int | None = None,
     role: str | None = None,
+    status: str | None = None,
+    severity: str | None = None,
+    priority: str | None = None,
+    assignee_user_id: int | None = None,
+    asset_id: str | None = None,
+    attack_type: str | None = None,
+    source_ip: str | None = None,
+    query: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
 ) -> tuple[list[Incident], int]:
     filters = []
     if user_id is not None and role != "ADMIN":
         filters.append(incident_visibility(user_id, role or "VIEWER"))
+    if status:
+        filters.append(Incident.status == status.upper())
+    if severity:
+        filters.append(Incident.severity == severity.upper())
+    if priority:
+        filters.append(Incident.priority == priority.upper())
+    if assignee_user_id is not None:
+        filters.append(Incident.assignee_user_id == assignee_user_id)
+    if since is not None:
+        filters.append(Incident.created_at >= since)
+    if until is not None:
+        filters.append(Incident.created_at <= until)
+    if asset_id:
+        filters.append(
+            Incident.id.in_(
+                select(IncidentAsset.incident_id).where(
+                    IncidentAsset.asset_id == asset_id
+                )
+            )
+        )
+    if attack_type or source_ip:
+        detection_filters = []
+        if attack_type:
+            detection_filters.append(
+                DetectionEvent.predicted_label.ilike(f"%{attack_type}%")
+            )
+        if source_ip:
+            detection_filters.append(DetectionEvent.source_ip.ilike(f"%{source_ip}%"))
+        filters.append(
+            Incident.id.in_(
+                select(IncidentDetection.incident_id)
+                .join(
+                    DetectionEvent,
+                    DetectionEvent.id == IncidentDetection.detection_event_id,
+                )
+                .where(*detection_filters)
+            )
+        )
+    if query:
+        pattern = f"%{query.strip()}%"
+        filters.append(
+            or_(
+                Incident.display_id.ilike(pattern),
+                Incident.title.ilike(pattern),
+                Incident.description.ilike(pattern),
+                Incident.correlation_key.ilike(pattern),
+                Incident.resolution_reason.ilike(pattern),
+            )
+        )
     count_statement = (
         select(func.count())
         .select_from(Incident)
@@ -298,6 +384,17 @@ def reset_user_sandbox(database: Session, user_id: int) -> tuple[int, int]:
     )
     if incident_ids:
         database.execute(
+            delete(ResponseAction).where(ResponseAction.incident_id.in_(incident_ids))
+        )
+        database.execute(
+            delete(IncidentAsset).where(IncidentAsset.incident_id.in_(incident_ids))
+        )
+        database.execute(
+            delete(IncidentDetection).where(
+                IncidentDetection.incident_id.in_(incident_ids)
+            )
+        )
+        database.execute(
             delete(IncidentTimeline).where(IncidentTimeline.incident_id.in_(incident_ids))
         )
         database.execute(delete(Incident).where(Incident.id.in_(incident_ids)))
@@ -331,6 +428,17 @@ def purge_expired_sandboxes(database: Session) -> int:
     )
     if incident_ids:
         database.execute(
+            delete(ResponseAction).where(ResponseAction.incident_id.in_(incident_ids))
+        )
+        database.execute(
+            delete(IncidentAsset).where(IncidentAsset.incident_id.in_(incident_ids))
+        )
+        database.execute(
+            delete(IncidentDetection).where(
+                IncidentDetection.incident_id.in_(incident_ids)
+            )
+        )
+        database.execute(
             delete(IncidentTimeline).where(IncidentTimeline.incident_id.in_(incident_ids))
         )
         database.execute(delete(Incident).where(Incident.id.in_(incident_ids)))
@@ -350,16 +458,26 @@ def update_incident_status(
     if incident is None:
         return None
 
-    old_status = incident.status
-    incident.status = payload.status
+    changes = payload.model_dump(exclude_unset=True)
+    descriptions = []
+    changed_fields: set[str] = set()
+    for field, value in changes.items():
+        old_value = getattr(incident, field)
+        if old_value == value:
+            continue
+        setattr(incident, field, value)
+        changed_fields.add(field)
+        descriptions.append(f"{field} changed from {old_value!r} to {value!r}")
+
+    if payload.status == "RESOLVED":
+        incident.resolved_at = datetime.now(UTC)
+    elif payload.status is not None and incident.status != "RESOLVED":
+        incident.resolved_at = None
 
     timeline = IncidentTimeline(
         incident_id=incident_id,
-        action="STATUS_CHANGE",
-        description=(
-            f"Status changed from {old_status} "
-            f"to {payload.status}"
-        ),
+        action="STATUS_CHANGE" if "status" in changed_fields else "CASE_UPDATED",
+        description="; ".join(descriptions) or "Case update requested with no changes",
     )
 
     database.add(timeline)

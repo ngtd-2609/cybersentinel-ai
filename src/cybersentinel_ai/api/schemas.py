@@ -56,6 +56,34 @@ class DetectionEventBrief(BaseModel):
     severity: str
 
 
+class AssetBase(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    hostname: str = Field(min_length=1, max_length=255)
+    primary_ip: str | None = Field(default=None, max_length=45)
+    operating_system: str | None = Field(default=None, max_length=128)
+    environment: str = Field(default="DEV", pattern="^(PROD|STAGING|DEV)$")
+    criticality: str = Field(
+        default="MEDIUM", pattern="^(CRITICAL|HIGH|MEDIUM|LOW)$"
+    )
+    owner_team: str | None = Field(default=None, max_length=128)
+    internet_facing: bool = False
+    status: str = Field(
+        default="UNKNOWN", pattern="^(ONLINE|OFFLINE|DEGRADED|UNKNOWN)$"
+    )
+    last_seen_at: datetime | None = None
+
+
+class AssetCreate(AssetBase):
+    pass
+
+
+class AssetRead(AssetBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    created_at: datetime
+    updated_at: datetime
+
+
 class DetectionEventRead(DetectionEventCreate):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +91,7 @@ class DetectionEventRead(DetectionEventCreate):
     workspace: str = "DEMO"
     owner_user_id: int | None = None
     sandbox_expires_at: datetime | None = None
+    asset: AssetRead | None = None
     created_at: datetime
 
 
@@ -113,6 +142,9 @@ class IncidentCreate(BaseModel):
     status: str = Field(default="OPEN", max_length=32)
     description: str | None = None
     detection_event_id: int | None = None
+    priority: str = Field(default="P3", pattern="^P[1-4]$")
+    assignee_user_id: int | None = Field(default=None, ge=1)
+    tags: list[str] = Field(default_factory=list, max_length=12)
 
 
 class IncidentRead(BaseModel):
@@ -128,9 +160,18 @@ class IncidentRead(BaseModel):
     description: str | None
     detection_event_id: int | None
     detection_event: DetectionEventBrief | None = None
+    related_detections: list[DetectionEventBrief] = Field(default_factory=list)
+    affected_assets: list[AssetRead] = Field(default_factory=list)
     correlation_key: str | None = None
     event_count: int = 1
+    display_id: str | None = None
+    priority: str = "P3"
+    assignee_user_id: int | None = None
+    tags: list[str] = Field(default_factory=list)
+    resolution_reason: str | None = None
+    first_seen_at: datetime | None = None
     last_event_at: datetime | None = None
+    resolved_at: datetime | None = None
     created_at: datetime
 
 
@@ -163,7 +204,13 @@ class SandboxSimulationRead(BaseModel):
 
 
 class IncidentUpdate(BaseModel):
-    status: str = Field(min_length=1, max_length=32)
+    status: str | None = Field(
+        default=None, pattern="^(OPEN|INVESTIGATING|IN_PROGRESS|CONTAINED|RESOLVED)$"
+    )
+    priority: str | None = Field(default=None, pattern="^P[1-4]$")
+    assignee_user_id: int | None = Field(default=None, ge=1)
+    tags: list[str] | None = Field(default=None, max_length=12)
+    resolution_reason: str | None = Field(default=None, max_length=1000)
 
 
 class IncidentPage(BaseModel):
@@ -188,6 +235,42 @@ class IncidentTimelineRead(IncidentTimelineBase):
     id: int
     incident_id: int
     created_at: datetime
+
+
+class ResponseActionCreate(BaseModel):
+    action: str = Field(
+        pattern="^(BLOCK_SOURCE_IP|DISABLE_COMPROMISED_ACCOUNT|ISOLATE_ASSET)$"
+    )
+    target: str = Field(min_length=1, max_length=255)
+
+
+class ResponseActionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    incident_id: int
+    requested_by: int | None
+    approved_by: int | None
+    action: str
+    target: str
+    status: str
+    result: str
+    simulation: bool
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class ThreatIntelRead(BaseModel):
+    provider: str
+    indicator: str
+    reputation: str
+    abuse_confidence: int | None = None
+    country: str | None = None
+    reports: int | None = None
+    last_reported_at: datetime | None = None
+    cached: bool
+    available: bool = True
+    error: str | None = None
 
 
 class IngestionEventCreate(DetectionEventCreate):

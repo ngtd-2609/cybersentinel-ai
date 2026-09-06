@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -27,6 +28,16 @@ from cybersentinel_ai.security.rbac import UserRole, require_role
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
+
+
+def can_modify_incident(current_user, incident) -> bool:
+    return current_user.role in {
+        UserRole.ADMIN.value,
+        UserRole.SENIOR_ANALYST.value,
+        UserRole.ANALYST.value,
+    } or (
+        incident.workspace == "SANDBOX" and incident.owner_user_id == current_user.id
+    )
 
 
 @router.post("", response_model=IncidentRead, status_code=201)
@@ -83,6 +94,16 @@ def list_all(
     database: DatabaseSession,
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    status_filter: str | None = Query(default=None, alias="status", max_length=32),
+    severity: str | None = Query(default=None, max_length=16),
+    priority: str | None = Query(default=None, max_length=8),
+    assignee_user_id: int | None = Query(default=None, ge=1),
+    asset_id: str | None = Query(default=None, max_length=128),
+    attack_type: str | None = Query(default=None, max_length=128),
+    source_ip: str | None = Query(default=None, max_length=45),
+    query: str | None = Query(default=None, max_length=255),
+    since: datetime | None = None,
+    until: datetime | None = None,
     current_user=Depends(get_current_user),
 ) -> IncidentPage:
     items, total = list_incidents(
@@ -91,6 +112,16 @@ def list_all(
         offset=offset,
         user_id=current_user.id,
         role=current_user.role,
+        status=status_filter,
+        severity=severity,
+        priority=priority,
+        assignee_user_id=assignee_user_id,
+        asset_id=asset_id,
+        attack_type=attack_type,
+        source_ip=source_ip,
+        query=query,
+        since=since,
+        until=until,
     )
 
     return IncidentPage(
@@ -125,19 +156,15 @@ def update_status(
     incident_id: int,
     payload: IncidentUpdate,
     database: DatabaseSession,
-    current_user=Depends(
-        require_role(
-            UserRole.ADMIN,
-            UserRole.SENIOR_ANALYST,
-            UserRole.ANALYST,
-        )
-    ),
+    current_user=Depends(get_current_user),
 ) -> IncidentRead:
     incident = get_incident(
         database, incident_id, user_id=current_user.id, role=current_user.role
     )
     if incident is None:
         raise HTTPException(status_code=404, detail="Incident not found")
+    if not can_modify_incident(current_user, incident):
+        raise HTTPException(status_code=403, detail="Incident update is not permitted")
     if incident.workspace == "DEMO" and current_user.role != UserRole.ADMIN.value:
         raise HTTPException(status_code=403, detail="Demo incidents are read-only")
     with atomic(database):
@@ -172,13 +199,7 @@ def create_timeline(
     incident_id: int,
     payload: IncidentTimelineCreate,
     database: DatabaseSession,
-    current_user=Depends(
-        require_role(
-            UserRole.ADMIN,
-            UserRole.SENIOR_ANALYST,
-            UserRole.ANALYST,
-        )
-    ),
+    current_user=Depends(get_current_user),
 ) -> IncidentTimelineRead:
     incident = get_incident(
         database, incident_id, user_id=current_user.id, role=current_user.role
@@ -189,6 +210,8 @@ def create_timeline(
             status_code=404,
             detail="Incident not found",
         )
+    if not can_modify_incident(current_user, incident):
+        raise HTTPException(status_code=403, detail="Incident update is not permitted")
     if incident.workspace == "DEMO" and current_user.role != UserRole.ADMIN.value:
         raise HTTPException(status_code=403, detail="Demo incidents are read-only")
 

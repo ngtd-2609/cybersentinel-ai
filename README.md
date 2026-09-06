@@ -64,10 +64,12 @@ running developer laptop.
 2. Select **Explore with the safe demo account**, or create your own account.
 3. Follow Dashboard → Events → Incidents → Threat Intel → Copilot → Reports.
 
-All public accounts are restricted `VIEWER` accounts; they can explore the full
-demo journey but cannot mutate incidents, manage users, or access secrets. New
+All public accounts are restricted `VIEWER` accounts; they can explore shared
+read-only evidence and perform analyst actions only inside their private sandbox.
+They cannot mutate canonical demo incidents, manage users, or access secrets. New
 registrations are rate-limited and capacity-bounded. The dataset contains eight
-synthetic RFC 5737 events and three canonical demo incidents. Render Free services
+synthetic RFC 5737 events, three assets and a correlated six-detection attack story.
+Render Free services
 can sleep when idle, so the first request may take about a minute.
 
 | Live component | URL / provider | State |
@@ -100,8 +102,8 @@ CyberSentinel AI demonstrates the harder engineering around the model:
 | --- | --- |
 | Dashboard | Severity distribution, recent alerts, attack trends, and live SOC metrics |
 | Detection Events | Searchable, paginated detections plus five safe interactive simulation scenarios |
-| Incidents | Demo evidence plus private sandbox incidents, status and investigation timeline |
-| Threat Intelligence | Observed indicators, ATT&CK tactics/techniques, and defensive context |
+| Incidents | Case IDs, priorities, assets, related detections, workflow, timeline and private sandbox actions |
+| Threat Intelligence | MITRE context plus optional cached AbuseIPDB IP reputation with graceful fallback |
 | SOC Copilot | Grounded investigation summary, recommended actions, and knowledge sources |
 | Reports | Browser-generated detection and incident CSV exports from authorized APIs |
 | Model Monitor | Registry stages, model provenance, quality thresholds, and drift reports |
@@ -177,7 +179,7 @@ CIC-IDS2017 → day-based split → training/MLflow → DVC artifacts
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic, Uvicorn |
 | Security data | PostgreSQL 16/Neon, Redis 8, Server-Sent Events |
 | ML | Pandas, NumPy, scikit-learn, XGBoost, Isolation Forest, Joblib |
-| AI and enrichment | TF-IDF RAG, Ollama-compatible local LLM, MITRE ATT&CK, NVD |
+| AI and enrichment | TF-IDF RAG, Ollama-compatible local LLM, MITRE ATT&CK, NVD, AbuseIPDB adapter/cache |
 | MLOps | MLflow, DVC, fixed model/RAG evaluation reports |
 | Observability | Prometheus, Grafana, Loki, Promtail, structured JSON logs |
 | Delivery | Docker Compose, Render Blueprint, GitHub Actions, k6, OWASP ZAP, Trivy |
@@ -329,7 +331,8 @@ permissions disabled unless the data-handling policy has been reviewed.
 | Authentication | `/auth/login`, refresh, logout, MFA, password change | rate limited / authenticated |
 | Detections | `/events`, `/events/page`, `/events/simulate`, sandbox reset | authenticated; controlled simulation is available to Viewer accounts |
 | Ingestion | batch submit, job state, dead-letter replay | ingestion API key / privileged role |
-| Incidents | create, list, update, timeline | Analyst/Responder/Admin policy |
+| Incidents | create, combined filters, case update, timeline | role policy; Viewer writes only to own sandbox |
+| Investigation | assets, cached IP reputation, simulated response actions | authenticated; mutations scope-checked |
 | Dashboard | `/dashboard/summary` | authenticated |
 | Realtime | `/realtime/soc` | authenticated SSE |
 | Copilot | `/copilot/ask` | authenticated and safety-filtered |
@@ -341,7 +344,8 @@ on the public portfolio deployment to reduce unnecessary attack surface.
 
 ## Testing and release quality
 
-The repository currently collects **180 Python tests** plus the Playwright browser
+The repository currently collects **187 Python tests** (185 passing and 2
+environment-specific skips in the local gate) plus the Playwright browser
 suite. Release checks cover:
 
 ```bash
@@ -371,7 +375,7 @@ The final gate and immutable evidence are documented in
 
 ## Deployment
 
-The official portfolio architecture uses the root [`render.yaml`](render.yaml):
+The live portfolio architecture uses the root [`render.yaml`](render.yaml):
 
 ```text
 Internet → Render Next.js Web Service → Render FastAPI Web Service
@@ -382,6 +386,10 @@ Render generates application secrets and receives three user-managed values:
 the Neon pooled URL, a strong demo password, and a separate Owner Admin password. Provider URLs and credentials stay
 in provider secret settings. The Blueprint runs Alembic and the idempotent seed at
 API startup.
+
+The committed [`frontend/vercel.json`](frontend/vercel.json) also supports the
+handoff's optional Vercel + Render + Neon split. Vercel hosts only Next.js/BFF;
+FastAPI remains on Render and PostgreSQL remains on Neon.
 
 For setup, recovery, cold-start, cost, and verification details, see
 [`docs/portfolio-deployment.md`](docs/portfolio-deployment.md).

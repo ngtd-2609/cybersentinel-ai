@@ -7,12 +7,13 @@
 - Added one-time Owner Admin bootstrap, reserved owner identity and Admin-managed account creation.
 - Added account password changes, data-backed notifications and live API health status.
 - Isolated Events, Incidents and Dashboard data by workspace and user while preserving read-only demo evidence.
+- Added persisted asset context, incident-to-asset and incident-to-detection relationships.
+- Expanded incidents into cases with display IDs, priorities, assignees, tags, resolution metadata and combined filters.
+- Added cached AbuseIPDB IP reputation behind an optional server-only API key with graceful fallback.
+- Added persisted, auditable simulated containment actions for public sandbox investigations.
+- Reworked the seed into one coherent six-detection attack chain and added Vercel frontend deployment metadata.
 
 All notable changes are documented here. Versions follow Semantic Versioning.
-
-## [Unreleased]
-
-No unreleased changes.
 
 ## [1.1.1] - 2026-09-06
 

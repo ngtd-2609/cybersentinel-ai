@@ -1,23 +1,49 @@
 import { apiFetch } from "@/lib/api/client";
 
+export interface DetectionBrief {
+  id: number;
+  source_ip: string | null;
+  predicted_label: string;
+  risk_score: number;
+  severity: string;
+}
+
 export interface Incident {
   id: number;
+  display_id: string | null;
+  workspace: string;
+  owner_user_id: number | null;
   title: string;
   severity: string;
   status: string;
   description: string | null;
   detection_event_id: number | null;
-  detection_event?: {
-    id: number;
-    source_ip: string | null;
-    predicted_label: string;
-    risk_score: number;
-    severity: string;
-  } | null;
+  detection_event?: DetectionBrief | null;
   correlation_key: string | null;
   event_count: number;
+  priority: string;
+  assignee_user_id: number | null;
+  tags: string[];
+  resolution_reason: string | null;
+  first_seen_at: string | null;
   last_event_at: string | null;
+  resolved_at: string | null;
+  affected_assets: Asset[];
+  related_detections: DetectionBrief[];
   created_at: string;
+}
+
+export interface Asset {
+  id: string;
+  hostname: string;
+  primary_ip: string | null;
+  operating_system: string | null;
+  environment: string;
+  criticality: string;
+  owner_team: string | null;
+  internet_facing: boolean;
+  status: string;
+  last_seen_at: string | null;
 }
 
 
@@ -39,8 +65,13 @@ export interface IncidentCreate {
 export async function getIncidents(
   limit: number = 25,
   offset: number = 0,
+  filters: Record<string, string> = {},
 ): Promise<IncidentPage> {
-  const response = await apiFetch(`/incidents?limit=${limit}&offset=${offset}`, {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== "ALL") params.set(key, value);
+  });
+  const response = await apiFetch(`/incidents?${params.toString()}`, {
     headers: {
       Accept: "application/json",
     },
@@ -100,13 +131,20 @@ export async function updateIncidentStatus(
   id: number,
   status: string,
 ): Promise<Incident> {
+  return updateIncident(id, { status });
+}
+
+export async function updateIncident(
+  id: number,
+  payload: Record<string, unknown>,
+): Promise<Incident> {
   const response = await apiFetch(`/incidents/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -116,6 +154,55 @@ export async function updateIncidentStatus(
   }
 
   return response.json() as Promise<Incident>;
+}
+
+export interface ResponseAction {
+  id: number;
+  action: string;
+  target: string;
+  status: string;
+  result: string;
+  simulation: boolean;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export async function getResponseActions(id: number): Promise<ResponseAction[]> {
+  const response = await apiFetch(`/incidents/${id}/responses`);
+  if (!response.ok) throw new Error("Unable to load response actions");
+  return response.json() as Promise<ResponseAction[]>;
+}
+
+export async function simulateResponse(
+  id: number,
+  action: string,
+  target: string,
+): Promise<ResponseAction> {
+  const response = await apiFetch(`/incidents/${id}/responses/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ action, target }),
+  });
+  if (!response.ok) throw new Error(`Response simulation failed with status ${response.status}`);
+  return response.json() as Promise<ResponseAction>;
+}
+
+export interface ThreatIntel {
+  provider: string;
+  indicator: string;
+  reputation: string;
+  abuse_confidence: number | null;
+  country: string | null;
+  reports: number | null;
+  cached: boolean;
+  available: boolean;
+  error: string | null;
+}
+
+export async function getIpThreatIntel(ip: string): Promise<ThreatIntel> {
+  const response = await apiFetch(`/threat-intel/ip/${encodeURIComponent(ip)}`);
+  if (!response.ok) throw new Error("Unable to enrich source IP");
+  return response.json() as Promise<ThreatIntel>;
 }
 
 

@@ -24,6 +24,29 @@ const incident = {
     risk_score: 96,
     severity: "CRITICAL",
   },
+  display_id: "CS-2026-0007",
+  correlation_key: "asset:prod-web-01:ssh",
+  event_count: 2,
+  priority: "P1",
+  assignee_user_id: null,
+  tags: ["credential-access"],
+  resolution_reason: null,
+  first_seen_at: "2026-09-03T09:58:00Z",
+  last_event_at: "2026-09-03T10:00:00Z",
+  resolved_at: null,
+  affected_assets: [{
+    id: "asset-prod-web-01",
+    hostname: "prod-web-01",
+    primary_ip: "203.0.113.20",
+    operating_system: "Ubuntu 24.04",
+    environment: "PROD",
+    criticality: "CRITICAL",
+    owner_team: "Platform Team",
+    internet_facing: true,
+    status: "ONLINE",
+    last_seen_at: "2026-09-03T10:00:00Z",
+  }],
+  related_detections: [],
   created_at: "2026-09-03T10:00:00Z",
 };
 
@@ -35,6 +58,7 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
   page,
 }) => {
   let timelineAdded = false;
+  let responseAdded = false;
   let currentIncident = incident;
   await page.route("**/api/backend/**", async (route) => {
     const url = new URL(route.request().url());
@@ -101,20 +125,68 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
         created_at: "2026-09-03T10:05:00Z",
       }] : []);
     }
+    if (url.pathname === "/api/backend/incidents/7/responses" && method === "GET") {
+      return fulfillJson(route, responseAdded ? [{
+        id: 1,
+        action: "BLOCK_SOURCE_IP",
+        target: "198.51.100.42",
+        status: "SIMULATED_SUCCESS",
+        result: "Simulation completed; no external system was modified.",
+        simulation: true,
+        created_at: "2026-09-03T10:06:00Z",
+        completed_at: "2026-09-03T10:06:00Z",
+      }] : []);
+    }
+    if (url.pathname === "/api/backend/incidents/7/responses/simulate" && method === "POST") {
+      expect(route.request().postDataJSON()).toEqual({
+        action: "BLOCK_SOURCE_IP",
+        target: "198.51.100.42",
+      });
+      responseAdded = true;
+      return fulfillJson(route, {
+        id: 1,
+        action: "BLOCK_SOURCE_IP",
+        target: "198.51.100.42",
+        status: "SIMULATED_SUCCESS",
+        result: "Simulation completed; no external system was modified.",
+        simulation: true,
+        created_at: "2026-09-03T10:06:00Z",
+        completed_at: "2026-09-03T10:06:00Z",
+      }, 201);
+    }
+    if (url.pathname === "/api/backend/threat-intel/ip/198.51.100.42") {
+      return fulfillJson(route, {
+        provider: "abuseipdb",
+        indicator: "198.51.100.42",
+        reputation: "MALICIOUS",
+        abuse_confidence: 92,
+        country: "US",
+        reports: 47,
+        cached: false,
+        available: true,
+        error: null,
+      });
+    }
     return fulfillJson(route, { detail: "Unexpected E2E request" }, 500);
   });
 
   await page.goto("/events");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page).toHaveURL(/\/incidents\/7$/);
-  await expect(page.getByText("198.51.100.42")).toBeVisible();
+  await expect(page.getByText("198.51.100.42", { exact: true })).toBeVisible();
   await expect(page.getByText("96/100")).toBeVisible();
+  await expect(page.getByText("prod-web-01")).toBeVisible();
+  await expect(page.getByText("92%")).toBeVisible();
 
   await page.getByPlaceholder("Describe the analyst action...").fill(
     "Validated source IP against authentication logs.",
   );
   await page.getByRole("button", { name: "Add entry" }).click();
   await expect(page.getByText("Validated source IP against authentication logs.")).toBeVisible();
+
+  await page.getByPlaceholder("198.51.100.42").fill("198.51.100.42");
+  await page.getByRole("button", { name: "Simulate" }).click();
+  await expect(page.getByText(/no external system was modified/i)).toBeVisible();
 
   await page.getByRole("combobox").first().click();
   await page.getByRole("option", { name: "Resolved" }).click();

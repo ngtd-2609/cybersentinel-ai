@@ -41,6 +41,10 @@ def test_migrated_schema_supports_core_crud() -> None:
         "incident_timelines",
         "incidents",
         "incident_detections",
+        "assets",
+        "incident_assets",
+        "response_actions",
+        "threat_intel_cache",
         "alert_rules",
         "ingestion_jobs",
         "notification_deliveries",
@@ -55,7 +59,10 @@ def test_migrated_schema_supports_core_crud() -> None:
     }
     assert expected_tables <= set(inspect(engine).get_table_names())
     inspector = inspect(engine)
-    assert inspector.get_foreign_keys("incidents")[0]["referred_table"] == "detection_events"
+    incident_foreign_tables = {
+        key["referred_table"] for key in inspector.get_foreign_keys("incidents")
+    }
+    assert {"detection_events", "users"} <= incident_foreign_tables
     assert inspector.get_foreign_keys("incident_timelines")[0]["referred_table"] == "incidents"
     assert inspector.get_foreign_keys("audit_logs")[0]["referred_table"] == "users"
     detection_indexes = {
@@ -78,7 +85,38 @@ def test_migrated_schema_supports_core_crud() -> None:
         "model_version_id",
     } <= detection_columns
     incident_columns = {column["name"] for column in inspector.get_columns("incidents")}
-    assert {"correlation_key", "event_count", "last_event_at"} <= incident_columns
+    assert {
+        "correlation_key",
+        "event_count",
+        "last_event_at",
+        "display_id",
+        "priority",
+        "assignee_user_id",
+        "tags",
+        "resolution_reason",
+        "first_seen_at",
+        "resolved_at",
+    } <= incident_columns
+    assert {
+        "hostname",
+        "primary_ip",
+        "operating_system",
+        "environment",
+        "criticality",
+        "owner_team",
+        "internet_facing",
+        "status",
+        "last_seen_at",
+    } <= {column["name"] for column in inspector.get_columns("assets")}
+    assert {"incident_id", "asset_id"} <= {
+        column["name"] for column in inspector.get_columns("incident_assets")
+    }
+    assert {"incident_id", "requested_by", "action", "target", "simulation"} <= {
+        column["name"] for column in inspector.get_columns("response_actions")
+    }
+    assert {"provider", "indicator_type", "indicator", "payload", "expires_at"} <= {
+        column["name"] for column in inspector.get_columns("threat_intel_cache")
+    }
     user_columns = {column["name"] for column in inspector.get_columns("users")}
     assert {
         "failed_login_attempts",

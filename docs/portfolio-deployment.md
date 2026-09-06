@@ -49,6 +49,27 @@ The initial baseline is:
 The frontend remains a web service rather than a static export because it owns the
 HTTP-only session cookies, server-side API proxy and authenticated SSE bridge.
 
+### Optional Vercel frontend
+
+The committed `frontend/vercel.json` also supports deploying only the Next.js
+frontend/BFF to Vercel while keeping FastAPI on Render and PostgreSQL on Neon.
+Import the repository with `frontend` as the Root Directory and configure:
+
+- `CYBERSENTINEL_API_URL`: the public Render API origin (no trailing slash).
+- `NEXT_PUBLIC_DEMO_LOGIN_ENABLED=true`.
+- `NEXT_PUBLIC_REGISTRATION_ENABLED=true`.
+- `CYBERSENTINEL_DEMO_EMAIL=demo@cybersentinel.local`.
+- `CYBERSENTINEL_DEMO_PASSWORD`: the same secret as the API demo password.
+
+If Vercel becomes the public frontend, add its exact HTTPS origin to
+`CYBERSENTINEL_CORS_ORIGINS` on Render. Never prefix the demo password with
+`NEXT_PUBLIC_`; it is used only by the server-side demo-login route.
+
+AbuseIPDB reputation enrichment is optional. To enable it, add
+`CYBERSENTINEL_ABUSEIPDB_API_KEY` only to the Render API service. Without it,
+CyberSentinel reports the provider as unavailable and all local detection,
+investigation and response-demo features continue to work.
+
 Render Free Web Services can spin down after inactivity, and their local files are
 ephemeral. Render Free PostgreSQL expires after 30 days, so it is not the default
 database for this long-lived portfolio. Provider choices may be replaced with an

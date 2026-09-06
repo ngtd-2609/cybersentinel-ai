@@ -14,6 +14,7 @@ from cybersentinel_ai.api.copilot_routes import router as copilot_router
 from cybersentinel_ai.api.dashboard_routes import router as dashboard_router
 from cybersentinel_ai.api.incident_routes import router as incident_router
 from cybersentinel_ai.api.ingestion_routes import router as ingestion_router
+from cybersentinel_ai.api.investigation_routes import router as investigation_router
 from cybersentinel_ai.api.metrics import configure_metrics
 from cybersentinel_ai.api.realtime_routes import router as realtime_router
 from cybersentinel_ai.api.routes import router
@@ -191,6 +192,7 @@ app.include_router(auth_router)
 app.include_router(copilot_router)
 app.include_router(incident_router)
 app.include_router(ingestion_router)
+app.include_router(investigation_router)
 app.include_router(mlops_router)
 app.include_router(realtime_router)
 app.include_router(rule_router)

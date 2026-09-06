@@ -32,6 +32,17 @@ interface DetectionEvent {
   risk_score: number;
   severity: string;
   requires_review: boolean;
+  asset: {
+    id: string;
+    hostname: string;
+    primary_ip: string | null;
+    operating_system: string | null;
+    environment: string;
+    criticality: string;
+    owner_team: string | null;
+    internet_facing: boolean;
+    status: string;
+  } | null;
   created_at: string;
 }
 
@@ -265,6 +276,18 @@ export default function EventDetailPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {event.asset && (
+                <Card className="mt-5">
+                  <CardHeader><CardTitle>Affected asset context</CardTitle></CardHeader>
+                  <CardContent className="grid gap-4 text-sm md:grid-cols-4">
+                    <div><p className="text-slate-400">Hostname</p><p className="font-semibold">{event.asset.hostname}</p></div>
+                    <div><p className="text-slate-400">System</p><p>{event.asset.operating_system ?? "Unknown"}</p></div>
+                    <div><p className="text-slate-400">Environment</p><p>{event.asset.environment} · {event.asset.criticality}</p></div>
+                    <div><p className="text-slate-400">Ownership</p><p>{event.asset.owner_team ?? "Unassigned"} · {event.asset.internet_facing ? "Internet-facing" : "Internal"}</p></div>
+                  </CardContent>
+                </Card>
+              )}
 
 
               <Card className="mt-6">

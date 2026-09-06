@@ -54,6 +54,12 @@ class Settings(BaseSettings):
 
     notification_slack_webhook_url: str | None = None
 
+    abuseipdb_api_key: SecretStr | None = None
+
+    threat_intel_cache_ttl_seconds: int = Field(default=21600, ge=300, le=604800)
+
+    threat_intel_timeout_seconds: float = Field(default=5.0, ge=1.0, le=30.0)
+
     realtime_channel: str = "cybersentinel:soc-updates"
 
     model_min_precision: float = Field(default=0.8, ge=0.0, le=1.0)

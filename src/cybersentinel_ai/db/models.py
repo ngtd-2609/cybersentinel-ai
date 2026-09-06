@@ -12,7 +12,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from cybersentinel_ai.db.database import Base
 
@@ -128,6 +128,13 @@ class DetectionEvent(Base):
         index=True,
     )
 
+    asset = relationship(
+        "Asset",
+        primaryjoin=lambda: foreign(DetectionEvent.asset_id) == Asset.id,
+        viewonly=True,
+        lazy="joined",
+    )
+
 
 class Incident(Base):
     __tablename__ = "incidents"
@@ -154,6 +161,27 @@ class Incident(Base):
     title: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
+    )
+
+    display_id: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, unique=True, index=True
+    )
+
+    priority: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="P3", index=True
+    )
+
+    assignee_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    tags: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+
+    resolution_reason: Mapped[str | None] = mapped_column(
+        String(1000), nullable=True
     )
 
     severity: Mapped[str] = mapped_column(
@@ -187,11 +215,33 @@ class Incident(Base):
         lazy="joined",
     )
 
+    related_detections = relationship(
+        "DetectionEvent",
+        secondary="incident_detections",
+        viewonly=True,
+        lazy="selectin",
+    )
+
+    affected_assets = relationship(
+        "Asset",
+        secondary="incident_assets",
+        viewonly=True,
+        lazy="selectin",
+    )
+
     correlation_key: Mapped[str | None] = mapped_column(
         String(255), nullable=True, index=True
     )
     event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     last_event_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+
+    first_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+
+    resolved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
 
@@ -252,6 +302,103 @@ class IncidentDetection(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class Asset(Base):
+    __tablename__ = "assets"
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    hostname: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    primary_ip: Mapped[str | None] = mapped_column(String(45), nullable=True, index=True)
+    operating_system: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    environment: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="DEV", index=True
+    )
+    criticality: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="MEDIUM", index=True
+    )
+    owner_team: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    internet_facing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="UNKNOWN", index=True
+    )
+    last_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class IncidentAsset(Base):
+    __tablename__ = "incident_assets"
+
+    incident_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("incidents.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("assets.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class ResponseAction(Base):
+    __tablename__ = "response_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    incident_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    requested_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    approved_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    target: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="SIMULATED_SUCCESS", index=True
+    )
+    result: Mapped[str] = mapped_column(String(1000), nullable=False)
+    simulation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class ThreatIntelCache(Base):
+    __tablename__ = "threat_intel_cache"
+    __table_args__ = (
+        UniqueConstraint("provider", "indicator_type", "indicator", name="uq_ti_indicator"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    provider: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    indicator_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    indicator: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
     )
 
 

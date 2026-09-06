@@ -11,8 +11,10 @@ from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.models import (
     AlertRule,
+    Asset,
     DetectionEvent,
     Incident,
+    IncidentAsset,
     IncidentDetection,
     IncidentTimeline,
     IngestionJob,
@@ -117,6 +119,9 @@ def _correlate_incident(
         )
         database.add(incident)
         database.flush()
+        incident.display_id = f"CS-{occurred_at.year}-{incident.id:04d}"
+        incident.priority = "P1" if event.severity.upper() == "CRITICAL" else "P2"
+        incident.first_seen_at = occurred_at
         database.add_all(
             [
                 IncidentTimeline(
@@ -150,6 +155,15 @@ def _correlate_incident(
     database.add(
         IncidentDetection(incident_id=incident.id, detection_event_id=event.id)
     )
+    if event.asset_id and database.get(Asset, event.asset_id) is not None:
+        linked_asset = database.scalar(
+            select(IncidentAsset).where(
+                IncidentAsset.incident_id == incident.id,
+                IncidentAsset.asset_id == event.asset_id,
+            )
+        )
+        if linked_asset is None:
+            database.add(IncidentAsset(incident_id=incident.id, asset_id=event.asset_id))
     database.flush()
     return incident
 
