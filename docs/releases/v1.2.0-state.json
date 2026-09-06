@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "release": {
+    "name": "CyberSentinel AI",
+    "version": "1.2.0",
+    "tag": "v1.2.0",
+    "commit_resolution": "git rev-list -n 1 v1.2.0",
+    "date": "2026-09-06",
+    "phase": "M",
+    "status": "released"
+  },
+  "deployment": {
+    "web_url": "https://cybersentinel-web-ppae.onrender.com",
+    "api_ready_url": "https://cybersentinel-api-hrl8.onrender.com/ready",
+    "web_provider": "Render Free Web Service",
+    "api_provider": "Render Free Web Service",
+    "database_provider": "Neon Free PostgreSQL",
+    "vercel_frontend": "ready-but-optional",
+    "synthetic_events": 8,
+    "demo_assets": 3,
+    "demo_incidents": 3,
+    "public_account_role": "viewer-with-private-sandbox"
+  },
+  "gates": [
+    {"id": "clean_git_tree", "status": "pass", "evidence": "release commit and annotated tag"},
+    {"id": "fresh_clone", "status": "pass", "evidence": "GitHub Actions release-readiness checkout"},
+    {"id": "one_command_startup", "status": "pass", "evidence": "scripts/start-demo.sh plus static release gate"},
+    {"id": "fresh_database_migration", "status": "pass", "evidence": "PostgreSQL 16 upgrade, downgrade/re-upgrade, schema and CRUD"},
+    {"id": "full_e2e", "status": "pass", "evidence": "17 Playwright tests pass; public-only test runs against hosted deployment"},
+    {"id": "security_scan", "status": "pass", "evidence": "dependency audits, Bandit, Trivy and OWASP ZAP"},
+    {"id": "backup_restore", "status": "pass", "evidence": "Security workflow PostgreSQL drill"},
+    {"id": "public_staging_smoke", "status": "pass", "evidence": "Render and Neon no-mock reviewer journey"},
+    {"id": "final_tag", "status": "pass", "evidence": "annotated v1.2.0"},
+    {"id": "release_notes", "status": "pass", "evidence": "docs/releases/v1.2.0.md"},
+    {"id": "final_handoff", "status": "pass", "evidence": "docs/releases/v1.2.0-handoff.md"},
+    {"id": "state_json", "status": "pass", "evidence": "this file; parsed by CI"}
+  ],
+  "quality": {
+    "python_tests": "185 passed, 2 skipped",
+    "postgresql_integration": "pass",
+    "local_e2e": "17 passed, 1 public-only skipped",
+    "frontend_production_build": "pass",
+    "ci_workflow": "https://github.com/ngtd-2609/cybersentinel-ai/actions/runs/34043425226",
+    "security_workflow": "https://github.com/ngtd-2609/cybersentinel-ai/actions/runs/34043425231"
+  },
+  "video": {
+    "target_length_minutes": "5-8",
+    "status": "optional-deferred",
+    "blocks_release": false
+  },
+  "secrets_committed": false,
+  "next_phase": null
+}

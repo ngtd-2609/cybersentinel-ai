@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [1.2.0] - 2026-09-06
+
 - Added private, expiring per-user simulation sandboxes with five safe attack scenarios.
 - Added user-visible event creation, automatic sandbox incidents, reset controls, server search and pagination.
 - Added one-time Owner Admin bootstrap, reserved owner identity and Admin-managed account creation.

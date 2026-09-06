@@ -370,8 +370,8 @@ GitHub Actions additionally verifies:
 - no-mock public browser journey on the hosted portfolio.
 
 The final gate and immutable evidence are documented in
-[`docs/releases/v1.1.1-handoff.md`](docs/releases/v1.1.1-handoff.md) and
-[`docs/releases/v1.1.1-state.json`](docs/releases/v1.1.1-state.json).
+[`docs/releases/v1.2.0-handoff.md`](docs/releases/v1.2.0-handoff.md) and
+[`docs/releases/v1.2.0-state.json`](docs/releases/v1.2.0-state.json).
 
 ## Deployment
 
@@ -423,9 +423,9 @@ cybersentinel-ai/
 | Document | Purpose |
 | --- | --- |
 | [Portfolio deployment](docs/portfolio-deployment.md) | Render + Neon setup and operations |
-| [Release notes](docs/releases/v1.1.1.md) | User-facing v1.1.1 changes |
-| [Final handoff](docs/releases/v1.1.1-handoff.md) | Phase M Final Release Gate evidence |
-| [Machine-readable state](docs/releases/v1.1.1-state.json) | Release status and evidence map |
+| [Release notes](docs/releases/v1.2.0.md) | User-facing v1.2.0 changes |
+| [Final handoff](docs/releases/v1.2.0-handoff.md) | Phase M Final Release Gate evidence |
+| [Machine-readable state](docs/releases/v1.2.0-state.json) | Release status and evidence map |
 | [SLO](docs/sre/SLO.md) | Availability and latency objectives |
 | [Incident runbook](docs/sre/incident-runbook.md) | Diagnosis, containment, and recovery |
 | [Phase L evidence](docs/sre/phase-l-evidence.md) | Public deployment and optional SRE proof |
