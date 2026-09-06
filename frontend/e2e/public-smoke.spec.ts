@@ -38,6 +38,8 @@ test.describe("public portfolio smoke", () => {
     await expect(page.getByRole("link", { name: "EVT-00001" })).toBeVisible();
     await page.getByRole("button", { name: "Reset my sandbox" }).click();
     await expect(page.getByText(/Reset complete:/)).toBeVisible();
+    await page.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: "RANSOMWARE" }).click();
     await page.getByRole("button", { name: "Run simulation" }).click();
     await expect(page.getByText(/Created EVT-/)).toBeVisible();
     await expect(page.getByText("My sandbox").first()).toBeVisible();
@@ -47,7 +49,7 @@ test.describe("public portfolio smoke", () => {
       page.getByRole("heading", { name: "Incident Management" }),
     ).toBeVisible();
     await expect(page.getByText("[DEMO] Ransomware containment")).toBeVisible();
-    await expect(page.getByText("[SANDBOX] Port Scan")).toBeVisible();
+    await expect(page.getByText("[SANDBOX] Ransomware")).toBeVisible();
     if (captureReadme) {
       await page.screenshot({ path: "../docs/assets/incidents.png" });
     }
