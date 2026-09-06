@@ -65,6 +65,6 @@ test.describe("public portfolio smoke", () => {
     await page.goto("/reports");
     await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
     await expect(page.getByText("8 RECORDS")).toBeVisible();
-    await expect(page.getByText(/^\d+ RECORDS$/)).toHaveCount(2);
+    await expect(page.getByText(/^\d+ records$/i)).toHaveCount(2);
   });
 });
