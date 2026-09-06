@@ -8,6 +8,7 @@ import {
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { LanguageProvider } from "@/components/i18n/language-provider";
 
 export function Providers({
   children,
@@ -27,10 +28,12 @@ export function Providers({
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>{children}</TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }

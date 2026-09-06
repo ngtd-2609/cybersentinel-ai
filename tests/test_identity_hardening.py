@@ -79,6 +79,42 @@ def test_public_registration_can_be_explicitly_enabled(database_factory):
     assert response.json()["role"] == "VIEWER"
 
 
+def test_public_registration_honors_capacity(database_factory):
+    def override_get_db() -> Generator[Session, None, None]:
+        with database_factory() as database:
+            yield database
+
+    with database_factory() as database:
+        database.add(
+            User(
+                email="existing@example.test",
+                username="existing",
+                hashed_password=hash_password("StrongPassword123!"),
+            )
+        )
+        database.commit()
+
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        _env_file=None,
+        public_registration_enabled=True,
+        public_registration_max_users=1,
+    )
+    response = TestClient(app).post(
+        "/auth/register",
+        json={
+            "email": "viewer@example.test",
+            "username": "viewer",
+            "password": "StrongPassword123!",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Registration capacity has been reached"}
+
+
 def test_locked_account_response_includes_retry_after(monkeypatch):
     def locked(*_args, **_kwargs):
         raise AccountLockedError(42)

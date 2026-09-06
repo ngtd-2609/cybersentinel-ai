@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 
 
@@ -41,14 +42,23 @@ const pipeline = [
 
 export function SecurityInsights() {
   const { data, isLoading } = useDashboardSummary();
+  const { t } = useLanguage();
   const topSources = data?.top_threat_sources ?? [];
+  const threatLevel = !data
+    ? "Unknown"
+    : data.critical_alerts > 0
+      ? "Elevated"
+      : data.high_alerts > 0
+        ? "Guarded"
+        : "Low";
+  const threatLevelScore = !data ? 0 : data.critical_alerts > 0 ? 3 : data.high_alerts > 0 ? 2 : 1;
 
   return (
     <section className="mt-6 grid gap-6 xl:grid-cols-3">
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">
-            Severity Distribution
+            {t("Severity Distribution")}
           </CardTitle>
 
           <p className="text-sm text-slate-500">
@@ -67,7 +77,7 @@ export function SecurityInsights() {
             <Globe2 className="size-4 text-cyan-600" />
 
             <CardTitle className="text-base">
-              Top Threat Sources
+              {t("Top Threat Sources")}
             </CardTitle>
           </div>
 
@@ -129,7 +139,7 @@ export function SecurityInsights() {
               <AlertTriangle className="size-4 text-orange-500" />
 
               <CardTitle className="text-base">
-                Threat Level
+                {t("Threat Level")}
               </CardTitle>
             </div>
           </CardHeader>
@@ -138,17 +148,16 @@ export function SecurityInsights() {
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-2xl font-semibold text-orange-600">
-                  Elevated
+                  {threatLevel}
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Increased scanning activity detected across monitored
-                  services.
+                  Derived from the severity of the current detection dataset.
                 </p>
               </div>
 
               <div className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
-                Level 3/5
+                Level {threatLevelScore}/5
               </div>
             </div>
           </CardContent>
@@ -160,7 +169,7 @@ export function SecurityInsights() {
               <Network className="size-4 text-cyan-600" />
 
               <CardTitle className="text-base">
-                Network Coverage
+                {t("Live Data Source")}
               </CardTitle>
             </div>
           </CardHeader>
@@ -168,20 +177,20 @@ export function SecurityInsights() {
           <CardContent>
             <div className="flex items-end justify-between">
               <p className="text-3xl font-semibold tracking-tight">
-                98.7%
+                {data ? "API" : "—"}
               </p>
 
               <p className="text-xs font-medium text-emerald-600">
-                Healthy
+                {data ? "Connected" : "Loading"}
               </p>
             </div>
 
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full w-[98.7%] rounded-full bg-cyan-500" />
+              <div className={`h-full rounded-full bg-cyan-500 ${data ? "w-full" : "w-0"}`} />
             </div>
 
             <p className="mt-2 text-xs text-slate-400">
-              148 of 150 monitored assets reporting
+              {data ? `${data.total_events} stored detection events available` : "Waiting for dashboard data"}
             </p>
           </CardContent>
         </Card>
@@ -193,12 +202,12 @@ export function SecurityInsights() {
             <ShieldCheck className="size-4 text-emerald-600" />
 
             <CardTitle className="text-base">
-              Detection Pipeline
+            {t("Portfolio Model Components")}
             </CardTitle>
           </div>
 
           <p className="text-sm text-slate-500">
-            Operational status of AI detection and risk services.
+            Components represented by the versioned portfolio pipeline.
           </p>
         </CardHeader>
 
@@ -221,7 +230,7 @@ export function SecurityInsights() {
 
                 <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
                   <CheckCircle2 className="size-4" />
-                  Operational
+                  Configured
                 </div>
               </div>
             ))}

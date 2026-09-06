@@ -158,8 +158,9 @@ Docker command. Never place the secret values in that command.
 - Make migrations safe and repeatable against an empty managed PostgreSQL database.
 - Add an idempotent demo seed/reseed command with synthetic events, incidents,
   threat intelligence, Copilot context and report data.
-- Provide a restricted, non-admin demo account. Keep public registration disabled
-  and never reuse any developer or administrative credential.
+- Provide a restricted, non-admin demo account. Allow self-registration only as
+  Viewer accounts, with per-IP throttling and a bounded account capacity; never
+  reuse any developer or administrative credential.
 - Keep every provider token, database URL, application key and demo password in
   provider secret settings. Commit only names and examples.
 - Use the existing grounded Copilot fallback when no hosted model is configured,
@@ -172,7 +173,8 @@ Docker command. Never place the secret values in that command.
 ## Definition of Done
 
 - A public provider URL serves HTTPS without certificate warnings.
-- A new visitor needs only a browser and documented demo credentials.
+- A new visitor needs only a browser and can use either the safe demo account or
+  a self-registered Viewer account.
 - The API and managed PostgreSQL persist data independently of the developer laptop.
 - Seed/reseed is idempotent, synthetic and safe; the demo account cannot administer
   real users or secrets.

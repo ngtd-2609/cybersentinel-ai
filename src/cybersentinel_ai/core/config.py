@@ -71,6 +71,12 @@ class Settings(BaseSettings):
 
     public_registration_enabled: bool = False
 
+    registration_rate_limit_attempts: int = Field(default=5, ge=1, le=50)
+
+    registration_rate_limit_window_seconds: int = Field(default=3600, ge=60)
+
+    public_registration_max_users: int = Field(default=250, ge=1, le=10000)
+
     account_lockout_attempts: int = Field(default=5, ge=1)
 
     account_lockout_minutes: int = Field(default=15, ge=1)
@@ -153,8 +159,6 @@ class Settings(BaseSettings):
         if self.demo_seed_enabled:
             if environment != "portfolio":
                 raise ValueError("Demo seed may only be enabled in the portfolio environment")
-            if self.public_registration_enabled:
-                raise ValueError("Public registration must remain disabled for the demo")
             if self.demo_user_password is None:
                 raise ValueError("CYBERSENTINEL_DEMO_USER_PASSWORD is required for demo seed")
         return self

@@ -6,6 +6,26 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 No unreleased changes.
 
+## [1.1.1] - 2026-09-06
+
+### Added
+
+- Safe public self-registration with automatic sign-in, Viewer-only access,
+  per-IP throttling, and a bounded account capacity.
+- Persistent English/Vietnamese interface control and a functional settings page.
+- Mobile navigation drawer, global event search, and notification status panel.
+
+### Fixed
+
+- Replaced inert dashboard controls with real routes and corrected incident links
+  to use database identifiers.
+- Replaced simulated dashboard/model-health claims with live API data or honest
+  configured-state labels.
+- Reset the shared portfolio seed to its canonical incidents and restricted the
+  one-click demo account to Viewer access.
+- Added E2E coverage for registration, mobile navigation, language switching,
+  notifications, incident navigation, and Copilot entry points.
+
 ## [1.1.0] - 2026-09-05
 
 ### Added

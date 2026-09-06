@@ -35,7 +35,7 @@ def test_demo_seed_is_idempotent_and_uses_restricted_account(database_factory):
 
         user = database.scalar(select(User).where(User.email == settings.demo_user_email))
         assert user is not None
-        assert user.role == "ANALYST"
+        assert user.role == "VIEWER"
         assert first.events == second.events == 8
         assert database.scalar(select(func.count()).select_from(DetectionEvent)) == 8
         assert database.scalar(select(func.count()).select_from(Incident)) == 3
@@ -51,6 +51,13 @@ def test_demo_reset_restores_incident_and_password(database_factory):
         )
         assert incident is not None
         incident.status = "RESOLVED"
+        extra = Incident(
+            title="User-created duplicate",
+            severity="HIGH",
+            status="OPEN",
+            detection_event_id=incident.detection_event_id,
+        )
+        database.add(extra)
         database.commit()
 
         result = seed_demo_data(database, settings, reset=True)
@@ -58,6 +65,7 @@ def test_demo_reset_restores_incident_and_password(database_factory):
 
         assert result.reset is True
         assert incident.status == "IN_PROGRESS"
+        assert database.scalar(select(func.count()).select_from(Incident)) == 3
         assert authenticate_user(
             database,
             settings.demo_user_email,

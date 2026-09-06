@@ -7,7 +7,7 @@ echo "Running database migrations..."
 
 if [ "${CYBERSENTINEL_DEMO_SEED_ENABLED:-false}" = "true" ]; then
   echo "Ensuring safe portfolio demo data exists..."
-  /app/.venv/bin/python -m cybersentinel_ai.demo.seed
+  /app/.venv/bin/python -m cybersentinel_ai.demo.seed --reset
 fi
 
 echo "Starting API..."

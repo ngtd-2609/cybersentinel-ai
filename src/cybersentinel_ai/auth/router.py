@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from cybersentinel_ai.audit.service import log_action
@@ -43,6 +44,7 @@ from cybersentinel_ai.auth.session_service import (
 )
 from cybersentinel_ai.core.config import Settings, get_settings
 from cybersentinel_ai.db.database import atomic, get_db
+from cybersentinel_ai.db.models import User
 from cybersentinel_ai.security.dependencies import get_current_user
 from cybersentinel_ai.security.rbac import UserRole, require_role
 
@@ -65,6 +67,12 @@ def register(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Public registration is disabled",
+        )
+    user_count = db.scalar(select(func.count()).select_from(User)) or 0
+    if user_count >= settings.public_registration_max_users:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Registration capacity has been reached",
         )
     try:
         return register_user(

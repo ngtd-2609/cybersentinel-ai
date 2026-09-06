@@ -24,6 +24,7 @@ export default defineConfig({
         env: {
           ...process.env,
           NEXT_PUBLIC_DEMO_LOGIN_ENABLED: "true",
+          NEXT_PUBLIC_REGISTRATION_ENABLED: "true",
         },
       },
   projects: [

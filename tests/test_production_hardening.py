@@ -188,7 +188,7 @@ def test_demo_seed_is_rejected_outside_portfolio():
         )
 
 
-def test_demo_seed_requires_password_and_disabled_registration():
+def test_demo_seed_requires_password_and_allows_bounded_registration():
     with pytest.raises(ValidationError, match="DEMO_USER_PASSWORD"):
         Settings(
             _env_file=None,
@@ -196,14 +196,15 @@ def test_demo_seed_requires_password_and_disabled_registration():
             demo_seed_enabled=True,
         )
 
-    with pytest.raises(ValidationError, match="registration must remain disabled"):
-        Settings(
-            _env_file=None,
-            environment="portfolio",
-            demo_seed_enabled=True,
-            demo_user_password="PortfolioDemo123!",
-            public_registration_enabled=True,
-        )
+    settings = Settings(
+        _env_file=None,
+        environment="portfolio",
+        demo_seed_enabled=True,
+        demo_user_password="PortfolioDemo123!",
+        public_registration_enabled=True,
+        public_registration_max_users=250,
+    )
+    assert settings.public_registration_enabled is True
 
 
 def test_request_id_header_is_preserved_and_invalid_value_is_replaced():

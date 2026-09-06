@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 function severityStyle(severity: string) {
   switch (severity.toUpperCase()) {
@@ -34,28 +35,20 @@ function severityStyle(severity: string) {
   }
 }
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
 export function RecentAlerts() {
   const { data, isLoading, isError } = useDashboardSummary();
+  const { locale, t } = useLanguage();
 
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-base">
-            Recent Detection Events
+            {t("Recent Detection Events")}
           </CardTitle>
 
           <p className="mt-1 text-sm text-slate-500">
-            Latest events returned by the CyberSentinel detection API.
+            {t("Latest events returned by the CyberSentinel detection API.")}
           </p>
         </div>
 
@@ -63,7 +56,7 @@ export function RecentAlerts() {
           href="/events"
           className="inline-flex h-8 items-center justify-center gap-1 rounded-md px-3 text-sm font-medium text-cyan-700 transition hover:bg-cyan-50 hover:text-cyan-800"
         >
-          View all
+          {t("View all")}
           <ChevronRight className="size-4" />
         </Link>
       </CardHeader>
@@ -153,7 +146,7 @@ export function RecentAlerts() {
                     </TableCell>
 
                     <TableCell className="text-right text-xs text-slate-500">
-                      {formatTime(event.created_at)}
+                      {new Intl.DateTimeFormat(locale, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(event.created_at))}
                     </TableCell>
                   </TableRow>
                 ))}

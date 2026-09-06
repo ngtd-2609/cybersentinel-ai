@@ -23,7 +23,13 @@ services:
       - key: CYBERSENTINEL_ENFORCE_PRODUCTION_CONFIG
         value: "true"
       - key: CYBERSENTINEL_PUBLIC_REGISTRATION_ENABLED
-        value: "false"
+        value: "true"
+      - key: CYBERSENTINEL_REGISTRATION_RATE_LIMIT_ATTEMPTS
+        value: "5"
+      - key: CYBERSENTINEL_REGISTRATION_RATE_LIMIT_WINDOW_SECONDS
+        value: "3600"
+      - key: CYBERSENTINEL_PUBLIC_REGISTRATION_MAX_USERS
+        value: "250"
       - key: CYBERSENTINEL_RATE_LIMIT_FAIL_CLOSED
         value: "false"
       - key: CYBERSENTINEL_TRUST_PROXY_HEADERS
@@ -58,6 +64,8 @@ services:
     healthCheckPath: /login
     envVars:
       - key: NEXT_PUBLIC_DEMO_LOGIN_ENABLED
+        value: "true"
+      - key: NEXT_PUBLIC_REGISTRATION_ENABLED
         value: "true"
       - key: CYBERSENTINEL_API_URL
         fromService:

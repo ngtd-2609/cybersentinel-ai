@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
+import { LoaderCircle, LockKeyhole, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,16 @@ import type { AuthUser } from "@/lib/auth";
 export default function LoginPage() {
   const demoLoginEnabled =
     process.env.NEXT_PUBLIC_DEMO_LOGIN_ENABLED === "true";
+  const registrationEnabled =
+    process.env.NEXT_PUBLIC_REGISTRATION_ENABLED === "true";
   const router = useRouter();
   const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -106,13 +112,22 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
+      if (authMode === "register" && password !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
       const response = await fetch(
-        mfaToken ? "/api/auth/mfa/verify" : "/api/auth/login",
+        authMode === "register"
+          ? "/api/auth/register"
+          : mfaToken
+            ? "/api/auth/mfa/verify"
+            : "/api/auth/login",
         {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          mfaToken
+          authMode === "register"
+            ? { email, username, full_name: fullName.trim() || null, password }
+            : mfaToken
             ? { mfa_token: mfaToken, code: mfaCode }
             : { email, password },
         ),
@@ -121,7 +136,11 @@ export default function LoginPage() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        throw new Error(body?.detail ?? "Unable to sign in");
+        const detail = body?.detail;
+        const message = Array.isArray(detail)
+          ? detail.map((item) => item?.msg).filter(Boolean).join(". ")
+          : detail;
+        throw new Error(message || (authMode === "register" ? "Unable to create account" : "Unable to sign in"));
       }
 
       if (response.status === 202) {
@@ -131,7 +150,12 @@ export default function LoginPage() {
         return;
       }
 
-      finishLogin((await response.json()) as AuthUser);
+      const user = (await response.json()) as AuthUser | { detail?: string };
+      if (!("id" in user)) {
+        setAuthMode("login");
+        throw new Error(user.detail ?? "Account created. Please sign in.");
+      }
+      finishLogin(user);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -175,14 +199,20 @@ export default function LoginPage() {
               <ShieldCheck className="size-6 text-cyan-700" />
             </div>
             <CardTitle className="text-2xl">
-              {mfaToken ? "Verify administrator access" : "Sign in to CyberSentinel"}
+              {mfaToken
+                ? "Verify administrator access"
+                : authMode === "register"
+                  ? "Create your CyberSentinel account"
+                  : "Sign in to CyberSentinel"}
             </CardTitle>
             <CardDescription>
               {mfaToken
                 ? "Enter a current authenticator code or a one-time recovery code."
-                : "Use your authorized SOC account to continue."}
+                : authMode === "register"
+                  ? "Register a safe read-only viewer account for the public portfolio demo."
+                  : "Use your authorized SOC account to continue."}
             </CardDescription>
-            {demoLoginEnabled && !mfaToken && (
+            {demoLoginEnabled && !mfaToken && authMode === "login" && (
               <div
                 aria-live="polite"
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
@@ -205,7 +235,16 @@ export default function LoginPage() {
 
           <CardContent className="px-7 pb-8 sm:px-9">
             <form className="space-y-5" onSubmit={handleSubmit}>
-              {!mfaToken ? <><div className="space-y-2">
+              {!mfaToken ? <>
+              {authMode === "register" && <><div className="space-y-2">
+                <label htmlFor="full-name" className="text-sm font-medium">Full name <span className="text-slate-400">(optional)</span></label>
+                <Input id="full-name" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Your name" maxLength={255} />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="username" className="text-sm font-medium">Username</label>
+                <Input id="username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="security-viewer" minLength={3} maxLength={64} pattern="[A-Za-z0-9_.-]+" required />
+              </div></>}
+              <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
                   Email address
                 </label>
@@ -228,13 +267,19 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={authMode === "register" ? "new-password" : "current-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={authMode === "register" ? "At least 12 characters" : "Enter your password"}
+                  minLength={authMode === "register" ? 12 : undefined}
                   required
                 />
-              </div></> : <div className="space-y-2">
+                {authMode === "register" && <p className="text-xs leading-5 text-slate-500">Use at least 12 characters with uppercase, lowercase, number and special character.</p>}
+              </div>
+              {authMode === "register" && <div className="space-y-2">
+                <label htmlFor="confirm-password" className="text-sm font-medium">Confirm password</label>
+                <Input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat your password" minLength={12} required />
+              </div>}</> : <div className="space-y-2">
                 <label htmlFor="mfa-code" className="text-sm font-medium">
                   Authenticator or recovery code
                 </label>
@@ -262,15 +307,32 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
               >
-                <LockKeyhole className="size-4" />
+                {authMode === "register" ? <UserPlus className="size-4" /> : <LockKeyhole className="size-4" />}
                 {isSubmitting
-                  ? "Verifying..."
+                  ? authMode === "register" ? "Creating account..." : "Verifying..."
                   : mfaToken
                     ? "Verify MFA"
-                    : "Sign in securely"}
+                    : authMode === "register"
+                      ? "Create account"
+                      : "Sign in securely"}
               </Button>
             </form>
-            {demoLoginEnabled && !mfaToken && (
+            {registrationEnabled && !mfaToken && (
+              <div className="mt-4 text-center text-sm text-slate-600">
+                {authMode === "register" ? "Already have an account?" : "New to CyberSentinel?"}{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-cyan-700 hover:underline"
+                  onClick={() => {
+                    setAuthMode((mode) => mode === "login" ? "register" : "login");
+                    setError(null);
+                  }}
+                >
+                  {authMode === "register" ? "Sign in" : "Create account"}
+                </button>
+              </div>
+            )}
+            {demoLoginEnabled && !mfaToken && authMode === "login" && (
               <div className="mt-5 space-y-4 border-t pt-5">
                 <Button
                   type="button"

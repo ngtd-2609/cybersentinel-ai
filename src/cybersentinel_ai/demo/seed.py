@@ -87,7 +87,7 @@ def _upsert_demo_user(
         email=settings.demo_user_email,
         username=settings.demo_user_username,
         password=password.get_secret_value(),
-        full_name="CyberSentinel Portfolio Analyst",
+        full_name="CyberSentinel Portfolio Viewer",
     )
     user = database.scalar(select(User).where(User.email == payload.email))
     username_owner = database.scalar(
@@ -103,14 +103,14 @@ def _upsert_demo_user(
             username=payload.username,
             full_name=payload.full_name,
             hashed_password=hash_password(payload.password),
-            role="ANALYST",
+            role="VIEWER",
         )
         database.add(user)
         database.flush()
     else:
         user.username = payload.username
         user.full_name = payload.full_name
-        user.role = "ANALYST"
+        user.role = "VIEWER"
         user.is_active = True
         user.failed_login_attempts = 0
         user.locked_until = None
@@ -176,6 +176,25 @@ def seed_demo_data(
             ("[DEMO] SSH brute-force investigation", "HIGH", "OPEN", 1),
             ("[DEMO] Possible data exfiltration", "CRITICAL", "RESOLVED", 4),
         ]
+        if reset:
+            canonical_titles = {template[0] for template in incident_templates}
+            extra_incident_ids = list(
+                database.scalars(
+                    select(Incident.id).where(
+                        Incident.detection_event_id.in_([event.id for event in events]),
+                        Incident.title.not_in(canonical_titles),
+                    )
+                )
+            )
+            if extra_incident_ids:
+                database.execute(
+                    delete(IncidentTimeline).where(
+                        IncidentTimeline.incident_id.in_(extra_incident_ids)
+                    )
+                )
+                database.execute(
+                    delete(Incident).where(Incident.id.in_(extra_incident_ids))
+                )
         incidents: list[Incident] = []
         for title, severity, incident_status, event_index in incident_templates:
             incident = database.scalar(select(Incident).where(Incident.title == title))

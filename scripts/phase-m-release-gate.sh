@@ -17,9 +17,9 @@ required_files=(
   docker-compose.demo.yml
   scripts/start-demo.sh
   scripts/stop-demo.sh
-  docs/releases/v1.1.0.md
-  docs/releases/v1.1.0-handoff.md
-  docs/releases/v1.1.0-state.json
+  docs/releases/v1.1.1.md
+  docs/releases/v1.1.1-handoff.md
+  docs/releases/v1.1.1-state.json
   docs/assets/dashboard.png
   docs/assets/incidents.png
   docs/assets/copilot.png
@@ -31,12 +31,12 @@ for required_file in "${required_files[@]}"; do
   }
 done
 
-python3 -m json.tool docs/releases/v1.1.0-state.json >/dev/null
+python3 -m json.tool docs/releases/v1.1.1-state.json >/dev/null
 python3 - <<'PY'
 import json
 from pathlib import Path
 
-state = json.loads(Path("docs/releases/v1.1.0-state.json").read_text())
+state = json.loads(Path("docs/releases/v1.1.1-state.json").read_text())
 required = {
     "clean_git_tree",
     "fresh_clone",
@@ -58,8 +58,8 @@ if missing:
 invalid = {name: status for name, status in gates.items() if status != "pass"}
 if invalid:
     raise SystemExit(f"Invalid Phase M gate states: {invalid}")
-if state["release"]["version"] != "1.1.0":
-    raise SystemExit("Release state must describe v1.1.0")
+if state["release"]["version"] != "1.1.1":
+    raise SystemExit("Release state must describe v1.1.1")
 if state["release"]["status"] != "released":
     raise SystemExit("Phase M state must be final, not provisional")
 if state["video"]["status"] != "optional-deferred":

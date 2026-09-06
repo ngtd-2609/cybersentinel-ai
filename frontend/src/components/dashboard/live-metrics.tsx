@@ -11,10 +11,12 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 
 export function LiveMetrics() {
   const { data, isLoading, isError } = useDashboardSummary();
+  const { t } = useLanguage();
 
   if (isLoading) {
     return (
@@ -100,7 +102,7 @@ export function LiveMetrics() {
 
           <CardContent>
             <CardTitle className="text-sm font-medium text-slate-500">
-              {metric.label}
+              {t(metric.label)}
             </CardTitle>
 
             <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
@@ -108,7 +110,7 @@ export function LiveMetrics() {
             </p>
 
             <p className="mt-2 text-xs text-slate-400">
-              {metric.description}
+              {t(metric.description)}
             </p>
           </CardContent>
         </Card>

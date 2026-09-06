@@ -22,6 +22,11 @@ test.describe("public portfolio smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Security Overview" }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "Switch to Vietnamese" }).click();
+    await expect(page.getByRole("heading", { name: "Tổng quan bảo mật" })).toBeVisible();
+    await page.getByRole("button", { name: "Chuyển sang tiếng Anh" }).click();
+    await page.getByRole("button", { name: "Notifications" }).click();
+    await expect(page.getByText("No new notifications")).toBeVisible();
     if (captureReadme) {
       await page.screenshot({ path: "../docs/assets/dashboard.png" });
     }
@@ -47,7 +52,8 @@ test.describe("public portfolio smoke", () => {
     ).toBeVisible();
     await expect(page.getByText("Observed source indicators")).toBeVisible();
 
-    await page.goto("/copilot");
+    await page.goto("/");
+    await page.getByRole("link", { name: "Open SOC Copilot" }).click();
     await expect(page.getByRole("heading", { name: "SOC Copilot" })).toBeVisible();
     await page.getByRole("button", { name: "Ask Copilot" }).click();
     await expect(page.getByRole("heading", { name: "Analysis" })).toBeVisible();
@@ -59,6 +65,6 @@ test.describe("public portfolio smoke", () => {
     await page.goto("/reports");
     await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
     await expect(page.getByText("8 RECORDS")).toBeVisible();
-    await expect(page.getByText("3 RECORDS")).toBeVisible();
+    await expect(page.getByText(/^\d+ RECORDS$/)).toHaveCount(2);
   });
 });

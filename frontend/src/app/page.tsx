@@ -1,3 +1,5 @@
+"use client";
+
 import { AttackTypesChart } from "@/components/dashboard/attack-types-chart";
 import { LiveMetrics } from "@/components/dashboard/live-metrics";
 import { OperationsPanel } from "@/components/dashboard/operations-panel";
@@ -7,6 +9,7 @@ import { RecentAlerts } from "@/components/dashboard/recent-alerts";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/components/i18n/language-provider";
 import {
   Card,
   CardContent,
@@ -17,6 +20,7 @@ import {
 
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-950">
       <Sidebar />
@@ -31,17 +35,16 @@ export default function DashboardPage() {
                 <span className="size-2 rounded-full bg-emerald-500" />
 
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  Live Security Operations
+                  {t("Live Security Operations")}
                 </span>
               </div>
 
               <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                Security Overview
+                {t("Security Overview")}
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                Monitor security events, active threats, risk scores and
-                detection activity across CyberSentinel AI.
+                {t("Monitor security events, active threats, risk scores and detection activity across CyberSentinel AI.")}
               </p>
             </div>
 
@@ -49,7 +52,7 @@ export default function DashboardPage() {
               variant="outline"
               className="w-fit border-cyan-200 bg-cyan-50 px-3 py-1.5 text-cyan-700"
             >
-              Production Mode
+              {t("Public Portfolio Demo")}
             </Badge>
           </section>
 
@@ -59,12 +62,11 @@ export default function DashboardPage() {
             <Card className="min-h-[390px] border-slate-200 bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-base">
-                  Security Events Over Time
+                  {t("Security Events Over Time")}
                 </CardTitle>
 
                 <p className="text-sm text-slate-500">
-                  Event volume and severity trend will be connected to the
-                  backend in the next steps.
+                  {t("Event volume and severity trend from the live detection API.")}
                 </p>
               </CardHeader>
 
@@ -76,11 +78,11 @@ export default function DashboardPage() {
             <Card className="min-h-[390px] border-slate-200 bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-base">
-                  Top Attack Types
+                  {t("Top Attack Types")}
                 </CardTitle>
 
                 <p className="text-sm text-slate-500">
-                  Highest-frequency attack categories.
+                  {t("Highest-frequency attack categories.")}
                 </p>
               </CardHeader>
 

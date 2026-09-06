@@ -36,6 +36,37 @@ test("login reports invalid credentials", async ({ page }) => {
   );
 });
 
+test("a visitor can register a safe viewer account and enter the dashboard", async ({ page }) => {
+  let signedIn = false;
+  await page.route("**/api/auth/me", (route) =>
+    signedIn ? fulfillJson(route, viewerUser) : fulfillJson(route, { detail: "Not authenticated" }, 401),
+  );
+  await page.route("**/api/auth/register", async (route) => {
+    signedIn = true;
+    await page.context().addCookies([{
+      name: "cybersentinel_access_token",
+      value: "registered-viewer-token",
+      url: "http://127.0.0.1:3100",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+    await fulfillJson(route, viewerUser, 201);
+  });
+  await mockDashboard(page);
+
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByLabel("Full name").fill("Portfolio Viewer");
+  await page.getByLabel("Username").fill("portfolio-viewer");
+  await page.getByLabel("Email address").fill("viewer@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("StrongPassword123!");
+  await page.getByLabel("Confirm password").fill("StrongPassword123!");
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "Security Overview" })).toBeVisible();
+});
+
 test("successful login returns to the requested page", async ({ page }) => {
   let signedIn = false;
   await page.route("**/api/auth/me", (route) =>
@@ -233,4 +264,43 @@ test("login remains usable at a mobile viewport", async ({ page }) => {
 
   await expect(page.getByLabel("Email address")).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in securely" })).toBeVisible();
+});
+
+test("dashboard controls work on mobile and expose real destinations", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await authenticate(page, viewerUser);
+  await mockDashboard(page);
+  await page.route("**/api/backend/incidents?*", (route) => fulfillJson(route, {
+    items: [{
+      id: 1,
+      title: "[DEMO] Ransomware containment",
+      severity: "CRITICAL",
+      status: "IN_PROGRESS",
+      description: "Synthetic incident",
+      detection_event_id: 1,
+      correlation_key: "demo-ransomware",
+      event_count: 1,
+      last_event_at: "2026-09-05T18:00:00Z",
+      created_at: "2026-09-05T18:00:00Z",
+    }],
+    total: 1,
+    limit: 3,
+    offset: 0,
+  }));
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Navigation" }).click();
+  await expect(page.getByRole("link", { name: "Reports" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.getByRole("button", { name: "Switch to Vietnamese" }).click();
+  await expect(page.getByRole("heading", { name: "Tổng quan bảo mật" })).toBeVisible();
+  await page.getByRole("button", { name: "Chuyển sang tiếng Anh" }).click();
+  await page.getByRole("button", { name: "Notifications" }).click();
+  await expect(page.getByText("No new notifications")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Ransomware containment/ })).toHaveAttribute("href", "/incidents/1");
+  await expect(page.getByRole("link", { name: /Open SOC Copilot|Mở Trợ lý SOC/ })).toHaveAttribute(
+    "href",
+    "/copilot",
+  );
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { createIncident } from "@/lib/api/incidents";
 import { apiFetch } from "@/lib/api/client";
 
@@ -64,6 +65,11 @@ export default function EventsPage() {
   const { user } = useAuth();
   const mayWrite = user ? canWrite(user.role) : false;
   const realtimeConnected = useSocStream();
+  const [search, setSearch] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : new URLSearchParams(window.location.search).get("search") ?? "",
+  );
   async function handleCreateIncident(event: DetectionEvent) {
     const incident = await createIncident({
       title: `${event.predicted_label} - EVT-${String(event.id).padStart(5, "0")}`,
@@ -87,6 +93,21 @@ export default function EventsPage() {
     queryFn: getEvents,
     refetchInterval: 30_000,
   });
+  const visibleEvents = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return data?.items ?? [];
+    return (data?.items ?? []).filter((event) =>
+      [
+        `evt-${String(event.id).padStart(5, "0")}`,
+        event.predicted_label,
+        event.source_ip,
+        event.destination_ip,
+        event.hostname,
+        event.asset_id,
+        event.ioc_value,
+      ].some((value) => value?.toLowerCase().includes(query)),
+    );
+  }, [data, search]);
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-950">
@@ -139,6 +160,9 @@ export default function EventsPage() {
 
                 <Input
                   placeholder="Search IP or attack type..."
+                  aria-label="Search detection events"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -155,7 +179,7 @@ export default function EventsPage() {
                 <div className="p-10 text-center text-sm text-red-600">
                   Unable to load detection events.
                 </div>
-              ) : data.items.length === 0 ? (
+              ) : visibleEvents.length === 0 ? (
                 <div className="p-10 text-center text-sm text-slate-500">
                   No detection events found.
                 </div>
@@ -179,7 +203,7 @@ export default function EventsPage() {
                       </TableHeader>
 
                       <TableBody>
-                        {data.items.map((event) => (
+                        {visibleEvents.map((event) => (
                           <TableRow key={event.id}>
                             <TableCell>
                               <Link
@@ -259,7 +283,7 @@ export default function EventsPage() {
                   </div>
 
                   <div className="border-t border-slate-200 px-5 py-4 text-sm text-slate-500">
-                    Showing {data.items.length} of {data.total} events
+                    Showing {visibleEvents.length} of {data.total} events
                   </div>
                 </>
               )}

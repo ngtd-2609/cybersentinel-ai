@@ -61,12 +61,14 @@ running developer laptop.
 **Portfolio URL:** <https://cybersentinel-web-ppae.onrender.com>
 
 1. Open the URL and wait for the green service-ready indicator.
-2. Select **Explore with the safe demo account**.
+2. Select **Explore with the safe demo account**, or create your own account.
 3. Follow Dashboard → Events → Incidents → Threat Intel → Copilot → Reports.
 
-The account is a restricted `ANALYST`; it cannot manage users or secrets. The
-dataset contains eight synthetic RFC 5737 events and three demo incidents. Render
-Free services can sleep when idle, so the first request may take about a minute.
+All public accounts are restricted `VIEWER` accounts; they can explore the full
+demo journey but cannot mutate incidents, manage users, or access secrets. New
+registrations are rate-limited and capacity-bounded. The dataset contains eight
+synthetic RFC 5737 events and three canonical demo incidents. Render Free services
+can sleep when idle, so the first request may take about a minute.
 
 | Live component | URL / provider | State |
 | --- | --- | --- |
@@ -104,7 +106,8 @@ CyberSentinel AI demonstrates the harder engineering around the model:
 | Reports | Browser-generated detection and incident CSV exports from authorized APIs |
 | Model Monitor | Registry stages, model provenance, quality thresholds, and drift reports |
 | Monitoring | Application health and operational signals |
-| Administration | RBAC-protected users and audit logs; unavailable to the demo Analyst |
+| Experience | English/Vietnamese switch, mobile navigation, search, notifications, and settings |
+| Administration | RBAC-protected users and audit logs; unavailable to public Viewer accounts |
 
 ## Screenshots
 
@@ -239,7 +242,8 @@ indicator preservation, hallucination safety, and prompt-injection resistance.
 - HTTP-only session cookies in the Next.js BFF;
 - trusted-host, CORS, proxy-header, CSP, HSTS, and frame protections;
 - audit events with request metadata for privileged mutations;
-- public registration and API documentation disabled in portfolio mode;
+- public registration limited to Viewer accounts, rate-limited per IP, and capped;
+- public API documentation disabled in portfolio mode;
 - generated/provider-managed secrets—never credentials in source control;
 - Bandit, pip-audit, npm audit, Trivy, secret hygiene, and OWASP ZAP in CI.
 
@@ -362,8 +366,8 @@ GitHub Actions additionally verifies:
 - no-mock public browser journey on the hosted portfolio.
 
 The final gate and immutable evidence are documented in
-[`docs/releases/v1.1.0-handoff.md`](docs/releases/v1.1.0-handoff.md) and
-[`docs/releases/v1.1.0-state.json`](docs/releases/v1.1.0-state.json).
+[`docs/releases/v1.1.1-handoff.md`](docs/releases/v1.1.1-handoff.md) and
+[`docs/releases/v1.1.1-state.json`](docs/releases/v1.1.1-state.json).
 
 ## Deployment
 
@@ -411,9 +415,9 @@ cybersentinel-ai/
 | Document | Purpose |
 | --- | --- |
 | [Portfolio deployment](docs/portfolio-deployment.md) | Render + Neon setup and operations |
-| [Release notes](docs/releases/v1.1.0.md) | User-facing v1.1.0 changes |
-| [Final handoff](docs/releases/v1.1.0-handoff.md) | Phase M Final Release Gate evidence |
-| [Machine-readable state](docs/releases/v1.1.0-state.json) | Release status and evidence map |
+| [Release notes](docs/releases/v1.1.1.md) | User-facing v1.1.1 changes |
+| [Final handoff](docs/releases/v1.1.1-handoff.md) | Phase M Final Release Gate evidence |
+| [Machine-readable state](docs/releases/v1.1.1-state.json) | Release status and evidence map |
 | [SLO](docs/sre/SLO.md) | Availability and latency objectives |
 | [Incident runbook](docs/sre/incident-runbook.md) | Diagnosis, containment, and recovery |
 | [Phase L evidence](docs/sre/phase-l-evidence.md) | Public deployment and optional SRE proof |

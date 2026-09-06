@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Bot,
@@ -10,47 +13,23 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { useLanguage } from "@/components/i18n/language-provider";
+import { getIncidents } from "@/lib/api/incidents";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const incidents = [
-  {
-    id: "INC-0241",
-    title: "Distributed Port Scanning",
-    severity: "Critical",
-    events: 18,
-    status: "Investigating",
-    updated: "4 min ago",
-  },
-  {
-    id: "INC-0240",
-    title: "SSH Brute Force Campaign",
-    severity: "High",
-    events: 11,
-    status: "Triaged",
-    updated: "17 min ago",
-  },
-  {
-    id: "INC-0239",
-    title: "Abnormal Web Traffic",
-    severity: "Medium",
-    events: 7,
-    status: "Contained",
-    updated: "38 min ago",
-  },
-];
+import { cn } from "@/lib/utils";
 
 function severityClass(severity: string) {
-  if (severity === "Critical") {
+  if (severity.toUpperCase() === "CRITICAL") {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
-  if (severity === "High") {
+  if (severity.toUpperCase() === "HIGH") {
     return "border-orange-200 bg-orange-50 text-orange-700";
   }
 
@@ -58,6 +37,13 @@ function severityClass(severity: string) {
 }
 
 export function OperationsPanel() {
+  const { t } = useLanguage();
+  const incidentQuery = useQuery({
+    queryKey: ["dashboard-incidents"],
+    queryFn: () => getIncidents(3, 0),
+  });
+  const incidents = incidentQuery.data?.items ?? [];
+
   return (
     <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.8fr)]">
       <Card className="border-slate-200 bg-white shadow-sm">
@@ -66,7 +52,7 @@ export function OperationsPanel() {
             <div className="flex items-center gap-2">
               <ShieldAlert className="size-4 text-cyan-600" />
               <CardTitle className="text-base">
-                Active Incidents
+                {t("Active Incidents")}
               </CardTitle>
             </div>
 
@@ -79,12 +65,15 @@ export function OperationsPanel() {
             href="/incidents"
             className="flex items-center gap-1 text-sm font-medium text-cyan-700 hover:text-cyan-800"
           >
-            View incidents
+            {t("View incidents")}
             <ArrowRight className="size-4" />
           </Link>
         </CardHeader>
 
         <CardContent className="space-y-3">
+          {incidentQuery.isLoading && <p className="py-8 text-center text-sm text-slate-500">Loading incidents...</p>}
+          {incidentQuery.isError && <p className="py-8 text-center text-sm text-red-600">Unable to load incidents.</p>}
+          {!incidentQuery.isLoading && !incidentQuery.isError && incidents.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No active incidents.</p>}
           {incidents.map((incident) => (
             <Link
               key={incident.id}
@@ -94,7 +83,7 @@ export function OperationsPanel() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs font-semibold text-cyan-700">
-                    {incident.id}
+                    INC-{String(incident.id).padStart(5, "0")}
                   </span>
 
                   <Badge
@@ -110,19 +99,19 @@ export function OperationsPanel() {
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  {incident.events} correlated events
+                  {incident.event_count} correlated event{incident.event_count === 1 ? "" : "s"}
                 </p>
               </div>
 
               <div className="flex shrink-0 items-center gap-5">
                 <div>
                   <p className="text-xs font-medium text-slate-700">
-                    {incident.status}
+                    {incident.status.replaceAll("_", " ")}
                   </p>
 
                   <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                     <Clock3 className="size-3" />
-                    {incident.updated}
+                    {new Date(incident.last_event_at ?? incident.created_at).toLocaleDateString()}
                   </p>
                 </div>
 
@@ -152,34 +141,40 @@ export function OperationsPanel() {
         <CardContent>
           <div className="space-y-2">
             <Link
-              href="/copilot"
+              href="/copilot?prompt=Analyze%20the%20critical%20alerts%20and%20prioritize%20the%20next%20investigation%20steps."
               className="flex items-center gap-3 rounded-xl border border-cyan-100 bg-white p-3 text-sm font-medium text-slate-700 transition hover:border-cyan-300 hover:text-cyan-800"
             >
               <Search className="size-4 text-cyan-600" />
-              Analyze critical alerts
+              {t("Analyze critical alerts")}
             </Link>
 
             <Link
-              href="/copilot"
+              href="/copilot?prompt=Explain%20the%20risk%20scoring%20signals%20for%20the%20latest%20detections."
               className="flex items-center gap-3 rounded-xl border border-cyan-100 bg-white p-3 text-sm font-medium text-slate-700 transition hover:border-cyan-300 hover:text-cyan-800"
             >
               <BrainCircuit className="size-4 text-cyan-600" />
-              Explain risk scoring
+              {t("Explain risk scoring")}
             </Link>
 
             <Link
-              href="/copilot"
+              href="/copilot?prompt=Recommend%20safe%20response%20actions%20for%20the%20highest-risk%20open%20incident."
               className="flex items-center gap-3 rounded-xl border border-cyan-100 bg-white p-3 text-sm font-medium text-slate-700 transition hover:border-cyan-300 hover:text-cyan-800"
             >
               <Sparkles className="size-4 text-cyan-600" />
-              Recommend response actions
+              {t("Recommend response actions")}
             </Link>
           </div>
 
-          <Button className="mt-4 w-full bg-cyan-600 text-white hover:bg-cyan-700">
+          <Link
+            href="/copilot"
+            className={cn(
+              buttonVariants(),
+              "mt-4 w-full bg-cyan-600 text-white hover:bg-cyan-700",
+            )}
+          >
             <Bot className="size-4" />
-            Open SOC Copilot
-          </Button>
+            {t("Open SOC Copilot")}
+          </Link>
         </CardContent>
       </Card>
     </section>

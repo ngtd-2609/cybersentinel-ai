@@ -124,22 +124,29 @@ async def request_audit_context(request, call_next) -> Response:
 
 @app.middleware("http")
 async def login_rate_limit(request, call_next) -> Response:
-    if request.method != "POST" or request.url.path != "/auth/login":
+    auth_path = request.url.path
+    if request.method != "POST" or auth_path not in {"/auth/login", "/auth/register"}:
         return await call_next(request)
 
     context = build_request_context(request, trust_proxy_headers=settings.trust_proxy_headers)
-    client_key = context.ip_address or "unknown"
+    client_key = f"{auth_path}:{context.ip_address or 'unknown'}"
+    if auth_path == "/auth/register":
+        limit = settings.registration_rate_limit_attempts
+        window_seconds = settings.registration_rate_limit_window_seconds
+    else:
+        limit = settings.login_rate_limit_attempts
+        window_seconds = settings.login_rate_limit_window_seconds
     try:
         decision = await login_rate_limiter.consume(
             client_key,
-            limit=settings.login_rate_limit_attempts,
-            window_seconds=settings.login_rate_limit_window_seconds,
+            limit=limit,
+            window_seconds=window_seconds,
             fail_closed=settings.rate_limit_fail_closed,
         )
     except RateLimitUnavailableError:
         response = JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={"detail": "Login protection is temporarily unavailable"},
+            content={"detail": "Authentication protection is temporarily unavailable"},
             headers={"Retry-After": "5"},
         )
         response.headers["X-Request-ID"] = context.request_id
@@ -150,7 +157,7 @@ async def login_rate_limit(request, call_next) -> Response:
     if not decision.allowed:
         response = JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            content={"detail": "Too many login attempts. Try again later."},
+            content={"detail": "Too many attempts. Try again later."},
             headers={"Retry-After": str(decision.retry_after)},
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -159,13 +166,16 @@ async def login_rate_limit(request, call_next) -> Response:
         return response
 
     response = await call_next(request)
-    if response.status_code in {status.HTTP_200_OK, status.HTTP_202_ACCEPTED}:
+    if auth_path == "/auth/login" and response.status_code in {
+        status.HTTP_200_OK,
+        status.HTTP_202_ACCEPTED,
+    }:
         try:
             await login_rate_limiter.clear(client_key, fail_closed=settings.rate_limit_fail_closed)
         except RateLimitUnavailableError:
             unavailable = JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"detail": "Login protection is temporarily unavailable"},
+                content={"detail": "Authentication protection is temporarily unavailable"},
                 headers={"Retry-After": "5"},
             )
             unavailable.headers["X-Request-ID"] = context.request_id

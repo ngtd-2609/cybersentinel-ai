@@ -19,7 +19,10 @@ const prompts = [
 ];
 
 export default function CopilotPage() {
-  const [question, setQuestion] = useState(prompts[0]);
+  const [question, setQuestion] = useState(() => {
+    if (typeof window === "undefined") return prompts[0];
+    return new URLSearchParams(window.location.search).get("prompt")?.trim() || prompts[0];
+  });
   const [context, setContext] = useState("");
   const mutation = useMutation({
     mutationFn: () => askCopilot(question.trim(), context.trim()),
