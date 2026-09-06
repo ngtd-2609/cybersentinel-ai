@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2, Clock3, RefreshCw, ShieldAlert, Siren } from "lucide-react";
 
@@ -24,26 +25,22 @@ const severityStyle: Record<string, string> = {
   LOW: "border-cyan-200 bg-cyan-50 text-cyan-700",
 };
 
-export default function IncidentsPage() {
+function IncidentsContent() {
   const realtimeConnected = useSocStream();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(0);
-  const [status, setStatus] = useState("ALL");
-  const [severity, setSeverity] = useState("ALL");
-  const [priority, setPriority] = useState("ALL");
-  const [search, setSearch] = useState("");
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setStatus(params.get("status") ?? "ALL");
-    setSeverity(params.get("severity") ?? "ALL");
-    setPriority(params.get("priority") ?? "ALL");
-    setSearch(params.get("query") ?? "");
-  }, []);
+  const status = searchParams.get("status") ?? "ALL";
+  const severity = searchParams.get("severity") ?? "ALL";
+  const priority = searchParams.get("priority") ?? "ALL";
+  const search = searchParams.get("query") ?? "";
   const updateFilter = (key: string, value: string) => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(searchParams.toString());
     if (!value || value === "ALL") params.delete(key);
     else params.set(key, value);
     const queryString = params.toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${queryString ? `?${queryString}` : ""}`);
+    router.replace(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false });
     setPage(0);
   };
   const query = useQuery({
@@ -80,10 +77,10 @@ export default function IncidentsPage() {
             ].map((metric) => <Card key={metric.label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{metric.label}</p><p className="mt-2 text-3xl font-semibold">{metric.value}</p></div><metric.icon className={`size-7 ${metric.color}`} /></CardContent></Card>)}
           </section>
           <Card className="mb-6"><CardContent className="grid gap-3 p-4 md:grid-cols-4">
-            <Select value={status} onValueChange={(value) => { const next = value ?? "ALL"; setStatus(next); updateFilter("status", next); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem><SelectItem value="OPEN">Open</SelectItem><SelectItem value="INVESTIGATING">Investigating</SelectItem><SelectItem value="IN_PROGRESS">In progress</SelectItem><SelectItem value="CONTAINED">Contained</SelectItem><SelectItem value="RESOLVED">Resolved</SelectItem></SelectContent></Select>
-            <Select value={severity} onValueChange={(value) => { const next = value ?? "ALL"; setSeverity(next); updateFilter("severity", next); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All severities</SelectItem><SelectItem value="CRITICAL">Critical</SelectItem><SelectItem value="HIGH">High</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="LOW">Low</SelectItem></SelectContent></Select>
-            <Select value={priority} onValueChange={(value) => { const next = value ?? "ALL"; setPriority(next); updateFilter("priority", next); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All priorities</SelectItem><SelectItem value="P1">P1</SelectItem><SelectItem value="P2">P2</SelectItem><SelectItem value="P3">P3</SelectItem><SelectItem value="P4">P4</SelectItem></SelectContent></Select>
-            <Input value={search} onChange={(event) => { setSearch(event.target.value); updateFilter("query", event.target.value); }} placeholder="Search case, IP, asset..." />
+            <Select value={status} onValueChange={(value) => updateFilter("status", value ?? "ALL")}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem><SelectItem value="OPEN">Open</SelectItem><SelectItem value="INVESTIGATING">Investigating</SelectItem><SelectItem value="IN_PROGRESS">In progress</SelectItem><SelectItem value="CONTAINED">Contained</SelectItem><SelectItem value="RESOLVED">Resolved</SelectItem></SelectContent></Select>
+            <Select value={severity} onValueChange={(value) => updateFilter("severity", value ?? "ALL")}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All severities</SelectItem><SelectItem value="CRITICAL">Critical</SelectItem><SelectItem value="HIGH">High</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="LOW">Low</SelectItem></SelectContent></Select>
+            <Select value={priority} onValueChange={(value) => updateFilter("priority", value ?? "ALL")}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All priorities</SelectItem><SelectItem value="P1">P1</SelectItem><SelectItem value="P2">P2</SelectItem><SelectItem value="P3">P3</SelectItem><SelectItem value="P4">P4</SelectItem></SelectContent></Select>
+            <Input value={search} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Search case, IP, asset..." />
           </CardContent></Card>
           {query.isLoading ? <p className="py-16 text-center text-slate-500">Loading incidents...</p> : query.isError ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">Unable to load incidents.</p> : incidents.length === 0 ? <p className="rounded-xl border bg-white p-12 text-center text-slate-500">No incidents match the current filters.</p> : (
             <section className="space-y-3">{incidents.map((incident) => <Link key={incident.id} href={`/incidents/${incident.id}`} className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-300 hover:shadow md:grid-cols-[1fr_auto] md:items-center"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{incident.title}</p><Badge variant="outline" className={severityStyle[incident.severity] ?? ""}>{incident.severity}</Badge><Badge variant="outline">{incident.priority}</Badge><Badge variant="outline">{incident.status.replaceAll("_", " ")}</Badge></div><p className="mt-2 line-clamp-2 text-sm text-slate-500">{incident.description ?? "No description"}</p><p className="mt-2 text-xs text-slate-400">{incident.display_id ?? `INC-${String(incident.id).padStart(5, "0")}`} · {new Date(incident.created_at).toLocaleString()} · {incident.event_count} correlated event{incident.event_count === 1 ? "" : "s"}{incident.affected_assets?.[0] ? ` · ${incident.affected_assets[0].hostname}` : ""}</p></div><ArrowRight className="hidden size-5 text-slate-400 md:block" /></Link>)}</section>
@@ -93,4 +90,8 @@ export default function IncidentsPage() {
       </div>
     </div>
   );
+}
+
+export default function IncidentsPage() {
+  return <Suspense><IncidentsContent /></Suspense>;
 }
