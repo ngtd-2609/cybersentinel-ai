@@ -50,7 +50,7 @@ services:
       - key: CYBERSENTINEL_DEMO_USER_PASSWORD
         sync: false
       - key: CYBERSENTINEL_BOOTSTRAP_ADMIN_EMAIL
-        value: owner@cybersentinel.demo
+        value: tungduong@cybersentinel.demo
       - key: CYBERSENTINEL_BOOTSTRAP_ADMIN_USERNAME
         value: owner-admin
       - key: CYBERSENTINEL_BOOTSTRAP_ADMIN_PASSWORD

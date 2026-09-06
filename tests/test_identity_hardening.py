@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cybersentinel_ai.auth.bootstrap import sync_existing_admin_identity
 from cybersentinel_ai.auth.router import router
 from cybersentinel_ai.auth.schemas import UserCreate
 from cybersentinel_ai.auth.service import (
@@ -165,6 +166,37 @@ def test_first_admin_bootstrap_is_one_time_and_audited(database_factory):
             )
 
         assert len(database.scalars(select(User)).all()) == 1
+
+
+def test_existing_admin_identity_can_be_synced_without_changing_password(
+    database_factory,
+):
+    original_password = "StrongPassword123!"
+    with database_factory() as database:
+        admin = bootstrap_first_admin(
+            database,
+            UserCreate(
+                email="owner@cybersentinel.demo",
+                username="owner-admin",
+                password=original_password,
+            ),
+        )
+        original_hash = admin.hashed_password
+
+        changed = sync_existing_admin_identity(
+            database,
+            admin,
+            UserCreate(
+                email="tungduong@cybersentinel.demo",
+                username="owner-admin",
+                password="IgnoredReplacement123!",
+            ),
+        )
+
+        assert changed is True
+        assert admin.email == "tungduong@cybersentinel.demo"
+        assert admin.hashed_password == original_hash
+        assert verify_password(original_password, admin.hashed_password)
 
 
 def test_failed_logins_lock_account_and_success_resets_state(

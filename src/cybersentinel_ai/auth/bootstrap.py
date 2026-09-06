@@ -11,6 +11,33 @@ from cybersentinel_ai.db.database import SessionLocal
 from cybersentinel_ai.db.models import User
 
 
+def sync_existing_admin_identity(database, admin: User, payload: UserCreate) -> bool:
+    """Align the one owner account with its configured public identity."""
+    conflicting_user = database.scalar(
+        select(User)
+        .where(
+            User.id != admin.id,
+            (User.email == payload.email) | (User.username == payload.username),
+        )
+        .limit(1)
+    )
+    if conflicting_user is not None:
+        raise ValueError("configured administrator identity belongs to another user")
+
+    changed = admin.email != payload.email or admin.username != payload.username
+    if payload.full_name is not None and admin.full_name != payload.full_name:
+        admin.full_name = payload.full_name
+        changed = True
+    if not changed:
+        return False
+
+    admin.email = payload.email
+    admin.username = payload.username
+    database.commit()
+    database.refresh(admin)
+    return True
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Create the first CyberSentinel administrator exactly once.",
@@ -72,6 +99,14 @@ def main() -> int:
                 select(User).where(User.role == "ADMIN").limit(1)
             )
             if existing_admin is not None:
+                if args.from_env and sync_existing_admin_identity(
+                    database, existing_admin, payload
+                ):
+                    print(
+                        f"Updated administrator identity to {existing_admin.email} "
+                        f"(user id {existing_admin.id})."
+                    )
+                    return 0
                 print(f"Administrator already exists (user id {existing_admin.id}); skipping.")
                 return 0
             admin = bootstrap_first_admin(database, payload)

@@ -90,7 +90,7 @@ password generator. Use at least 24 random characters. Do not reuse a personal,
 GitHub, email, database or administrator password.
 
 Generate a different strong password for the Owner Admin account. The Blueprint
-reserves `owner@cybersentinel.demo` / `owner-admin`, and public registration cannot
+reserves `tungduong@cybersentinel.demo` / `owner-admin`, and public registration cannot
 claim that identity. Change the password after first login and enable administrator MFA.
 
 ### 3. Apply the Render Blueprint
