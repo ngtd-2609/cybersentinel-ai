@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Vercel traces and packages the Next.js server itself. Keeping standalone
+  // enabled there makes Next 16 look for a trace file that Vercel has already
+  // consumed, while Docker/Render still need the standalone bundle.
+  output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {
