@@ -60,6 +60,9 @@ class DetectionEventRead(DetectionEventCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    workspace: str = "DEMO"
+    owner_user_id: int | None = None
+    sandbox_expires_at: datetime | None = None
     created_at: datetime
 
 
@@ -116,6 +119,9 @@ class IncidentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    workspace: str = "DEMO"
+    owner_user_id: int | None = None
+    sandbox_expires_at: datetime | None = None
     title: str
     severity: str
     status: str
@@ -126,6 +132,34 @@ class IncidentRead(BaseModel):
     event_count: int = 1
     last_event_at: datetime | None = None
     created_at: datetime
+
+
+class SandboxSimulationCreate(BaseModel):
+    scenario: str = Field(default="RANSOMWARE", min_length=1, max_length=32)
+    source_ip: str | None = Field(default=None, max_length=45)
+    destination_ip: str | None = Field(default="10.20.0.15", max_length=45)
+    hostname: str | None = Field(default="portfolio-sandbox", max_length=255)
+
+    @field_validator("scenario")
+    @classmethod
+    def normalize_scenario(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        allowed = {
+            "RANSOMWARE",
+            "SSH-BRUTE-FORCE",
+            "PORT-SCAN",
+            "PHISHING",
+            "DATA-EXFILTRATION",
+        }
+        if normalized not in allowed:
+            raise ValueError("unsupported simulation scenario")
+        return normalized
+
+
+class SandboxSimulationRead(BaseModel):
+    event: DetectionEventRead
+    incident_id: int | None = None
+    expires_at: datetime
 
 
 class IncidentUpdate(BaseModel):

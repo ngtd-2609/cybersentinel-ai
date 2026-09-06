@@ -12,6 +12,7 @@ import { formatRole } from "@/lib/auth";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 
 export function Topbar() {
   const { user, logout } = useAuth();
@@ -20,6 +21,8 @@ export function Topbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const summary = useDashboardSummary();
+  const alertCount = summary.data?.requires_review ?? 0;
   const initials = (user?.full_name ?? user?.username ?? "SOC Analyst")
     .split(/\s+/)
     .map((part) => part.charAt(0))
@@ -87,12 +90,13 @@ export function Topbar() {
           aria-expanded={notificationsOpen}
         >
           <Bell className="size-5" />
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-red-500" />
+          {alertCount > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-500" />}
         </Button>
         {notificationsOpen && (
           <div className="absolute right-16 top-16 z-50 w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-xl" role="status">
-            <p className="font-medium text-slate-900">{t("No new notifications")}</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">{t("Your alerts and system updates will appear here.")}</p>
+            <p className="font-medium text-slate-900">{alertCount > 0 ? `${alertCount} ${t("events require review")}` : t("No new notifications")}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{alertCount > 0 ? t("Open Detection Events to investigate the current alerts.") : t("Your alerts and system updates will appear here.")}</p>
+            {alertCount > 0 && <Button size="sm" className="mt-3" onClick={() => { setNotificationsOpen(false); router.push("/events"); }}>{t("Review alerts")}</Button>}
           </div>
         )}
 

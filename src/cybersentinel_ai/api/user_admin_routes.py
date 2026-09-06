@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.auth.admin_schemas import (
+    AdminUserCreate,
     UpdateRoleRequest,
     UserAdminResponse,
 )
@@ -10,6 +11,7 @@ from cybersentinel_ai.auth.admin_service import (
     change_user_role,
     list_users,
 )
+from cybersentinel_ai.auth.service import register_user
 from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.security.rbac import (
     UserRole,
@@ -20,6 +22,29 @@ router = APIRouter(
     prefix="/admin/users",
     tags=["admin-users"],
 )
+
+
+@router.post("", response_model=UserAdminResponse, status_code=201)
+def create_user(
+    payload: AdminUserCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(UserRole.ADMIN)),
+):
+    try:
+        user = register_user(db, payload)
+        if payload.role != "VIEWER":
+            user = change_user_role(db, user.id, payload.role)
+        log_action(
+            db,
+            current_user.id,
+            "ADMIN_CREATE_USER",
+            f"Created managed user {user.email} with role {user.role}",
+            "USER",
+            user.id,
+        )
+        return user
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get(

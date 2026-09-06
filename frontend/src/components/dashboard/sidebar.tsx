@@ -20,6 +20,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { useQuery } from "@tanstack/react-query";
+import { getHealth } from "@/lib/api/soc";
 
 const operations = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -43,6 +45,8 @@ export function Sidebar({ mobile = false, onNavigate }: { mobile?: boolean; onNa
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const health = useQuery({ queryKey: ["api-health"], queryFn: getHealth, refetchInterval: 60_000, retry: 1 });
+  const healthy = health.data?.status === "ok";
   const administrationItems = administration.filter(
     (item) => !item.adminOnly || user?.role === "ADMIN",
   );
@@ -132,13 +136,13 @@ export function Sidebar({ mobile = false, onNavigate }: { mobile?: boolean; onNa
       </div>
 
       <div className="border-t border-slate-200 p-4">
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
-            <span className="size-2 rounded-full bg-emerald-500" />
-            {t("System Operational")}
+        <div className={`rounded-xl border p-4 ${healthy ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+          <div className={`flex items-center gap-2 text-sm font-medium ${healthy ? "text-emerald-700" : "text-amber-700"}`}>
+            <span className={`size-2 rounded-full ${healthy ? "bg-emerald-500" : "bg-amber-500"}`} />
+            {healthy ? t("System Operational") : t("Checking system")}
           </div>
-          <p className="mt-1 text-xs text-emerald-700/70">
-            {t("Detection services online")}
+          <p className={`mt-1 text-xs ${healthy ? "text-emerald-700/70" : "text-amber-700/70"}`}>
+            {healthy ? t("Detection services online") : t("Waiting for API health check")}
           </p>
         </div>
       </div>

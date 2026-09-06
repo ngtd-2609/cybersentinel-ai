@@ -77,6 +77,16 @@ class Settings(BaseSettings):
 
     public_registration_max_users: int = Field(default=250, ge=1, le=10000)
 
+    sandbox_max_events_per_user: int = Field(default=30, ge=1, le=200)
+
+    sandbox_ttl_hours: int = Field(default=72, ge=1, le=720)
+
+    bootstrap_admin_email: str | None = None
+
+    bootstrap_admin_username: str | None = None
+
+    bootstrap_admin_password: SecretStr | None = None
+
     account_lockout_attempts: int = Field(default=5, ge=1)
 
     account_lockout_minutes: int = Field(default=15, ge=1)
@@ -161,6 +171,17 @@ class Settings(BaseSettings):
                 raise ValueError("Demo seed may only be enabled in the portfolio environment")
             if self.demo_user_password is None:
                 raise ValueError("CYBERSENTINEL_DEMO_USER_PASSWORD is required for demo seed")
+        bootstrap_values = (
+            self.bootstrap_admin_email,
+            self.bootstrap_admin_username,
+            self.bootstrap_admin_password,
+        )
+        if any(value is not None for value in bootstrap_values) and not all(
+            value is not None for value in bootstrap_values
+        ):
+            raise ValueError(
+                "Bootstrap admin email, username and password must be configured together"
+            )
         return self
 
     model_config = SettingsConfigDict(

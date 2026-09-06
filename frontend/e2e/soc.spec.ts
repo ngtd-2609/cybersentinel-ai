@@ -9,6 +9,9 @@ import {
 
 const incident = {
   id: 7,
+  workspace: "SANDBOX",
+  owner_user_id: 2,
+  sandbox_expires_at: "2026-09-07T10:00:00Z",
   title: "SSH brute-force investigation",
   severity: "CRITICAL",
   status: "OPEN",
@@ -42,6 +45,9 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
         items: [
           {
             ...incident.detection_event,
+            workspace: "SANDBOX",
+            owner_user_id: 2,
+            sandbox_expires_at: "2026-09-07T10:00:00Z",
             destination_ip: "203.0.113.20",
             destination_port: 22,
             classifier_confidence: 0.98,

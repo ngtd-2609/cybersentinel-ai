@@ -2,6 +2,9 @@ import { apiFetch } from "@/lib/api/client";
 
 export interface DetectionEvent {
   id: number;
+  workspace: "DEMO" | "SANDBOX";
+  owner_user_id: number | null;
+  sandbox_expires_at: string | null;
   external_id: string | null;
   source_type: string | null;
   occurred_at: string | null;

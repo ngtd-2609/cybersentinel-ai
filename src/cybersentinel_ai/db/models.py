@@ -26,6 +26,19 @@ class DetectionEvent(Base):
         autoincrement=True,
     )
 
+    workspace: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="DEMO", index=True
+    )
+    owner_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    sandbox_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+
     idempotency_key: Mapped[str | None] = mapped_column(
         String(128),
         nullable=True,
@@ -123,6 +136,19 @@ class Incident(Base):
         Integer,
         primary_key=True,
         autoincrement=True,
+    )
+
+    workspace: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="DEMO", index=True
+    )
+    owner_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    sandbox_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
     )
 
     title: Mapped[str] = mapped_column(

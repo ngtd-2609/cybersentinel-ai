@@ -45,7 +45,10 @@ def test_detection_event_table_creation():
     timeline_foreign_keys = inspector.get_foreign_keys("incident_timelines")
     audit_foreign_keys = inspector.get_foreign_keys("audit_logs")
 
-    assert incident_foreign_keys[0]["referred_table"] == "detection_events"
+    assert {key["referred_table"] for key in incident_foreign_keys} >= {
+        "detection_events",
+        "users",
+    }
     assert timeline_foreign_keys[0]["referred_table"] == "incidents"
     assert audit_foreign_keys[0]["referred_table"] == "users"
 

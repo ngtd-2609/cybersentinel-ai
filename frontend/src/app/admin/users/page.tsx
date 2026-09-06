@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   RefreshCw,
+  Plus,
   Search,
   ShieldCheck,
   UserCheck,
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -36,6 +38,7 @@ import {
 } from "@/components/ui/table";
 import {
   getAdminUsers,
+  createAdminUser,
   updateAdminUserRole,
   updateAdminUserStatus,
   USER_ROLES,
@@ -50,6 +53,8 @@ function UsersPanel() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", username: "", full_name: "", password: "", role: "VIEWER" });
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
@@ -75,6 +80,18 @@ function UsersPanel() {
       updateAdminUserStatus(userId, isActive),
     onSuccess: updateCachedUser,
   });
+  const createMutation = useMutation({
+    mutationFn: createAdminUser,
+    onSuccess: (created) => {
+      queryClient.setQueryData<AdminUser[]>(["admin-users"], (current = []) => [...current, created]);
+      setNewUser({ email: "", username: "", full_name: "", password: "", role: "VIEWER" });
+      setCreateOpen(false);
+    },
+  });
+  function submitNewUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    createMutation.mutate({ ...newUser, full_name: newUser.full_name || undefined });
+  }
 
   const users = usersQuery.data ?? EMPTY_USERS;
   const filteredUsers = useMemo(() => {
@@ -92,7 +109,7 @@ function UsersPanel() {
 
   const activeCount = users.filter((user) => user.is_active).length;
   const privilegedCount = users.filter((user) => user.role !== "VIEWER").length;
-  const mutationError = roleMutation.error ?? statusMutation.error;
+  const mutationError = roleMutation.error ?? statusMutation.error ?? createMutation.error;
 
   return (
     <main className="mx-auto max-w-[1600px] p-5 md:p-8">
@@ -107,17 +124,15 @@ function UsersPanel() {
             Manage SOC access levels and account availability.
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => usersQuery.refetch()}
-          disabled={usersQuery.isFetching}
-        >
+        <div className="flex gap-2"><Button onClick={() => setCreateOpen(true)}><Plus />Create user</Button><Button variant="outline" onClick={() => usersQuery.refetch()} disabled={usersQuery.isFetching}>
           <RefreshCw
             className={`size-4 ${usersQuery.isFetching ? "animate-spin" : ""}`}
           />
           Refresh
-        </Button>
+        </Button></div>
       </header>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}><DialogContent className="sm:max-w-lg"><form onSubmit={submitNewUser}><DialogHeader><DialogTitle>Create managed account</DialogTitle><DialogDescription>Create an account with an explicit SOC role. Share the initial password through a secure channel.</DialogDescription></DialogHeader><div className="grid gap-4 py-5 sm:grid-cols-2"><label className="grid gap-1 text-xs font-medium">Email<Input type="email" required value={newUser.email} onChange={(event) => setNewUser((value) => ({ ...value, email: event.target.value }))} /></label><label className="grid gap-1 text-xs font-medium">Username<Input required minLength={3} value={newUser.username} onChange={(event) => setNewUser((value) => ({ ...value, username: event.target.value }))} /></label><label className="grid gap-1 text-xs font-medium sm:col-span-2">Full name<Input value={newUser.full_name} onChange={(event) => setNewUser((value) => ({ ...value, full_name: event.target.value }))} /></label><label className="grid gap-1 text-xs font-medium">Initial password<Input type="password" required minLength={12} autoComplete="new-password" value={newUser.password} onChange={(event) => setNewUser((value) => ({ ...value, password: event.target.value }))} /></label><label className="grid gap-1 text-xs font-medium">Role<Select value={newUser.role} onValueChange={(role) => setNewUser((value) => ({ ...value, role: role ?? "VIEWER" }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{USER_ROLES.map((role) => <SelectItem key={role} value={role}>{formatRole(role)}</SelectItem>)}</SelectContent></Select></label><p className="text-xs text-slate-500 sm:col-span-2">Use 12+ characters with uppercase, lowercase, a number and a symbol.</p></div><DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create account"}</Button></DialogFooter></form></DialogContent></Dialog>
 
       <section className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card className="border-slate-200 bg-white shadow-sm">

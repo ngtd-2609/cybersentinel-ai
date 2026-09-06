@@ -99,15 +99,15 @@ CyberSentinel AI demonstrates the harder engineering around the model:
 | Area | What a reviewer can inspect |
 | --- | --- |
 | Dashboard | Severity distribution, recent alerts, attack trends, and live SOC metrics |
-| Detection Events | Filterable detections with risk, confidence, evidence, and traceability |
-| Incidents | Status, ownership, linked detections, and investigation timeline |
+| Detection Events | Searchable, paginated detections plus five safe interactive simulation scenarios |
+| Incidents | Demo evidence plus private sandbox incidents, status and investigation timeline |
 | Threat Intelligence | Observed indicators, ATT&CK tactics/techniques, and defensive context |
 | SOC Copilot | Grounded investigation summary, recommended actions, and knowledge sources |
 | Reports | Browser-generated detection and incident CSV exports from authorized APIs |
 | Model Monitor | Registry stages, model provenance, quality thresholds, and drift reports |
 | Monitoring | Application health and operational signals |
-| Experience | English/Vietnamese switch, mobile navigation, search, notifications, and settings |
-| Administration | RBAC-protected users and audit logs; unavailable to public Viewer accounts |
+| Experience | Self-registration, private 72-hour sandbox, bilingual controls, real alert status, and password settings |
+| Administration | RBAC-protected user creation, roles, account status and attributable audit logs |
 
 ## Screenshots
 
@@ -327,21 +327,21 @@ permissions disabled unless the data-handling policy has been reviewed.
 | --- | --- | --- |
 | Health | `GET /health`, `GET /ready`, `GET /metrics` | health public; metrics deployment-controlled |
 | Authentication | `/auth/login`, refresh, logout, MFA, password change | rate limited / authenticated |
-| Detections | `/events`, `/events/page`, `/events/{id}` | authenticated; writes use scoped roles/keys |
+| Detections | `/events`, `/events/page`, `/events/simulate`, sandbox reset | authenticated; controlled simulation is available to Viewer accounts |
 | Ingestion | batch submit, job state, dead-letter replay | ingestion API key / privileged role |
 | Incidents | create, list, update, timeline | Analyst/Responder/Admin policy |
 | Dashboard | `/dashboard/summary` | authenticated |
 | Realtime | `/realtime/soc` | authenticated SSE |
 | Copilot | `/copilot/ask` | authenticated and safety-filtered |
 | MLOps | models, promotions, monitoring, feedback | authenticated; mutations role-gated |
-| Administration | users, status, audit logs | Admin only |
+| Administration | create/list users, role/status, audit logs | Admin only |
 
 Interactive OpenAPI documentation is available in development mode. It is hidden
 on the public portfolio deployment to reduce unnecessary attack surface.
 
 ## Testing and release quality
 
-The repository currently collects **179 Python tests** plus the Playwright browser
+The repository currently collects **180 Python tests** plus the Playwright browser
 suite. Release checks cover:
 
 ```bash
@@ -378,8 +378,8 @@ Internet → Render Next.js Web Service → Render FastAPI Web Service
                                       → Neon PostgreSQL
 ```
 
-Render generates application secrets and receives only two user-managed values:
-the Neon pooled URL and a strong demo password. Provider URLs and credentials stay
+Render generates application secrets and receives three user-managed values:
+the Neon pooled URL, a strong demo password, and a separate Owner Admin password. Provider URLs and credentials stay
 in provider secret settings. The Blueprint runs Alembic and the idempotent seed at
 API startup.
 

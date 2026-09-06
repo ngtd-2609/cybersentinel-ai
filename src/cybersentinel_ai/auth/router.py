@@ -68,6 +68,14 @@ def register(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Public registration is disabled",
         )
+    if (
+        payload.email == settings.bootstrap_admin_email
+        or payload.username == settings.bootstrap_admin_username
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This owner identity is reserved",
+        )
     user_count = db.scalar(select(func.count()).select_from(User)) or 0
     if user_count >= settings.public_registration_max_users:
         raise HTTPException(

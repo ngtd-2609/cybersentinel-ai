@@ -67,8 +67,8 @@ CORS to the frontend URL, runs database migrations, seeds the safe demo dataset,
 and starts the bounded ingestion worker inside the API process.
 
 The same demo password is passed from the API service to the frontend through a
-Render service reference. It is entered once and is never stored in Git or baked
-into the frontend image.
+Render service reference. A separate Owner Admin password bootstraps the first
+administrator exactly once. Neither value is stored in Git or baked into the frontend image.
 
 ## First public deployment
 
@@ -83,11 +83,15 @@ into the frontend image.
 Alembic creates the schema automatically during the API's first startup. Do not
 paste this URL into GitHub, a tracked `.env`, an issue, or a screenshot.
 
-### 2. Choose the only user-managed application secret
+### 2. Choose the user-managed application passwords
 
 Generate a unique demo password locally with a password manager or a cryptographic
 password generator. Use at least 24 random characters. Do not reuse a personal,
 GitHub, email, database or administrator password.
+
+Generate a different strong password for the Owner Admin account. The Blueprint
+reserves `owner@cybersentinel.demo` / `owner-admin`, and public registration cannot
+claim that identity. Change the password after first login and enable administrator MFA.
 
 ### 3. Apply the Render Blueprint
 
@@ -98,12 +102,13 @@ GitHub, email, database or administrator password.
 4. Render prompts for exactly these `sync: false` values:
    - `CYBERSENTINEL_DATABASE_URL`: paste the Neon connection string.
    - `CYBERSENTINEL_DEMO_USER_PASSWORD`: paste the new demo password.
+   - `CYBERSENTINEL_BOOTSTRAP_ADMIN_PASSWORD`: paste the separate Owner Admin password.
 5. Apply the Blueprint. Never enter the demo password into the frontend service;
    the Blueprint references the API value automatically.
 
-The first API deploy runs `alembic upgrade head`, creates the restricted `ANALYST`
-demo account, and inserts synthetic RFC 5737 security data. Repeated deploys are
-idempotent and do not duplicate the dataset.
+The first API deploy runs `alembic upgrade head`, creates the restricted `VIEWER`
+demo account, bootstraps the first Owner Admin, and inserts synthetic RFC 5737
+security data. Repeated deploys are idempotent and do not duplicate the dataset.
 
 ### 4. Verify the deployment
 
@@ -115,7 +120,8 @@ Wait for both services to show **Live**, then check:
    for about a minute after 15 minutes of inactivity.
 3. Click **Explore with the safe demo account**. No credential should be visible
    in page source, browser storage or the Git repository.
-4. Exercise Dashboard, Events, Incidents, Threat Intel, Copilot and Reports.
+4. Exercise Dashboard, Events, the private event simulator, Incidents, Threat Intel,
+   Copilot and Reports. Reset the sandbox afterward.
 5. In Render, confirm both services show the same deployed Git commit and no
    secret value appears in build or application logs.
 
@@ -124,7 +130,8 @@ Do not create the final release tag until the Phase M Final Release Gate passes.
 
 ## Reseed and recovery
 
-Normal redeploys preserve viewer changes. To restore canonical demo state, use a
+Normal redeploys preserve registered accounts and their unexpired private sandbox
+data while restoring only canonical demo records. To restore canonical demo state, use a
 temporary Render Shell only if the selected plan supports it, or run the following
 command from a trusted machine with the Neon URL and demo password supplied only
 through environment variables:

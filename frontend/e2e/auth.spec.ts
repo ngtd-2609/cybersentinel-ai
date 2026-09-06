@@ -297,7 +297,7 @@ test("dashboard controls work on mobile and expose real destinations", async ({ 
   await expect(page.getByRole("heading", { name: "Tổng quan bảo mật" })).toBeVisible();
   await page.getByRole("button", { name: "Chuyển sang tiếng Anh" }).click();
   await page.getByRole("button", { name: "Notifications" }).click();
-  await expect(page.getByText("No new notifications")).toBeVisible();
+  await expect(page.getByText(/events require review|No new notifications/)).toBeVisible();
   await expect(page.getByRole("link", { name: /Ransomware containment/ })).toHaveAttribute("href", "/incidents/1");
   await expect(page.getByRole("link", { name: /Open SOC Copilot|Mở Trợ lý SOC/ })).toHaveAttribute(
     "href",

@@ -126,6 +126,67 @@ def test_viewer_cannot_create_detection_event():
     assert response.json()["detail"] == "Insufficient permissions"
 
 
+def test_viewer_can_simulate_and_sandbox_is_isolated():
+    previous_override = app.dependency_overrides[get_current_user]
+    viewer_one = SimpleNamespace(
+        id=101,
+        email="viewer-one@cybersentinel.ai",
+        role="VIEWER",
+        is_active=True,
+    )
+    viewer_two = SimpleNamespace(
+        id=102,
+        email="viewer-two@cybersentinel.ai",
+        role="VIEWER",
+        is_active=True,
+    )
+    try:
+        app.dependency_overrides[get_current_user] = lambda: viewer_one
+        created = client.post(
+            "/events/simulate",
+            json={"scenario": "RANSOMWARE", "hostname": "viewer-one-lab"},
+        )
+        assert created.status_code == 201
+        event_id = created.json()["event"]["id"]
+        assert created.json()["event"]["workspace"] == "SANDBOX"
+        assert created.json()["incident_id"] is not None
+
+        app.dependency_overrides[get_current_user] = lambda: viewer_two
+        assert client.get(f"/events/{event_id}").status_code == 404
+        assert all(
+            item["id"] != event_id
+            for item in client.get("/events/page").json()["items"]
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: viewer_one
+        reset = client.post("/events/sandbox/reset")
+        assert reset.status_code == 200
+        assert reset.json()["events_deleted"] >= 1
+        assert client.get(f"/events/{event_id}").status_code == 404
+    finally:
+        app.dependency_overrides[get_current_user] = previous_override
+
+
+def test_detection_search_uses_all_visible_fields():
+    response = client.get("/events/page", params={"q": "198.51.100"})
+    assert response.status_code == 200
+    assert all(
+        "198.51.100" in " ".join(
+            str(item.get(field) or "")
+            for field in (
+                "source_ip",
+                "destination_ip",
+                "hostname",
+                "asset_id",
+                "ioc_value",
+                "external_id",
+                "predicted_label",
+            )
+        )
+        for item in response.json()["items"]
+    )
+
+
 def test_paginated_detection_events():
     response = client.get(
         "/events/page",

@@ -10,6 +10,11 @@ if [ "${CYBERSENTINEL_DEMO_SEED_ENABLED:-false}" = "true" ]; then
   /app/.venv/bin/python -m cybersentinel_ai.demo.seed --reset
 fi
 
+if [ -n "${CYBERSENTINEL_BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
+  echo "Ensuring the one-time owner administrator exists..."
+  /app/.venv/bin/python -m cybersentinel_ai.auth.bootstrap --from-env
+fi
+
 echo "Starting API..."
 
 exec /app/.venv/bin/uvicorn \

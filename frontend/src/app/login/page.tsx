@@ -209,7 +209,7 @@ export default function LoginPage() {
               {mfaToken
                 ? "Enter a current authenticator code or a one-time recovery code."
                 : authMode === "register"
-                  ? "Register a safe read-only viewer account for the public portfolio demo."
+                  ? "Create a viewer account with a private threat-simulation sandbox."
                   : "Use your authorized SOC account to continue."}
             </CardDescription>
             {demoLoginEnabled && !mfaToken && authMode === "login" && (
@@ -345,7 +345,7 @@ export default function LoginPage() {
                   Explore with the safe demo account
                 </Button>
                 <p className="text-center text-xs leading-5 text-slate-500">
-                  Uses synthetic security data and a restricted analyst account.
+                  Uses synthetic security data. Demo records stay read-only, while your private sandbox remains interactive.
                 </p>
               </div>
             )}

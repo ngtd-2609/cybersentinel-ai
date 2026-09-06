@@ -4,18 +4,24 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from cybersentinel_ai.db.models import DetectionEvent
+from cybersentinel_ai.db.repository import event_visibility
 
 
-def get_dashboard_summary(database: Session) -> dict:
+def get_dashboard_summary(
+    database: Session, *, user_id: int | None = None, role: str | None = None
+) -> dict:
+    filters = []
+    if user_id is not None and role != "ADMIN":
+        filters.append(event_visibility(user_id, role or "VIEWER"))
     total_events = database.scalar(
-        select(func.count()).select_from(DetectionEvent)
+        select(func.count()).select_from(DetectionEvent).where(*filters)
     ) or 0
 
     severity_rows = database.execute(
         select(
             func.upper(DetectionEvent.severity),
             func.count(DetectionEvent.id),
-        ).group_by(func.upper(DetectionEvent.severity))
+        ).where(*filters).group_by(func.upper(DetectionEvent.severity))
     ).all()
 
     severity_counts = {
@@ -26,11 +32,11 @@ def get_dashboard_summary(database: Session) -> dict:
     requires_review = database.scalar(
         select(func.count())
         .select_from(DetectionEvent)
-        .where(DetectionEvent.requires_review.is_(True))
+        .where(*filters, DetectionEvent.requires_review.is_(True))
     ) or 0
 
     average_risk_score = database.scalar(
-        select(func.avg(DetectionEvent.risk_score))
+        select(func.avg(DetectionEvent.risk_score)).where(*filters)
     )
 
     attack_rows = database.execute(
@@ -38,6 +44,7 @@ def get_dashboard_summary(database: Session) -> dict:
             DetectionEvent.predicted_label,
             func.count(DetectionEvent.id).label("event_count"),
         )
+        .where(*filters)
         .group_by(DetectionEvent.predicted_label)
         .order_by(desc("event_count"))
         .limit(5)
@@ -49,7 +56,7 @@ def get_dashboard_summary(database: Session) -> dict:
             func.count(DetectionEvent.id).label("event_count"),
             func.max(DetectionEvent.risk_score).label("max_risk_score"),
         )
-        .where(DetectionEvent.source_ip.is_not(None))
+        .where(*filters, DetectionEvent.source_ip.is_not(None))
         .group_by(DetectionEvent.source_ip)
         .order_by(desc("event_count"))
         .limit(5)
@@ -67,6 +74,7 @@ def get_dashboard_summary(database: Session) -> dict:
             DetectionEvent.created_at,
             DetectionEvent.severity,
         ).where(
+            *filters,
             DetectionEvent.created_at >= first_hour
         )
     ).all()
@@ -114,6 +122,7 @@ def get_dashboard_summary(database: Session) -> dict:
     recent_events = list(
         database.scalars(
             select(DetectionEvent)
+            .where(*filters)
             .order_by(DetectionEvent.created_at.desc())
             .limit(10)
         ).all()

@@ -33,6 +33,29 @@ test("administrator disables another user account", async ({ page }) => {
   await expect(analystRow.getByRole("button", { name: "Enable" })).toBeVisible();
 });
 
+test("administrator creates a managed user with an explicit role", async ({ page }) => {
+  await page.route("**/api/backend/admin/users", async (route) => {
+    if (route.request().method() === "POST") {
+      expect(route.request().postDataJSON()).toMatchObject({
+        email: "new.analyst@example.test",
+        username: "new-analyst",
+        role: "ANALYST",
+      });
+      return fulfillJson(route, { ...analyst, id: 9, email: "new.analyst@example.test", username: "new-analyst" }, 201);
+    }
+    return fulfillJson(route, [{ ...adminUser, is_active: true }, analyst]);
+  });
+  await page.goto("/admin/users");
+  await page.getByRole("button", { name: "Create user" }).click();
+  await page.getByLabel("Email").fill("new.analyst@example.test");
+  await page.getByLabel("Username").fill("new-analyst");
+  await page.getByLabel("Initial password").fill("StrongPassword123!");
+  await page.getByLabel("Role").click();
+  await page.getByRole("option", { name: "Analyst", exact: true }).click();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("new.analyst@example.test")).toBeVisible();
+});
+
 test("administrator reviews attributable audit records", async ({ page }) => {
   await page.route("**/api/backend/admin/audit-logs?*", (route) =>
     fulfillJson(route, {

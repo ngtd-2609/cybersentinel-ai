@@ -53,6 +53,21 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
   return parseResponse<AdminUser[]>(response, "Unable to load users");
 }
 
+export async function createAdminUser(payload: {
+  email: string;
+  username: string;
+  full_name?: string;
+  password: string;
+  role: string;
+}): Promise<AdminUser> {
+  const response = await apiFetch("/admin/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<AdminUser>(response, "Unable to create user");
+}
+
 export async function updateAdminUserRole(
   userId: number,
   role: string,

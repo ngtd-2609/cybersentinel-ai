@@ -1,4 +1,12 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
+
+from cybersentinel_ai.auth.schemas import UserCreate
+
+
+class AdminUserCreate(UserCreate):
+    role: Literal["ADMIN", "SENIOR_ANALYST", "ANALYST", "VIEWER"] = "VIEWER"
 
 
 class UserAdminResponse(BaseModel):

@@ -21,6 +21,7 @@ from cybersentinel_ai.db.repository import (
     list_incidents,
     update_incident_status,
 )
+from cybersentinel_ai.security.dependencies import get_current_user
 from cybersentinel_ai.security.rbac import UserRole, require_role
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
@@ -40,8 +41,29 @@ def create(
         )
     ),
 ) -> IncidentRead:
+    linked_event = None
+    if payload.detection_event_id is not None:
+        from cybersentinel_ai.db.repository import get_detection_event
+
+        linked_event = get_detection_event(
+            database,
+            payload.detection_event_id,
+            user_id=current_user.id,
+            role=current_user.role,
+        )
+        if linked_event is None:
+            raise HTTPException(status_code=404, detail="Detection event not found")
     with atomic(database):
-        incident = create_incident(database, payload, commit=False)
+        incident = create_incident(
+            database,
+            payload,
+            workspace="SANDBOX",
+            owner_user_id=current_user.id,
+            sandbox_expires_at=(
+                linked_event.sandbox_expires_at if linked_event is not None else None
+            ),
+            commit=False,
+        )
 
         log_action(
             database,
@@ -61,11 +83,14 @@ def list_all(
     database: DatabaseSession,
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    current_user=Depends(get_current_user),
 ) -> IncidentPage:
     items, total = list_incidents(
         database,
         limit=limit,
         offset=offset,
+        user_id=current_user.id,
+        role=current_user.role,
     )
 
     return IncidentPage(
@@ -80,8 +105,11 @@ def list_all(
 def get_by_id(
     incident_id: int,
     database: DatabaseSession,
+    current_user=Depends(get_current_user),
 ) -> IncidentRead:
-    incident = get_incident(database, incident_id)
+    incident = get_incident(
+        database, incident_id, user_id=current_user.id, role=current_user.role
+    )
 
     if incident is None:
         raise HTTPException(
@@ -105,6 +133,13 @@ def update_status(
         )
     ),
 ) -> IncidentRead:
+    incident = get_incident(
+        database, incident_id, user_id=current_user.id, role=current_user.role
+    )
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    if incident.workspace == "DEMO" and current_user.role != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Demo incidents are read-only")
     with atomic(database):
         incident = update_incident_status(
             database,
@@ -145,13 +180,17 @@ def create_timeline(
         )
     ),
 ) -> IncidentTimelineRead:
-    incident = get_incident(database, incident_id)
+    incident = get_incident(
+        database, incident_id, user_id=current_user.id, role=current_user.role
+    )
 
     if incident is None:
         raise HTTPException(
             status_code=404,
             detail="Incident not found",
         )
+    if incident.workspace == "DEMO" and current_user.role != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Demo incidents are read-only")
 
     with atomic(database):
         timeline = create_incident_timeline(
@@ -178,8 +217,11 @@ def create_timeline(
 def get_timelines(
     incident_id: int,
     database: DatabaseSession,
+    current_user=Depends(get_current_user),
 ) -> list[IncidentTimelineRead]:
-    incident = get_incident(database, incident_id)
+    incident = get_incident(
+        database, incident_id, user_id=current_user.id, role=current_user.role
+    )
 
     if incident is None:
         raise HTTPException(

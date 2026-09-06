@@ -26,7 +26,7 @@ test.describe("public portfolio smoke", () => {
     await expect(page.getByRole("heading", { name: "Tổng quan bảo mật" })).toBeVisible();
     await page.getByRole("button", { name: "Chuyển sang tiếng Anh" }).click();
     await page.getByRole("button", { name: "Notifications" }).click();
-    await expect(page.getByText("No new notifications")).toBeVisible();
+    await expect(page.getByText(/events require review|No new notifications/)).toBeVisible();
     if (captureReadme) {
       await page.screenshot({ path: "../docs/assets/dashboard.png" });
     }
@@ -36,12 +36,18 @@ test.describe("public portfolio smoke", () => {
       page.getByRole("heading", { name: "Detection Events" }),
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "EVT-00001" })).toBeVisible();
+    await page.getByRole("button", { name: "Reset my sandbox" }).click();
+    await expect(page.getByText(/Reset complete:/)).toBeVisible();
+    await page.getByRole("button", { name: "Run simulation" }).click();
+    await expect(page.getByText(/Created EVT-/)).toBeVisible();
+    await expect(page.getByText("My sandbox").first()).toBeVisible();
 
     await page.goto("/incidents");
     await expect(
       page.getByRole("heading", { name: "Incident Management" }),
     ).toBeVisible();
     await expect(page.getByText("[DEMO] Ransomware containment")).toBeVisible();
+    await expect(page.getByText("[SANDBOX] Port Scan")).toBeVisible();
     if (captureReadme) {
       await page.screenshot({ path: "../docs/assets/incidents.png" });
     }
@@ -62,6 +68,9 @@ test.describe("public portfolio smoke", () => {
       await page.screenshot({ path: "../docs/assets/copilot.png" });
     }
 
+    await page.goto("/events");
+    await page.getByRole("button", { name: "Reset my sandbox" }).click();
+    await expect(page.getByText(/Reset complete:/)).toBeVisible();
     await page.goto("/reports");
     await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
     await expect(page.getByText("8 RECORDS")).toBeVisible();

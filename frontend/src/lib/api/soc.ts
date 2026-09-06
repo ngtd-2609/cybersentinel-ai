@@ -8,6 +8,41 @@ export interface DetectionEventPage {
   offset: number;
 }
 
+export type SimulationScenario =
+  | "RANSOMWARE"
+  | "SSH-BRUTE-FORCE"
+  | "PORT-SCAN"
+  | "PHISHING"
+  | "DATA-EXFILTRATION";
+
+export interface SandboxSimulation {
+  event: DetectionEvent;
+  incident_id: number | null;
+  expires_at: string;
+}
+
+export async function simulateEvent(payload: {
+  scenario: SimulationScenario;
+  source_ip?: string;
+  destination_ip?: string;
+  hostname?: string;
+}): Promise<SandboxSimulation> {
+  const response = await apiFetch("/events/simulate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return jsonResponse<SandboxSimulation>(response, "Unable to simulate event");
+}
+
+export async function resetSandbox(): Promise<{
+  events_deleted: number;
+  incidents_deleted: number;
+}> {
+  const response = await apiFetch("/events/sandbox/reset", { method: "POST" });
+  return jsonResponse(response, "Unable to reset sandbox");
+}
+
 export interface HealthStatus {
   status: string;
   service?: string;

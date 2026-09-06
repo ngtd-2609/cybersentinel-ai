@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+- Added private, expiring per-user simulation sandboxes with five safe attack scenarios.
+- Added user-visible event creation, automatic sandbox incidents, reset controls, server search and pagination.
+- Added one-time Owner Admin bootstrap, reserved owner identity and Admin-managed account creation.
+- Added account password changes, data-backed notifications and live API health status.
+- Isolated Events, Incidents and Dashboard data by workspace and user while preserving read-only demo evidence.
+
 All notable changes are documented here. Versions follow Semantic Versioning.
 
 ## [Unreleased]

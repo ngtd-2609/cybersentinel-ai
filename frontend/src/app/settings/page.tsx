@@ -1,6 +1,8 @@
 "use client";
 
-import { Globe2, LockKeyhole, Settings2, UserRound } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Globe2, KeyRound, LockKeyhole, Settings2, UserRound } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -10,10 +12,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatRole } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/lib/api/client";
+
+async function changePassword(payload: { current_password: string; new_password: string }) {
+  const response = await apiFetch("/auth/change-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail ?? "Unable to change password");
+  }
+}
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const { locale, setLocale, t } = useLanguage();
+  const [passwords, setPasswords] = useState({ current_password: "", new_password: "", confirm: "" });
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const passwordMutation = useMutation({ mutationFn: changePassword, onSuccess: () => { setPasswords({ current_password: "", new_password: "", confirm: "" }); setPasswordChanged(true); } });
+  function submitPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordChanged(false);
+    if (passwords.new_password !== passwords.confirm) return;
+    passwordMutation.mutate({ current_password: passwords.current_password, new_password: passwords.new_password });
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-950">
@@ -44,9 +65,11 @@ export default function SettingsPage() {
                 <div><span className="text-slate-500">Email</span><p className="font-medium">{user?.email}</p></div>
                 <div><span className="text-slate-500">Username</span><p className="font-medium">{user?.username}</p></div>
                 <div className="flex items-center gap-2"><LockKeyhole className="size-4 text-slate-400" /><Badge variant="outline">{user ? formatRole(user.role) : "—"}</Badge></div>
-                {user?.role === "VIEWER" && <p className="rounded-lg bg-cyan-50 p-3 text-cyan-800">{t("Your public account is read-only to keep the shared demo safe.")}</p>}
+                {user?.role === "VIEWER" && <p className="rounded-lg bg-cyan-50 p-3 text-cyan-800">{t("Demo records are read-only. Your threat simulations run in a private, temporary sandbox.")}</p>}
               </CardContent>
             </Card>
+
+            <Card className="md:col-span-2"><CardHeader><CardTitle className="flex items-center gap-2"><KeyRound className="size-5 text-emerald-600" />{t("Change password")}</CardTitle></CardHeader><CardContent><form onSubmit={submitPassword} className="grid gap-4 md:grid-cols-3"><label className="grid gap-1 text-xs font-medium">{t("Current password")}<Input type="password" autoComplete="current-password" required value={passwords.current_password} onChange={(event) => setPasswords((value) => ({ ...value, current_password: event.target.value }))} /></label><label className="grid gap-1 text-xs font-medium">{t("New password")}<Input type="password" autoComplete="new-password" required minLength={12} value={passwords.new_password} onChange={(event) => setPasswords((value) => ({ ...value, new_password: event.target.value }))} /></label><label className="grid gap-1 text-xs font-medium">{t("Confirm new password")}<Input type="password" autoComplete="new-password" required minLength={12} value={passwords.confirm} onChange={(event) => setPasswords((value) => ({ ...value, confirm: event.target.value }))} /></label><div className="flex items-center gap-3 md:col-span-3"><Button type="submit" disabled={passwordMutation.isPending || passwords.new_password !== passwords.confirm}>{passwordMutation.isPending ? t("Updating...") : t("Update password")}</Button>{passwords.confirm && passwords.new_password !== passwords.confirm && <span className="text-sm text-red-600">{t("Passwords do not match.")}</span>}{passwordMutation.error && <span className="text-sm text-red-600">{passwordMutation.error.message}</span>}{passwordChanged && <span className="text-sm text-emerald-700">{t("Password updated successfully.")}</span>}</div></form><p className="mt-3 text-xs text-slate-500">{t("Use 12+ characters with uppercase, lowercase, a number and a symbol.")}</p></CardContent></Card>
           </section>
         </main>
       </div>
