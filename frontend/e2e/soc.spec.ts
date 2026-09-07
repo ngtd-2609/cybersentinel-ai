@@ -60,7 +60,10 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
   let timelineAdded = false;
   let responseAdded = false;
   let copilotContext = "";
-  let currentIncident = incident;
+  let currentIncident = {
+    ...incident,
+    resolution_reason: incident.resolution_reason as string | null,
+  };
   await page.route("**/api/backend/**", async (route) => {
     const url = new URL(route.request().url());
     const method = route.request().method();
