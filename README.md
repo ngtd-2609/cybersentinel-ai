@@ -2,7 +2,7 @@
 
 # CyberSentinel AI
 
-### AI-assisted Security Operations, from network flow to incident response
+### Nền tảng Security Operations tích hợp AI, từ network flow đến incident response
 
 [![CI](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/ci.yml)
 [![Security](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/security.yml/badge.svg)](https://github.com/ngtd-2609/cybersentinel-ai/actions/workflows/security.yml)
@@ -13,106 +13,114 @@
 [![Release](https://img.shields.io/github/v/release/ngtd-2609/cybersentinel-ai?include_prereleases)](https://github.com/ngtd-2609/cybersentinel-ai/releases)
 
 [**Live Demo**](https://cybersentinel-ai-dun.vercel.app) ·
-[Architecture](#architecture) · [Quick Start](#quick-start) ·
-[Documentation](#documentation) · [Security](SECURITY.md)
+[Kiến trúc](#architecture) · [Khởi động nhanh](#quick-start) ·
+[Tài liệu](#documentation) · [Security Policy](SECURITY.md)
 
 </div>
 
-CyberSentinel AI is a full-stack defensive security portfolio project that turns
-network telemetry into explainable detections, risk-ranked incidents, threat
-context, and grounded SOC Copilot guidance. It combines machine learning with
-deterministic security rules and human-review workflows instead of treating a
-classifier prediction as a complete security decision.
+CyberSentinel AI là dự án portfolio về defensive security theo kiến trúc full-stack,
+biến network telemetry thành detection có khả năng giải thích, incident được xếp hạng
+rủi ro, threat context và hướng dẫn điều tra từ SOC Copilot. Hệ thống kết hợp Machine
+Learning với deterministic security rules và quy trình human review, thay vì xem kết
+quả dự đoán của classifier là một quyết định bảo mật hoàn chỉnh.
 
-The public demo is a real Next.js + FastAPI application backed by managed
-PostgreSQL. It is not a static mock, and the viewer does not need Docker or a
-running developer laptop.
+Live Demo là ứng dụng Next.js + FastAPI thực sự, sử dụng managed PostgreSQL. Đây không
+phải frontend tĩnh hoặc mock demo; người xem không cần cài Docker hay duy trì laptop
+của tác giả ở trạng thái hoạt động.
 
 > [!IMPORTANT]
-> This is a defensive research and portfolio system, not a replacement for a
-> production SIEM, EDR, IDS/IPS, SOAR, or staffed SOC. Use it only on data and
-> systems you are authorized to analyze.
+> Đây là hệ thống nghiên cứu defensive security và portfolio, không thay thế cho
+> production SIEM, EDR, IDS/IPS, SOAR hoặc một SOC có nhân sự vận hành. Chỉ sử dụng
+> với dữ liệu và hệ thống mà bạn được phép phân tích.
 
-## Table of contents
+## Mục lục
 
-- [Live demo](#live-demo)
-- [Why this project](#why-this-project)
-- [Feature tour](#feature-tour)
-- [Screenshots](#screenshots)
-- [Architecture](#architecture)
-- [Technology stack](#technology-stack)
-- [Detection and AI design](#detection-and-ai-design)
-- [Model evaluation](#model-evaluation)
-- [Security engineering](#security-engineering)
-- [Quick start](#quick-start)
-- [Local development](#local-development)
-- [API overview](#api-overview)
-- [Testing and release quality](#testing-and-release-quality)
+- [Live Demo](#live-demo)
+- [Lý do xây dựng](#why-this-project)
+- [Các tính năng chính](#feature-tour)
+- [Ảnh giao diện](#screenshots)
+- [Kiến trúc](#architecture)
+- [Technology Stack](#technology-stack)
+- [Thiết kế Detection và AI](#detection-and-ai-design)
+- [Đánh giá mô hình](#model-evaluation)
+- [Security Engineering](#security-engineering)
+- [Khởi động nhanh](#quick-start)
+- [Phát triển cục bộ](#local-development)
+- [Tổng quan API](#api-overview)
+- [Kiểm thử và chất lượng release](#testing-and-release-quality)
 - [Deployment](#deployment)
-- [Repository structure](#repository-structure)
-- [Documentation](#documentation)
-- [Roadmap and project status](#roadmap-and-project-status)
-- [Limitations](#limitations)
-- [Contributing](#contributing)
-- [Author and license](#author-and-license)
+- [Cấu trúc repository](#repository-structure)
+- [Tài liệu](#documentation)
+- [Roadmap và trạng thái dự án](#roadmap-and-project-status)
+- [Giới hạn hiện tại](#limitations)
+- [Đóng góp](#contributing)
+- [Tác giả và giấy phép](#author-and-license)
 
-## Live demo
+<a id="live-demo"></a>
+
+## Live Demo
 
 **Portfolio URL:** <https://cybersentinel-ai-dun.vercel.app>
 
-1. Open the URL and wait for the green service-ready indicator.
-2. Select **Explore with the safe demo account**, or create your own account.
-3. Follow Dashboard → Events → Incidents → Threat Intel → Copilot → Reports.
+1. Mở URL và đợi service-ready indicator chuyển sang màu xanh.
+2. Chọn **Explore with the safe demo account** hoặc tự đăng ký tài khoản.
+3. Trải nghiệm theo luồng Dashboard → Events → Incidents → Threat Intel → Copilot → Reports.
 
-All public accounts are restricted `VIEWER` accounts; they can explore shared
-read-only evidence and perform analyst actions only inside their private sandbox.
-They cannot mutate canonical demo incidents, manage users, or access secrets. New
-registrations are rate-limited and capacity-bounded. The dataset contains eight
-synthetic RFC 5737 events, three assets and a correlated six-detection attack story.
-Render Free services
-can sleep when idle, so the first request may take about a minute.
+Mọi tài khoản public đều có role `VIEWER`. Người dùng có thể xem shared evidence ở
+chế độ read-only và thực hiện analyst actions trong private sandbox của chính mình.
+Họ không thể thay đổi canonical demo incidents, quản lý người dùng hoặc truy cập
+secrets. Chức năng đăng ký mới được rate limit và giới hạn capacity. Demo dataset gồm
+tám sự kiện tổng hợp sử dụng địa chỉ RFC 5737, ba asset và một kịch bản tấn công tương
+quan từ sáu detection. Render Free có thể sleep khi không hoạt động, vì vậy request
+đầu tiên đôi lúc cần khoảng một phút.
 
-| Live component | URL / provider | State |
+| Thành phần | URL / Provider | Trạng thái |
 | --- | --- | --- |
 | Web application | [CyberSentinel AI](https://cybersentinel-ai-dun.vercel.app) | Vercel HTTPS, public |
 | Web fallback | [Render frontend](https://cybersentinel-web-ppae.onrender.com) | HTTPS, public |
-| API readiness | [FastAPI `/ready`](https://cybersentinel-api-hrl8.onrender.com/ready) | PostgreSQL-aware |
+| API readiness | [FastAPI `/ready`](https://cybersentinel-api-hrl8.onrender.com/ready) | Kiểm tra cả PostgreSQL |
 | Application hosting | Vercel + Render Free | Next.js BFF + FastAPI |
-| Database | Neon Free PostgreSQL | Durable managed data |
+| Database | Neon Free PostgreSQL | Managed persistent data |
 
-## Why this project
+<a id="why-this-project"></a>
 
-Many intrusion-detection projects end at a notebook and an accuracy score.
-CyberSentinel AI demonstrates the harder engineering around the model:
+## Lý do xây dựng
 
-- leakage-aware, day-based CIC-IDS2017 evaluation with a locked Friday test set;
-- binary classification, multiclass classification, anomaly detection, and rules;
-- risk scoring that combines confidence, anomalies, indicators, and asset context;
-- persisted detection events, incident workflow, timelines, and audit trails;
-- MITRE ATT&CK mapping and optional NVD CVE enrichment;
-- retrieval-augmented SOC guidance with evidence preservation and safe fallback;
-- session rotation, RBAC, administrator MFA, lockout, rate limiting, and CORS;
-- model registry, promotion gates, drift monitoring, DVC, and MLflow provenance;
-- real-time ingestion, Redis-backed quotas, SSE updates, and bounded retries;
-- observability, backup/restore, load testing, DAST, container scanning, and CI;
-- a publicly accessible, secret-safe portfolio deployment.
+Nhiều dự án intrusion detection chỉ dừng ở notebook và một chỉ số accuracy.
+CyberSentinel AI tập trung thể hiện phần engineering khó hơn xung quanh mô hình:
 
-## Feature tour
+- đánh giá CIC-IDS2017 theo ngày, có kiểm soát data leakage và khóa Friday test set;
+- binary classification, multiclass classification, anomaly detection và rules;
+- risk scoring kết hợp confidence, anomaly, indicator và asset context;
+- lưu trữ detection event, incident workflow, timeline và audit trail;
+- ánh xạ MITRE ATT&CK và enrichment NVD CVE tùy chọn;
+- SOC guidance theo Retrieval-Augmented Generation, giữ nguyên evidence và có safe fallback;
+- session rotation, RBAC, MFA cho administrator, lockout, rate limiting và CORS;
+- model registry, promotion gate, drift monitoring, DVC và MLflow provenance;
+- real-time ingestion, quota qua Redis, SSE update và bounded retry;
+- observability, backup/restore, load testing, DAST, container scanning và CI;
+- public portfolio deployment có thể truy cập trực tiếp và không để lộ secret.
 
-| Area | What a reviewer can inspect |
+<a id="feature-tour"></a>
+
+## Các tính năng chính
+
+| Khu vực | Nội dung người xem có thể trải nghiệm |
 | --- | --- |
-| Dashboard | Severity distribution, recent alerts, attack trends, and live SOC metrics |
-| Detection Events | Searchable, paginated detections plus five safe interactive simulation scenarios |
-| Incidents | Case IDs, priorities, assets, related detections, workflow, timeline and private sandbox actions |
-| Threat Intelligence | MITRE context plus optional cached AbuseIPDB IP reputation with graceful fallback |
-| SOC Copilot | Grounded investigation summary, recommended actions, and knowledge sources |
-| Reports | Browser-generated detection and incident CSV exports from authorized APIs |
-| Model Monitor | Registry stages, model provenance, quality thresholds, and drift reports |
-| Monitoring | Application health and operational signals |
-| Experience | Self-registration, private 72-hour sandbox, bilingual controls, real alert status, and password settings |
-| Administration | RBAC-protected user creation, roles, account status and attributable audit logs |
+| Dashboard | Phân bố severity, alert gần đây, attack trend và live SOC metrics |
+| Detection Events | Tìm kiếm, phân trang detection và năm kịch bản simulation an toàn |
+| Incidents | Case ID, priority, asset, related detection, workflow, timeline và private sandbox actions |
+| Threat Intelligence | MITRE context và AbuseIPDB IP reputation được cache, có graceful fallback |
+| SOC Copilot | Tóm tắt điều tra có grounding, đề xuất hành động và knowledge sources |
+| Reports | Xuất detection và incident CSV từ authorized API ngay trên browser |
+| Model Monitor | Registry stage, model provenance, quality threshold và drift report |
+| Monitoring | Application health và operational signals |
+| Trải nghiệm | Self-registration, private sandbox 72 giờ, i18n, alert status thực và password settings |
+| Administration | User management, role, account status và attributable audit log được bảo vệ bởi RBAC |
 
-## Screenshots
+<a id="screenshots"></a>
+
+## Ảnh giao diện
 
 <p align="center">
   <img src="docs/assets/dashboard.png" alt="CyberSentinel AI security dashboard" width="49%">
@@ -123,10 +131,12 @@ CyberSentinel AI demonstrates the harder engineering around the model:
   <img src="docs/assets/copilot.png" alt="CyberSentinel AI grounded SOC Copilot" width="70%">
 </p>
 
-The screenshots use only the synthetic portfolio dataset. A narrated 5–8 minute
-video walkthrough is **planned but intentionally not part of this release gate**.
+Các screenshot chỉ sử dụng synthetic portfolio dataset. Video walkthrough dài 5–8
+phút đang nằm trong kế hoạch và **chưa phải một phần của release gate hiện tại**.
 
-## Architecture
+<a id="architecture"></a>
+
+## Kiến trúc
 
 ```mermaid
 flowchart LR
@@ -150,11 +160,11 @@ flowchart LR
     O --> J
 ```
 
-The browser talks to a Next.js backend-for-frontend. Session tokens remain in
-HTTP-only cookies; the BFF proxies authenticated API and SSE requests. PostgreSQL
-is authoritative. Redis provides distributed login quota and real-time delivery,
-but portfolio mode can use bounded local fallbacks when a free provider does not
-supply a worker or Redis service.
+Browser giao tiếp với Next.js Backend-for-Frontend (BFF). Session token chỉ được lưu
+trong HTTP-only cookie; BFF proxy các API request và SSE request đã xác thực.
+PostgreSQL là nguồn dữ liệu authoritative. Redis cung cấp distributed login quota và
+real-time delivery; portfolio mode có thể dùng bounded local fallback khi free provider
+không cung cấp worker hoặc Redis service.
 
 ### Detection flow
 
@@ -172,53 +182,58 @@ CIC-IDS2017 → day-based split → training/MLflow → DVC artifacts
             → drift + analyst TP/FP feedback → promotion/archive decision
 ```
 
-## Technology stack
+<a id="technology-stack"></a>
 
-| Layer | Technologies |
+## Technology Stack
+
+| Layer | Công nghệ |
 | --- | --- |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/base-ui, Recharts |
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic, Uvicorn |
 | Security data | PostgreSQL 16/Neon, Redis 8, Server-Sent Events |
-| ML | Pandas, NumPy, scikit-learn, XGBoost, Isolation Forest, Joblib |
-| AI and enrichment | TF-IDF RAG, Ollama-compatible local LLM, MITRE ATT&CK, NVD, AbuseIPDB adapter/cache |
+| Machine Learning | Pandas, NumPy, scikit-learn, XGBoost, Isolation Forest, Joblib |
+| AI và enrichment | TF-IDF RAG, Ollama-compatible local LLM, MITRE ATT&CK, NVD, AbuseIPDB adapter/cache |
 | MLOps | MLflow, DVC, fixed model/RAG evaluation reports |
 | Observability | Prometheus, Grafana, Loki, Promtail, structured JSON logs |
 | Delivery | Docker Compose, Render Blueprint, GitHub Actions, k6, OWASP ZAP, Trivy |
 
-## Detection and AI design
+<a id="detection-and-ai-design"></a>
 
-### Leakage-aware evaluation
+## Thiết kế Detection và AI
 
-The main binary experiment uses collection days rather than a random split:
+### Đánh giá có kiểm soát data leakage
 
-| Partition | CIC-IDS2017 days | Purpose |
+Binary experiment chính chia dữ liệu theo ngày thu thập thay vì random split:
+
+| Partition | Ngày trong CIC-IDS2017 | Mục đích |
 | --- | --- | --- |
-| Train | Monday–Wednesday | Fit preprocessing and model parameters |
-| Validation | Thursday | Select threshold and compare candidates |
-| Locked test | Friday | Final temporal-distribution evaluation only |
+| Train | Monday–Wednesday | Fit preprocessing và model parameters |
+| Validation | Thursday | Chọn threshold và so sánh candidate |
+| Locked test | Friday | Chỉ dùng để đánh giá temporal distribution cuối cùng |
 
-This makes distribution shift visible. It produces a less flattering but more
-honest test result than choosing a threshold on the test set.
+Cách chia này làm distribution shift hiện rõ. Kết quả có thể kém đẹp hơn, nhưng trung
+thực hơn so với việc lựa chọn threshold trực tiếp trên test set.
 
-### Layered security decision
+### Quyết định bảo mật nhiều lớp
 
-A detection is not accepted solely because an ML probability crosses a threshold.
-The risk engine incorporates supervised confidence, anomaly evidence,
-deterministic network signals, asset criticality, and available vulnerability
-context. The result includes severity, evidence, ATT&CK context, and whether human
-review is required.
+Một detection không được chấp nhận chỉ vì ML probability vượt threshold. Risk engine
+kết hợp supervised confidence, anomaly evidence, deterministic network signal, asset
+criticality và vulnerability context hiện có. Kết quả bao gồm severity, evidence,
+ATT&CK context và trạng thái yêu cầu human review.
 
 ### Grounded SOC Copilot
 
-The Copilot treats questions, alerts, and retrieved documents as untrusted input.
-It preserves supplied IPs/hostnames/evidence, rejects prompt-injection patterns,
-does not invent IOC/CVE/ATT&CK facts, and returns a structured deterministic
-fallback with sources when Ollama is unavailable. External AI and transmission of
-sensitive context are disabled by default.
+Copilot xem câu hỏi, alert và retrieved document là untrusted input. Hệ thống giữ
+nguyên IP, hostname và evidence được cung cấp; chặn prompt-injection pattern; không tự
+bịa IOC, CVE hoặc ATT&CK fact; đồng thời trả structured deterministic fallback kèm
+source khi Ollama không khả dụng. External AI và việc truyền sensitive context bị tắt
+theo mặc định.
 
-## Model evaluation
+<a id="model-evaluation"></a>
 
-The fixed Phase K release report is committed at
+## Đánh giá mô hình
+
+Fixed Phase K release report được lưu tại
 [`reports/phase_k_ai_reliability.json`](reports/phase_k_ai_reliability.json).
 
 | Metric | Locked Friday test |
@@ -230,38 +245,43 @@ The fixed Phase K release report is committed at
 | ROC-AUC | 0.777590 |
 | PR-AUC | 0.780250 |
 
-The high precision and low false-positive rate come with limited recall under
-temporal shift. This trade-off is documented, not hidden. The fixed RAG suite has
-three adversarial/evidence cases and passes groundedness, citation accuracy,
-indicator preservation, hallucination safety, and prompt-injection resistance.
+Precision cao và false-positive rate thấp phải đánh đổi bằng recall còn hạn chế khi
+có temporal shift. Trade-off này được công khai thay vì che giấu. Fixed RAG suite gồm
+ba adversarial/evidence case và kiểm tra groundedness, citation accuracy, indicator
+preservation, hallucination safety cùng prompt-injection resistance.
 
-## Security engineering
+<a id="security-engineering"></a>
 
-- short-lived access tokens and rotating refresh-token families;
-- replay detection and family revocation;
-- role-based authorization for Analyst, Responder, and Admin workflows;
-- TOTP/recovery-code MFA for administrators;
-- account lockout and Redis-backed login rate limiting;
-- HTTP-only session cookies in the Next.js BFF;
-- trusted-host, CORS, proxy-header, CSP, HSTS, and frame protections;
-- audit events with request metadata for privileged mutations;
-- public registration limited to Viewer accounts, rate-limited per IP, and capped;
-- public API documentation disabled in portfolio mode;
-- generated/provider-managed secrets—never credentials in source control;
-- Bandit, pip-audit, npm audit, Trivy, secret hygiene, and OWASP ZAP in CI.
+## Security Engineering
 
-See [SECURITY.md](SECURITY.md) for reporting and supported-use guidance.
+- access token ngắn hạn và rotating refresh-token family;
+- phát hiện replay và thu hồi toàn bộ token family;
+- role-based authorization cho các workflow Analyst, Responder và Admin;
+- TOTP/recovery-code MFA dành cho administrator;
+- account lockout và login rate limiting qua Redis;
+- HTTP-only session cookie trong Next.js BFF;
+- trusted host, CORS, proxy header, CSP, HSTS và frame protection;
+- audit event có request metadata cho privileged mutation;
+- public registration chỉ tạo role Viewer, rate limit theo IP và giới hạn capacity;
+- tắt public API documentation trong portfolio mode;
+- secret do provider tạo hoặc quản lý, không lưu credential trong source control;
+- Bandit, pip-audit, npm audit, Trivy, secret hygiene và OWASP ZAP trong CI.
 
-## Quick start
+Xem [SECURITY.md](SECURITY.md) để biết cách báo cáo vulnerability và phạm vi sử dụng
+được hỗ trợ.
 
-### Option A — use the hosted demo
+<a id="quick-start"></a>
 
-Open <https://cybersentinel-ai-dun.vercel.app>. No installation is required.
+## Khởi động nhanh
 
-### Option B — one-command local demo
+### Lựa chọn A — sử dụng Live Demo
 
-Requirements: Git, Docker Engine/Desktop, Docker Compose v2, and approximately
-8 GB free RAM for the complete stack.
+Mở <https://cybersentinel-ai-dun.vercel.app>. Không cần cài đặt.
+
+### Lựa chọn B — chạy local demo bằng một command
+
+Yêu cầu: Git, Docker Engine/Desktop, Docker Compose v2 và khoảng 8 GB RAM trống cho
+toàn bộ stack.
 
 ```bash
 git clone https://github.com/ngtd-2609/cybersentinel-ai.git
@@ -269,32 +289,33 @@ cd cybersentinel-ai
 ./scripts/start-demo.sh
 ```
 
-The script creates a gitignored local secret file using cryptographic randomness,
-builds the stack, migrates a fresh PostgreSQL database, inserts the safe demo
-dataset, waits for readiness, and prints the URLs. Then open:
+Script tự tạo local secret file đã nằm trong `.gitignore` bằng cryptographic random,
+build stack, migrate database PostgreSQL mới, seed safe demo dataset, chờ readiness và
+in các URL cần thiết. Sau đó mở:
 
 - application: <http://localhost:3002>
 - API readiness: <http://localhost:8001/ready>
 - Prometheus: <http://localhost:9091>
-- Grafana: <http://localhost:3001> (local default `admin` / `admin`)
+- Grafana: <http://localhost:3001> — local default `admin` / `admin`
 
-Stop and remove containers with:
+Dừng và xóa container bằng:
 
 ```bash
 ./scripts/stop-demo.sh
 ```
 
-Add `--volumes` only when you explicitly want to erase local demo databases and
-monitoring volumes.
+Chỉ thêm `--volumes` khi bạn thực sự muốn xóa local demo database và monitoring volume.
 
-## Local development
+<a id="local-development"></a>
+
+## Phát triển cục bộ
 
 ### Prerequisites
 
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
-- Node.js 22 and npm
-- PostgreSQL 16 and Redis 8, or Docker Compose
+- Node.js 22 và npm
+- PostgreSQL 16 và Redis 8, hoặc Docker Compose
 
 ### Backend
 
@@ -306,8 +327,8 @@ uv run alembic upgrade head
 uv run uvicorn cybersentinel_ai.api.main:app --reload --port 8001
 ```
 
-Use `.env.example` as a key reference, but create your own `.env` and replace all
-placeholder credentials before enabling hardened production/staging mode.
+Dùng `.env.example` để tham khảo key, nhưng hãy tạo `.env` riêng và thay toàn bộ
+placeholder credential trước khi bật hardened production/staging mode.
 
 ### Frontend
 
@@ -317,37 +338,40 @@ npm ci
 CYBERSENTINEL_API_URL=http://localhost:8001 npm run dev -- --port 3002
 ```
 
-### Optional local Ollama
+### Local Ollama tùy chọn
 
-The application works safely without an LLM by returning its grounded fallback.
-To use a local model, run an Ollama-compatible endpoint, configure
-`CYBERSENTINEL_OLLAMA_URL` and `CYBERSENTINEL_OLLAMA_MODEL`, and keep external AI
-permissions disabled unless the data-handling policy has been reviewed.
+Ứng dụng vẫn hoạt động an toàn khi không có LLM nhờ grounded fallback. Để dùng local
+model, hãy chạy Ollama-compatible endpoint, cấu hình `CYBERSENTINEL_OLLAMA_URL` và
+`CYBERSENTINEL_OLLAMA_MODEL`. Chỉ bật quyền sử dụng external AI sau khi đã xem xét
+data-handling policy.
 
-## API overview
+<a id="api-overview"></a>
 
-| Group | Representative routes | Protection |
+## Tổng quan API
+
+| Nhóm | Representative routes | Cơ chế bảo vệ |
 | --- | --- | --- |
-| Health | `GET /health`, `GET /ready`, `GET /metrics` | health public; metrics deployment-controlled |
-| Authentication | `/auth/login`, refresh, logout, MFA, password change | rate limited / authenticated |
-| Detections | `/events`, `/events/page`, `/events/simulate`, sandbox reset | authenticated; controlled simulation is available to Viewer accounts |
-| Ingestion | batch submit, job state, dead-letter replay | ingestion API key / privileged role |
-| Incidents | create, combined filters, case update, timeline | role policy; Viewer writes only to own sandbox |
-| Investigation | assets, cached IP reputation, simulated response actions | authenticated; mutations scope-checked |
-| Dashboard | `/dashboard/summary` | authenticated |
-| Realtime | `/realtime/soc` | authenticated SSE |
-| Copilot | `/copilot/ask` | authenticated and safety-filtered |
-| MLOps | models, promotions, monitoring, feedback | authenticated; mutations role-gated |
-| Administration | create/list users, role/status, audit logs | Admin only |
+| Health | `GET /health`, `GET /ready`, `GET /metrics` | Health public; metrics do deployment kiểm soát |
+| Authentication | `/auth/login`, refresh, logout, MFA, password change | Rate limit / yêu cầu authentication |
+| Detections | `/events`, `/events/page`, `/events/simulate`, sandbox reset | Authenticated; Viewer được dùng controlled simulation |
+| Ingestion | Batch submit, job state, dead-letter replay | Ingestion API key / privileged role |
+| Incidents | Create, combined filter, case update, timeline | Role policy; Viewer chỉ ghi vào sandbox của mình |
+| Investigation | Asset, cached IP reputation, simulated response action | Authenticated; mutation được scope check |
+| Dashboard | `/dashboard/summary` | Authenticated |
+| Realtime | `/realtime/soc` | Authenticated SSE |
+| Copilot | `/copilot/ask` | Authenticated và safety filtered |
+| MLOps | Model, promotion, monitoring, feedback | Authenticated; mutation có role gate |
+| Administration | Create/list user, role/status, audit log | Chỉ Admin |
 
-Interactive OpenAPI documentation is available in development mode. It is hidden
-on the public portfolio deployment to reduce unnecessary attack surface.
+Interactive OpenAPI documentation khả dụng trong development mode và được ẩn trên
+public portfolio deployment để giảm attack surface không cần thiết.
 
-## Testing and release quality
+<a id="testing-and-release-quality"></a>
 
-The repository currently collects **187 Python tests** (185 passing and 2
-environment-specific skips in the local gate) plus the Playwright browser
-suite. Release checks cover:
+## Kiểm thử và chất lượng release
+
+Backend suite hiện đạt **192 tests passed** và có **2 environment-specific skips**;
+frontend có Playwright browser suite riêng. Các release check chính gồm:
 
 ```bash
 uv run ruff check .
@@ -356,128 +380,142 @@ uv run python -m cybersentinel_ai.evaluation.phase_k --check
 cd frontend && npm run lint && npm run build && npm run test:e2e
 ```
 
-GitHub Actions additionally verifies:
+GitHub Actions còn xác minh:
 
-- clean fresh checkout and Phase M release metadata;
-- secret hygiene and Compose/observability configuration;
-- empty PostgreSQL migration, downgrade/re-upgrade, schema, and CRUD;
-- API and frontend production container builds;
-- Python and Node dependency audits plus Bandit SAST;
-- Redis integration and rate-limit fail-closed behavior;
-- Trivy critical container vulnerabilities;
+- clean fresh checkout và Phase M release metadata;
+- secret hygiene và cấu hình Compose/observability;
+- migration trên PostgreSQL rỗng, downgrade/re-upgrade, schema và CRUD;
+- production container build cho API và frontend;
+- dependency audit cho Python/Node và Bandit SAST;
+- Redis integration cùng hành vi rate-limit fail-closed;
+- critical container vulnerability bằng Trivy;
 - PostgreSQL backup → checksum → disposable restore;
-- k6 availability/latency SLO;
-- OWASP ZAP active API scan;
-- no-mock public browser journey on the hosted portfolio.
+- availability/latency SLO bằng k6;
+- active API scan bằng OWASP ZAP;
+- public browser journey không dùng mock trên hosted portfolio.
 
-The final gate and immutable evidence are documented in
-[`docs/releases/v1.2.0-handoff.md`](docs/releases/v1.2.0-handoff.md) and
+Final gate và immutable evidence được ghi tại
+[`docs/releases/v1.2.0-handoff.md`](docs/releases/v1.2.0-handoff.md) và
 [`docs/releases/v1.2.0-state.json`](docs/releases/v1.2.0-state.json).
+
+<a id="deployment"></a>
 
 ## Deployment
 
-The live portfolio architecture uses Vercel for the public Next.js/BFF frontend
-and the root [`render.yaml`](render.yaml) for the API:
+Kiến trúc public portfolio sử dụng Vercel cho Next.js/BFF frontend và file
+[`render.yaml`](render.yaml) ở repository root cho API:
 
 ```text
 Internet → Vercel Next.js/BFF → Render FastAPI Web Service → Neon PostgreSQL
 ```
 
-Render generates application secrets and receives three user-managed values:
-the Neon pooled URL, a strong demo password, and a separate Owner Admin password. Provider URLs and credentials stay
-in provider secret settings. The Blueprint runs Alembic and the idempotent seed at
-API startup.
+Render tự tạo application secret và nhận ba giá trị do người dùng quản lý: Neon pooled
+URL, demo password mạnh và một Owner Admin password riêng. Provider URL và credential
+được lưu trong provider secret settings. Blueprint chạy Alembic và idempotent seed khi
+API khởi động.
 
-The committed [`frontend/vercel.json`](frontend/vercel.json) defines the Vercel
-frontend build. FastAPI remains on Render and PostgreSQL remains on Neon; the
-Render-hosted frontend is retained as a fallback.
+File [`frontend/vercel.json`](frontend/vercel.json) định nghĩa Vercel frontend build.
+FastAPI tiếp tục chạy trên Render và PostgreSQL trên Neon; Render-hosted frontend được
+giữ lại làm fallback.
 
-For setup, recovery, cold-start, cost, and verification details, see
-[`docs/portfolio-deployment.md`](docs/portfolio-deployment.md).
+Xem [`docs/portfolio-deployment.md`](docs/portfolio-deployment.md) để biết chi tiết về
+setup, recovery, cold start, chi phí và verification.
 
-The Compose/Caddy staging path, immutable images, Prometheus/Grafana/Loki,
-scheduled backup drills, and rollback tooling remain available as advanced SRE
-evidence; a paid VPS is not required for this portfolio release.
+Compose/Caddy staging path, immutable image, Prometheus/Grafana/Loki, scheduled backup
+drill và rollback tooling vẫn được giữ làm bằng chứng SRE nâng cao; portfolio release
+không bắt buộc phải thuê VPS.
 
-## Repository structure
+<a id="repository-structure"></a>
+
+## Cấu trúc repository
 
 ```text
 cybersentinel-ai/
 ├── src/cybersentinel_ai/   # API, auth, ingestion, detection, MLOps, RAG
 ├── frontend/               # Next.js BFF, SOC UI, Playwright E2E
 ├── alembic/                # PostgreSQL schema migrations
-├── tests/                  # unit, API, security, and integration tests
-├── evaluation/             # fixed Copilot and model evaluation inputs
+├── tests/                  # unit, API, security và integration tests
+├── evaluation/             # fixed Copilot và model evaluation inputs
 ├── reports/                # immutable quantitative release reports
-├── data/ + artifacts/      # DVC metadata; large content stays outside Git
+├── data/ + artifacts/      # DVC metadata; large content nằm ngoài Git
 ├── monitoring/             # Prometheus, Grafana, Loki, Promtail
-├── deploy/                 # Caddy/Nginx, secrets, systemd operations
+├── deploy/                 # Caddy/Nginx, secret và systemd operations
 ├── load/                   # k6 SLO scenario
 ├── scripts/                # startup, release, backup, restore, rollback
-├── docs/                   # deployment, SRE, and release evidence
+├── docs/                   # deployment, SRE và release evidence
 ├── render.yaml             # public portfolio Blueprint
-└── docker-compose*.yml     # local, demo, staging, and production layouts
+└── docker-compose*.yml     # local, demo, staging và production layouts
 ```
 
-## Documentation
+<a id="documentation"></a>
 
-| Document | Purpose |
+## Tài liệu
+
+| Tài liệu | Mục đích |
 | --- | --- |
-| [Portfolio deployment](docs/portfolio-deployment.md) | Render + Neon setup and operations |
-| [Release notes](docs/releases/v1.2.0.md) | User-facing v1.2.0 changes |
-| [Final handoff](docs/releases/v1.2.0-handoff.md) | Phase M Final Release Gate evidence |
-| [Machine-readable state](docs/releases/v1.2.0-state.json) | Release status and evidence map |
-| [SLO](docs/sre/SLO.md) | Availability and latency objectives |
-| [Incident runbook](docs/sre/incident-runbook.md) | Diagnosis, containment, and recovery |
-| [Phase L evidence](docs/sre/phase-l-evidence.md) | Public deployment and optional SRE proof |
-| [Deploy operations](deploy/README.md) | Self-hosted staging/rollback details |
-| [Changelog](CHANGELOG.md) | Version history |
+| [Portfolio deployment](docs/portfolio-deployment.md) | Thiết lập và vận hành Render + Neon |
+| [Release notes](docs/releases/v1.2.0.md) | Các thay đổi hướng tới người dùng trong v1.2.0 |
+| [Final handoff](docs/releases/v1.2.0-handoff.md) | Bằng chứng cho Phase M Final Release Gate |
+| [Machine-readable state](docs/releases/v1.2.0-state.json) | Release status và evidence map |
+| [SLO](docs/sre/SLO.md) | Mục tiêu availability và latency |
+| [Incident runbook](docs/sre/incident-runbook.md) | Diagnosis, containment và recovery |
+| [Phase L evidence](docs/sre/phase-l-evidence.md) | Public deployment và bằng chứng SRE tùy chọn |
+| [Deploy operations](deploy/README.md) | Chi tiết self-hosted staging/rollback |
+| [Changelog](CHANGELOG.md) | Lịch sử phiên bản |
 
-## Roadmap and project status
+<a id="roadmap-and-project-status"></a>
 
-The official implementation order was `G → H → I → J → K → L → M`; completed
-phases are not replayed unless a regression is found.
+## Roadmap và trạng thái dự án
 
-- [x] G — core platform and data pipeline
-- [x] H — authentication, authorization, and identity hardening
-- [x] I — SOC frontend and analyst workflows
-- [x] J — real-time ingestion and incident operations
-- [x] K — AI reliability and MLOps lifecycle
+Thứ tự triển khai chính thức là `G → H → I → J → K → L → M`. Phase đã hoàn thành
+không được thực hiện lại trừ khi phát hiện regression.
+
+- [x] G — core platform và data pipeline
+- [x] H — authentication, authorization và identity hardening
+- [x] I — SOC frontend và analyst workflow
+- [x] J — real-time ingestion và incident operations
+- [x] K — AI reliability và MLOps lifecycle
 - [x] L — public HTTPS portfolio deployment
-- [x] M — final release gate and portfolio documentation
-- [ ] Optional — record and publish a 5–8 minute demonstration video
+- [x] M — final release gate và portfolio documentation
+- [ ] Tùy chọn — ghi và xuất bản video demonstration dài 5–8 phút
 
-## Limitations
+<a id="limitations"></a>
 
-- CIC-IDS2017 is dated and does not represent every modern network environment.
-- Temporal shift produces low locked-test recall; retraining on representative,
-  authorized modern telemetry would be required for operational deployment.
-- ATT&CK mapping and NVD enrichment are contextual aids, not attribution proof.
-- Copilot output always requires analyst judgment, even when grounded.
-- The free public tier has cold starts and modest quotas; it is sized for portfolio
-  review rather than production traffic.
-- The repository intentionally has no declared open-source license yet. Source is
-  visible for review, but reuse rights are not granted by default.
+## Giới hạn hiện tại
 
-## Contributing
+- CIC-IDS2017 đã cũ và không đại diện cho mọi network environment hiện đại.
+- Temporal shift làm locked-test recall còn thấp; operational deployment cần retrain
+  trên representative telemetry hiện đại và được thu thập hợp pháp.
+- ATT&CK mapping và NVD enrichment chỉ cung cấp context, không phải attribution proof.
+- Copilot output luôn cần analyst judgment, kể cả khi đã được grounding.
+- Free public tier có cold start và quota giới hạn; hệ thống được sizing cho portfolio
+  review, không phải production traffic.
+- Repository chủ ý chưa khai báo open-source license. Source code được công khai để
+  review nhưng mặc định không cấp quyền tái sử dụng.
 
-This is primarily a portfolio project, but well-scoped bug reports and defensive
-improvements are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), avoid sensitive
-or unauthorized telemetry, and report security issues privately as described in
-[SECURITY.md](SECURITY.md).
+<a id="contributing"></a>
 
-## Author and license
+## Đóng góp
+
+Đây chủ yếu là portfolio project, nhưng các bug report có phạm vi rõ ràng và cải tiến
+defensive security đều được chào đón. Hãy đọc [CONTRIBUTING.md](CONTRIBUTING.md), không
+gửi telemetry nhạy cảm hoặc trái phép và báo cáo security issue theo kênh riêng được
+mô tả trong [SECURITY.md](SECURITY.md).
+
+<a id="author-and-license"></a>
+
+## Tác giả và giấy phép
 
 **Nguyễn Tùng Dương** — [GitHub @ngtd-2609](https://github.com/ngtd-2609)
 
-No open-source license has been declared. Unless a license is added later, normal
-copyright restrictions apply. The project and demo data are intended for
-authorized defensive research, education, and portfolio evaluation.
+Dự án hiện chưa khai báo open-source license. Cho đến khi license được bổ sung, các
+quy định bản quyền thông thường vẫn được áp dụng. Project và demo data dành cho
+authorized defensive research, giáo dục và portfolio evaluation.
 
-## Acknowledgments
+## Lời cảm ơn
 
-The project builds on CIC-IDS2017, MITRE ATT&CK, NVD, FastAPI, Next.js, XGBoost,
+Dự án sử dụng và học hỏi từ CIC-IDS2017, MITRE ATT&CK, NVD, FastAPI, Next.js, XGBoost,
 scikit-learn, MLflow, DVC, PostgreSQL, Redis, Prometheus, Grafana, Loki, Docker,
-Playwright, OWASP ZAP, Trivy, and the broader open-source security community.
+Playwright, OWASP ZAP, Trivy và cộng đồng open-source security.
 
-<p align="right"><a href="#cybersentinel-ai">Back to top ↑</a></p>
+<p align="right"><a href="#cybersentinel-ai">Về đầu trang ↑</a></p>
