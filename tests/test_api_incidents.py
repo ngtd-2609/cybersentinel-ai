@@ -85,6 +85,39 @@ def test_create_and_list_incidents():
     )
 
 
+def test_incident_summary_uses_full_filtered_dataset_and_active_states():
+    prefix = "AggregateScope-"
+    statuses = ["OPEN", "OPEN", "INVESTIGATING", "IN_PROGRESS", "CONTAINED", "RESOLVED"]
+    for index, status in enumerate(statuses):
+        response = client.post(
+            "/incidents",
+            json={
+                "title": f"{prefix}{index}",
+                "severity": "HIGH",
+                "status": status,
+            },
+        )
+        assert response.status_code == 201
+
+    page = client.get("/incidents", params={"query": prefix, "limit": 1}).json()
+    summary = client.get("/incidents/summary", params={"query": prefix})
+
+    assert len(page["items"]) == 1
+    assert page["total"] == 6
+    assert summary.status_code == 200
+    assert summary.json() == {
+        "total": 6,
+        "active": 5,
+        "by_status": {
+            "OPEN": 2,
+            "INVESTIGATING": 1,
+            "IN_PROGRESS": 1,
+            "CONTAINED": 1,
+            "RESOLVED": 1,
+        },
+    }
+
+
 def test_get_incident_by_id():
     create_response = client.post(
         "/incidents",

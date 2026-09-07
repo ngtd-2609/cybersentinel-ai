@@ -8,6 +8,7 @@ from cybersentinel_ai.api.schemas import (
     IncidentCreate,
     IncidentPage,
     IncidentRead,
+    IncidentSummary,
     IncidentTimelineCreate,
     IncidentTimelineRead,
     IncidentUpdate,
@@ -20,6 +21,7 @@ from cybersentinel_ai.db.repository import (
     get_incident,
     list_incident_timelines,
     list_incidents,
+    summarize_incidents,
     update_incident_status,
 )
 from cybersentinel_ai.security.dependencies import get_current_user
@@ -130,6 +132,37 @@ def list_all(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/summary", response_model=IncidentSummary)
+def summary(
+    database: DatabaseSession,
+    severity: str | None = Query(default=None, max_length=16),
+    priority: str | None = Query(default=None, max_length=8),
+    assignee_user_id: int | None = Query(default=None, ge=1),
+    asset_id: str | None = Query(default=None, max_length=128),
+    attack_type: str | None = Query(default=None, max_length=128),
+    source_ip: str | None = Query(default=None, max_length=45),
+    query: str | None = Query(default=None, max_length=255),
+    since: datetime | None = None,
+    until: datetime | None = None,
+    current_user=Depends(get_current_user),
+) -> IncidentSummary:
+    aggregates = summarize_incidents(
+        database,
+        user_id=current_user.id,
+        role=current_user.role,
+        severity=severity,
+        priority=priority,
+        assignee_user_id=assignee_user_id,
+        asset_id=asset_id,
+        attack_type=attack_type,
+        source_ip=source_ip,
+        query=query,
+        since=since,
+        until=until,
+    )
+    return IncidentSummary(**aggregates)
 
 
 @router.get("/{incident_id}", response_model=IncidentRead)

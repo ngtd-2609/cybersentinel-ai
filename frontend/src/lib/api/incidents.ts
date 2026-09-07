@@ -54,6 +54,12 @@ export interface IncidentPage {
   offset: number;
 }
 
+export interface IncidentSummary {
+  total: number;
+  active: number;
+  by_status: Record<string, number>;
+}
+
 export interface IncidentCreate {
   title: string;
   severity: string;
@@ -84,6 +90,21 @@ export async function getIncidents(
   }
 
   return response.json() as Promise<IncidentPage>;
+}
+
+export async function getIncidentSummary(
+  filters: Record<string, string> = {},
+): Promise<IncidentSummary> {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== "ALL") params.set(key, value);
+  });
+  const query = params.toString();
+  const response = await apiFetch(`/incidents/summary${query ? `?${query}` : ""}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error("Unable to load incident totals");
+  return response.json() as Promise<IncidentSummary>;
 }
 
 export async function createIncident(
@@ -194,6 +215,8 @@ export interface ThreatIntel {
   abuse_confidence: number | null;
   country: string | null;
   reports: number | null;
+  last_reported_at: string | null;
+  checked_at: string;
   cached: boolean;
   available: boolean;
   error: string | null;

@@ -195,7 +195,14 @@ def enrich_ip(
         )
     )
     if cached is not None:
-        return ThreatIntelRead(**cached.payload, cached=True)
+        fetched_at = cached.fetched_at
+        if fetched_at.tzinfo is None:
+            fetched_at = fetched_at.replace(tzinfo=UTC)
+        return ThreatIntelRead(
+            **cached.payload,
+            cached=True,
+            checked_at=fetched_at,
+        )
 
     settings = get_settings()
     if settings.abuseipdb_api_key is None:
@@ -206,6 +213,7 @@ def enrich_ip(
             cached=False,
             available=False,
             error="Provider key is not configured",
+            checked_at=now,
         )
     provider = AbuseIPDBProvider(
         settings.abuseipdb_api_key.get_secret_value(),
@@ -221,6 +229,7 @@ def enrich_ip(
             cached=False,
             available=False,
             error="Threat-intelligence provider is temporarily unavailable",
+            checked_at=now,
         )
     payload = result.as_dict()
     with atomic(database):
@@ -241,4 +250,4 @@ def enrich_ip(
         stale.expires_at = now + timedelta(
             seconds=settings.threat_intel_cache_ttl_seconds
         )
-    return ThreatIntelRead(**payload, cached=False)
+    return ThreatIntelRead(**payload, cached=False, checked_at=now)

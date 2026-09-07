@@ -220,6 +220,12 @@ class IncidentPage(BaseModel):
     offset: int
 
 
+class IncidentSummary(BaseModel):
+    total: int
+    active: int
+    by_status: dict[str, int]
+
+
 class IncidentTimelineBase(BaseModel):
     action: str = Field(min_length=1, max_length=64)
     description: str = Field(min_length=1, max_length=1000)
@@ -268,6 +274,7 @@ class ThreatIntelRead(BaseModel):
     country: str | None = None
     reports: int | None = None
     last_reported_at: datetime | None = None
+    checked_at: datetime
     cached: bool
     available: bool = True
     error: str | None = None

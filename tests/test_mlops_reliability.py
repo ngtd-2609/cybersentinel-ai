@@ -43,6 +43,27 @@ def override_get_current_user():
     )
 
 
+def test_canonical_evaluation_evidence_api() -> None:
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    try:
+        response = TestClient(app).get("/mlops/evaluation-evidence")
+        assert response.status_code == 200
+        evidence = response.json()
+        assert evidence["model_name"] == "xgboost-binary"
+        assert evidence["split"] == "Locked temporal test split"
+        assert evidence["metrics"] == {
+            "precision": 0.998898,
+            "recall": 0.279213,
+            "f1": 0.436433,
+            "false_positive_rate": 0.000214809,
+            "roc_auc": 0.77759,
+            "pr_auc": 0.78025,
+        }
+    finally:
+        app.dependency_overrides.clear()
+
+
 def model_payload(version: str, *, recall: float = 0.9) -> dict:
     return {
         "name": "xgboost-binary",

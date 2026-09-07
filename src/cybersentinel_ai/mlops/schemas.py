@@ -39,6 +39,31 @@ class ModelVersionRead(ModelVersionCreate):
     updated_at: datetime
 
 
+class ModelEvaluationMetrics(BaseModel):
+    precision: float
+    recall: float
+    f1: float
+    false_positive_rate: float
+    roc_auc: float
+    pr_auc: float
+
+
+class ModelEvaluationEvidenceRead(BaseModel):
+    schema_version: int
+    model_name: str
+    model_version: str
+    task: str
+    artifact_hash: str
+    dataset_name: str
+    dataset_hash: str
+    split: str
+    evaluation: str
+    selected_threshold: float
+    metrics: ModelEvaluationMetrics
+    quality_gate_passed: bool
+    source: str
+
+
 class ModelPromotionRequest(BaseModel):
     target_stage: Literal["STAGING", "PRODUCTION"]
     reason: str = Field(min_length=5, max_length=1000)

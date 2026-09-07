@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.db.models import DetectionEvent, DetectionFeedback, ModelVersion
+from cybersentinel_ai.mlops.evidence import CANONICAL_MODEL_EVIDENCE
 from cybersentinel_ai.mlops.schemas import (
     DetectionFeedbackCreate,
     DetectionFeedbackRead,
@@ -14,6 +15,7 @@ from cybersentinel_ai.mlops.schemas import (
     FeedbackSummaryRead,
     ModelComparisonRead,
     ModelComparisonRequest,
+    ModelEvaluationEvidenceRead,
     ModelPromotionRequest,
     ModelVersionCreate,
     ModelVersionRead,
@@ -32,6 +34,16 @@ from cybersentinel_ai.security.rbac import UserRole, require_role
 router = APIRouter(prefix="/mlops", tags=["AI Reliability and MLOps"])
 DatabaseSession = Annotated[Session, Depends(get_db)]
 Authenticated = Depends(require_role(*tuple(UserRole)))
+
+
+@router.get(
+    "/evaluation-evidence",
+    response_model=ModelEvaluationEvidenceRead,
+    dependencies=[Authenticated],
+)
+def evaluation_evidence() -> ModelEvaluationEvidenceRead:
+    """Return the immutable evidence for the released portfolio classifier."""
+    return ModelEvaluationEvidenceRead(**CANONICAL_MODEL_EVIDENCE)
 
 
 @router.get("/models", response_model=list[ModelVersionRead], dependencies=[Authenticated])

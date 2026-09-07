@@ -1,13 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Crosshair, Globe2, Radar, ShieldAlert } from "lucide-react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { Crosshair, Globe2, Radar, RefreshCw, ShieldAlert } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardSummary } from "@/lib/api/dashboard";
+import { getIpThreatIntel, type ThreatIntel } from "@/lib/api/incidents";
 
 const techniques: Record<string, { id: string; name: string }> = {
   RANSOMWARE: { id: "T1486", name: "Data Encrypted for Impact" },
@@ -19,6 +21,22 @@ const techniques: Record<string, { id: string; name: string }> = {
 export default function ThreatIntelPage() {
   const query = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary });
   const data = query.data;
+  const sources = data?.top_threat_sources.slice(0, 5) ?? [];
+  const enrichments = useQueries({
+    queries: sources.map((source) => ({
+      queryKey: ["threat-intel", source.source_ip],
+      queryFn: () => getIpThreatIntel(source.source_ip),
+      staleTime: 5 * 60_000,
+      retry: 1,
+    })),
+  });
+
+  const stateLabel = (intel: ThreatIntel | undefined, pending: boolean, failed: boolean) => {
+    if (pending) return "Checking";
+    if (failed || !intel) return "Temporarily unavailable";
+    if (!intel.available) return intel.error?.toLowerCase().includes("not configured") ? "Provider not configured" : "Temporarily unavailable";
+    return intel.cached ? "Cached" : "Live";
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-950">
@@ -26,20 +44,19 @@ export default function ThreatIntelPage() {
       <div className="min-w-0 flex-1">
         <Topbar />
         <main className="mx-auto max-w-[1500px] p-5 md:p-8">
-          <header className="mb-8"><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><Radar className="size-4" />Observed intelligence</div><h1 className="text-3xl font-semibold tracking-tight">Threat Intelligence</h1><p className="mt-2 text-sm text-slate-500">Prioritize observed adversary sources and attack techniques from live detections.</p></header>
-          {query.isLoading ? <p className="py-20 text-center text-slate-500">Loading threat intelligence...</p> : query.isError || !data ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">Unable to load threat intelligence.</p> : (
+          <header className="mb-8 flex items-end justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><Radar className="size-4" />Observed intelligence</div><h1 className="text-3xl font-semibold tracking-tight">Threat Intelligence</h1><p className="mt-2 text-sm text-slate-500">Local detection evidence enriched on demand for the five most-observed source IPs.</p></div><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? "animate-spin" : ""} />Refresh sources</Button></header>
+          {query.isLoading ? <p className="py-20 text-center text-slate-500">Loading threat intelligence...</p> : query.isError || !data ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><p>Threat sources could not be loaded. No current result is being inferred.</p><Button className="mt-3" variant="outline" onClick={() => query.refetch()}>Retry</Button></div> : (
             <div className="grid gap-6 xl:grid-cols-2">
-              <Card>
+              <Card className="xl:col-span-2">
                 <CardHeader><CardTitle className="flex items-center gap-2"><Globe2 className="size-5 text-cyan-600" />Observed source indicators</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {data.top_threat_sources.map((source, index) => (
-                    <article key={source.source_ip} className="grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-xl border p-4">
-                      <span className="flex size-9 items-center justify-center rounded-lg bg-slate-100 text-sm font-semibold">{index + 1}</span>
-                      <div><p className="font-mono text-sm font-semibold">{source.source_ip}</p><p className="mt-1 text-xs text-slate-500">Seen in {source.count} event{source.count === 1 ? "" : "s"}</p></div>
-                      <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">Risk {source.max_risk_score.toFixed(0)}</Badge>
-                    </article>
-                  ))}
-                  {!data.top_threat_sources.length && <p className="text-sm text-slate-500">No source indicators observed.</p>}
+                <CardContent className="overflow-x-auto">
+                  {sources.length ? <table className="w-full min-w-[980px] text-left text-sm"><thead className="border-b text-xs uppercase tracking-wide text-slate-500"><tr><th className="p-3">Indicator</th><th className="p-3">Local evidence</th><th className="p-3">Provider</th><th className="p-3">Reputation</th><th className="p-3">Confidence</th><th className="p-3">Reports</th><th className="p-3">Country</th><th className="p-3">State / checked</th></tr></thead><tbody>{sources.map((source, index) => {
+                    const result = enrichments[index];
+                    const intel = result.data;
+                    const state = stateLabel(intel, result.isPending, result.isError);
+                    const stateClass = state === "Live" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : state === "Cached" ? "border-blue-200 bg-blue-50 text-blue-700" : state === "Checking" ? "border-slate-200 bg-slate-50 text-slate-600" : "border-amber-200 bg-amber-50 text-amber-800";
+                    return <tr key={source.source_ip} className="border-b last:border-0"><td className="p-3 font-mono font-semibold">{source.source_ip}</td><td className="p-3"><span className="font-medium">Risk {source.max_risk_score.toFixed(0)}</span><br /><span className="text-xs text-slate-500">{source.count} sighting{source.count === 1 ? "" : "s"}</span></td><td className="p-3">{intel?.provider ?? "AbuseIPDB"}</td><td className="p-3 font-medium">{intel?.available ? intel.reputation.replaceAll("_", " ") : "Not confirmed"}</td><td className="p-3">{intel?.available && intel.abuse_confidence !== null ? `${intel.abuse_confidence}%` : "—"}</td><td className="p-3">{intel?.available && intel.reports !== null ? intel.reports : "—"}</td><td className="p-3">{intel?.available ? (intel.country ?? "Unknown") : "—"}</td><td className="p-3"><Badge variant="outline" className={stateClass}>{state}</Badge><p className="mt-1 text-xs text-slate-500">{intel?.checked_at ? new Date(intel.checked_at).toLocaleString() : "Awaiting provider"}</p>{(result.isError || intel?.available === false) && <Button className="mt-2 h-7 px-2 text-xs" variant="outline" onClick={() => result.refetch()}>Retry</Button>}</td></tr>;
+                  })}</tbody></table> : <p className="text-sm text-slate-500">No source indicators have been observed. This does not mean the external provider found no threats.</p>}
                 </CardContent>
               </Card>
               <Card>
@@ -52,7 +69,7 @@ export default function ThreatIntelPage() {
                   {!data.top_attack_types.length && <p className="text-sm text-slate-500">No attack patterns observed.</p>}
                 </CardContent>
               </Card>
-              <Card className="xl:col-span-2"><CardContent className="flex items-start gap-4 p-5"><ShieldAlert className="mt-0.5 size-5 text-amber-600" /><div><p className="font-medium">Operational scope</p><p className="mt-1 text-sm leading-6 text-slate-500">This view reflects locally observed detections and curated ATT&amp;CK mappings. It does not claim external reputation or enrichment data.</p></div></CardContent></Card>
+              <Card className="xl:col-span-2"><CardContent className="flex items-start gap-4 p-5"><ShieldAlert className="mt-0.5 size-5 text-amber-600" /><div><p className="font-medium">How to read this page</p><p className="mt-1 text-sm leading-6 text-slate-500">Local risk comes from CyberSentinel detections; AbuseIPDB reputation is separate external evidence. Abuse confidence is not model confidence, and a MITRE mapping is contextual—not proof of attacker attribution. Provider failure never becomes a safe or low-risk result.</p></div></CardContent></Card>
             </div>
           )}
         </main>

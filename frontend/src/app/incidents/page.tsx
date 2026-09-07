@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getIncidents, type Incident } from "@/lib/api/incidents";
+import { getIncidentSummary, getIncidents, type Incident } from "@/lib/api/incidents";
 import { useSocStream } from "@/hooks/use-soc-stream";
 
 const PAGE_SIZE = 25;
@@ -53,10 +53,13 @@ function IncidentsContent() {
     }),
     refetchInterval: 30_000,
   });
+  const summaryQuery = useQuery({
+    queryKey: ["incident-summary", severity, priority, search],
+    queryFn: () => getIncidentSummary({ severity, priority, query: search }),
+    refetchInterval: 30_000,
+  });
   const incidents = query.data?.items ?? EMPTY_INCIDENTS;
-  const open = incidents.filter((item) => item.status === "OPEN").length;
-  const active = incidents.filter((item) => item.status === "IN_PROGRESS").length;
-  const resolved = incidents.filter((item) => item.status === "RESOLVED").length;
+  const summary = summaryQuery.data;
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-950">
@@ -66,16 +69,18 @@ function IncidentsContent() {
         <main className="mx-auto max-w-[1500px] p-5 md:p-8">
           <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><ShieldAlert className="size-4" />Response operations</div><div className="flex items-center gap-3"><h1 className="text-3xl font-semibold tracking-tight">Incident Management</h1><Badge variant="outline" className={realtimeConnected ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-500"}>{realtimeConnected ? "Live" : "Reconnecting"}</Badge></div><p className="mt-2 text-sm text-slate-500">Triage, investigate and resolve incidents linked to detection evidence.</p></div>
-            <div className="flex gap-2"><Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={query.isFetching ? "animate-spin" : ""} />Refresh</Button><Button render={<Link href="/events" />} nativeButton={false}><Siren />Review detections</Button></div>
+            <div className="flex gap-2"><Button variant="outline" disabled={query.isFetching || summaryQuery.isFetching} onClick={() => { query.refetch(); summaryQuery.refetch(); }}><RefreshCw className={query.isFetching || summaryQuery.isFetching ? "animate-spin" : ""} />Refresh</Button><Button render={<Link href="/events" />} nativeButton={false}><Siren />Review detections</Button></div>
           </header>
           <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "Total incidents", value: query.data?.total ?? 0, icon: ShieldAlert, color: "text-slate-600" },
-              { label: "Open", value: open, icon: Siren, color: "text-amber-600" },
-              { label: "In progress", value: active, icon: Clock3, color: "text-blue-600" },
-              { label: "Resolved", value: resolved, icon: CheckCircle2, color: "text-emerald-600" },
+              { label: "Total incidents", value: summary?.total ?? "—", icon: ShieldAlert, color: "text-slate-600" },
+              { label: "Open", value: summary?.by_status.OPEN ?? "—", icon: Siren, color: "text-amber-600" },
+              { label: "Active incidents", value: summary?.active ?? "—", icon: Clock3, color: "text-blue-600" },
+              { label: "Resolved", value: summary?.by_status.RESOLVED ?? "—", icon: CheckCircle2, color: "text-emerald-600" },
             ].map((metric) => <Card key={metric.label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{metric.label}</p><p className="mt-2 text-3xl font-semibold">{metric.value}</p></div><metric.icon className={`size-7 ${metric.color}`} /></CardContent></Card>)}
           </section>
+          {summaryQuery.isError && <div className="mb-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><span>Incident totals are unavailable; the list below may still be used.</span><Button size="sm" variant="outline" onClick={() => summaryQuery.refetch()}>Retry totals</Button></div>}
+          {summary && <p className="mb-4 text-xs text-slate-500">Active = Open {summary.by_status.OPEN} + Investigating {summary.by_status.INVESTIGATING} + In progress {summary.by_status.IN_PROGRESS} + Contained {summary.by_status.CONTAINED}. Counts cover the full filtered dataset, not only this page.</p>}
           <Card className="mb-6"><CardContent className="grid gap-3 p-4 md:grid-cols-4">
             <Select value={status} onValueChange={(value) => updateFilter("status", value ?? "ALL")}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem><SelectItem value="OPEN">Open</SelectItem><SelectItem value="INVESTIGATING">Investigating</SelectItem><SelectItem value="IN_PROGRESS">In progress</SelectItem><SelectItem value="CONTAINED">Contained</SelectItem><SelectItem value="RESOLVED">Resolved</SelectItem></SelectContent></Select>
             <Select value={severity} onValueChange={(value) => updateFilter("severity", value ?? "ALL")}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All severities</SelectItem><SelectItem value="CRITICAL">Critical</SelectItem><SelectItem value="HIGH">High</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="LOW">Low</SelectItem></SelectContent></Select>

@@ -187,7 +187,26 @@ def test_abuseipdb_provider_result_is_cached(monkeypatch) -> None:
     assert first.status_code == second.status_code == 200
     assert first.json()["abuse_confidence"] == 92
     assert first.json()["cached"] is False
+    assert first.json()["checked_at"] is not None
     assert second.json()["cached"] is True
+    assert second.json()["checked_at"] == first.json()["checked_at"]
     assert calls == 1
     with factory() as database:
         assert database.scalar(select(func.count()).select_from(ThreatIntelCache)) == 1
+
+
+def test_abuseipdb_unconfigured_is_not_reported_as_low_risk(monkeypatch) -> None:
+    client, _ = build_client()
+    monkeypatch.setattr(
+        investigation_routes,
+        "get_settings",
+        lambda: Settings(_env_file=None, abuseipdb_api_key=None),
+    )
+
+    response = client.get("/threat-intel/ip/203.0.113.90")
+
+    assert response.status_code == 200
+    assert response.json()["available"] is False
+    assert response.json()["reputation"] == "UNAVAILABLE"
+    assert response.json()["error"] == "Provider key is not configured"
+    assert response.json()["checked_at"] is not None

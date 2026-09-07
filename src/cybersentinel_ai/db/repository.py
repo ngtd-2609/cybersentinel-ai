@@ -270,11 +270,8 @@ def create_incident(
     return incident
 
 
-def list_incidents(
-    database: Session,
+def _incident_filters(
     *,
-    limit: int = 25,
-    offset: int = 0,
     user_id: int | None = None,
     role: str | None = None,
     status: str | None = None,
@@ -287,7 +284,7 @@ def list_incidents(
     query: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
-) -> tuple[list[Incident], int]:
+) -> list:
     filters = []
     if user_id is not None and role != "ADMIN":
         filters.append(incident_visibility(user_id, role or "VIEWER"))
@@ -340,6 +337,41 @@ def list_incidents(
                 Incident.resolution_reason.ilike(pattern),
             )
         )
+    return filters
+
+
+def list_incidents(
+    database: Session,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    user_id: int | None = None,
+    role: str | None = None,
+    status: str | None = None,
+    severity: str | None = None,
+    priority: str | None = None,
+    assignee_user_id: int | None = None,
+    asset_id: str | None = None,
+    attack_type: str | None = None,
+    source_ip: str | None = None,
+    query: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> tuple[list[Incident], int]:
+    filters = _incident_filters(
+        user_id=user_id,
+        role=role,
+        status=status,
+        severity=severity,
+        priority=priority,
+        assignee_user_id=assignee_user_id,
+        asset_id=asset_id,
+        attack_type=attack_type,
+        source_ip=source_ip,
+        query=query,
+        since=since,
+        until=until,
+    )
     count_statement = (
         select(func.count())
         .select_from(Incident)
@@ -359,6 +391,51 @@ def list_incidents(
     items = list(database.scalars(statement).all())
 
     return items, total
+
+
+def summarize_incidents(
+    database: Session,
+    *,
+    user_id: int | None = None,
+    role: str | None = None,
+    severity: str | None = None,
+    priority: str | None = None,
+    assignee_user_id: int | None = None,
+    asset_id: str | None = None,
+    attack_type: str | None = None,
+    source_ip: str | None = None,
+    query: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, int | dict[str, int]]:
+    filters = _incident_filters(
+        user_id=user_id,
+        role=role,
+        severity=severity,
+        priority=priority,
+        assignee_user_id=assignee_user_id,
+        asset_id=asset_id,
+        attack_type=attack_type,
+        source_ip=source_ip,
+        query=query,
+        since=since,
+        until=until,
+    )
+    statuses = ("OPEN", "INVESTIGATING", "IN_PROGRESS", "CONTAINED", "RESOLVED")
+    rows = database.execute(
+        select(Incident.status, func.count(Incident.id))
+        .where(*filters)
+        .group_by(Incident.status)
+    ).all()
+    by_status = {status: 0 for status in statuses}
+    for status, count in rows:
+        by_status[str(status).upper()] = int(count)
+    active = sum(by_status[status] for status in statuses[:-1])
+    return {
+        "total": sum(by_status.values()),
+        "active": active,
+        "by_status": by_status,
+    }
 
 
 def get_incident(
