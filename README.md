@@ -463,21 +463,6 @@ cybersentinel-ai/
 | [Deploy operations](deploy/README.md) | Chi tiết self-hosted staging/rollback |
 | [Changelog](CHANGELOG.md) | Lịch sử phiên bản |
 
-<a id="roadmap-and-project-status"></a>
-
-## Roadmap và trạng thái dự án
-
-Thứ tự triển khai chính thức là `G → H → I → J → K → L → M`. Phase đã hoàn thành
-không được thực hiện lại trừ khi phát hiện regression.
-
-- [x] G — core platform và data pipeline
-- [x] H — authentication, authorization và identity hardening
-- [x] I — SOC frontend và analyst workflow
-- [x] J — real-time ingestion và incident operations
-- [x] K — AI reliability và MLOps lifecycle
-- [x] L — public HTTPS portfolio deployment
-- [x] M — final release gate và portfolio documentation
-- [ ] Tùy chọn — ghi và xuất bản video demonstration dài 5–8 phút
 
 <a id="limitations"></a>
 
