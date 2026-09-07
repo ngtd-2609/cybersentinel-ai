@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  Boxes,
   BarChart3,
   Bot,
   BrainCircuit,
   FileText,
   LayoutDashboard,
   Radar,
+  ListChecks,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -27,8 +29,10 @@ const operations = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Detection Events", href: "/events", icon: Siren },
   { label: "Incidents", href: "/incidents", icon: ShieldCheck },
+  { label: "Assets", href: "/assets", icon: Boxes },
   { label: "SOC Copilot", href: "/copilot", icon: Bot },
   { label: "Threat Intelligence", href: "/threat-intel", icon: Radar },
+  { label: "Detection Rules", href: "/rules", icon: ListChecks },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Model Monitor", href: "/models", icon: BrainCircuit },
   { label: "System Monitoring", href: "/monitoring", icon: Activity },
@@ -62,7 +66,7 @@ export function Sidebar({ mobile = false, onNavigate }: { mobile?: boolean; onNa
           <p className="font-semibold tracking-tight text-slate-950">
             CyberSentinel AI
           </p>
-          <p className="text-xs text-slate-500">Security Operations</p>
+          <p className="text-xs text-slate-500">{t("Security Operations")}</p>
         </div>
       </div>
 

@@ -169,11 +169,23 @@ def test_update_incident_status():
         f"/incidents/{incident_id}",
         json={
             "status": "RESOLVED",
+            "resolution_reason": "Verified and contained during testing",
         },
     )
 
     assert response.status_code == 200
     assert response.json()["status"] == "RESOLVED"
+    assert response.json()["resolution_reason"] == "Verified and contained during testing"
+
+
+def test_resolve_requires_reason():
+    created = client.post(
+        "/incidents",
+        json={"title": "Resolution validation", "severity": "HIGH"},
+    ).json()
+    response = client.patch(f"/incidents/{created['id']}", json={"status": "RESOLVED"})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "A resolution reason is required to resolve an incident"
 
 
 def test_incident_timeline():

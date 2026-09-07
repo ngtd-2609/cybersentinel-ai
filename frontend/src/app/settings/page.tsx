@@ -63,7 +63,7 @@ export default function SettingsPage() {
               <CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="size-5 text-violet-600" />{t("Account & security")}</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div><span className="text-slate-500">Email</span><p className="font-medium">{user?.email}</p></div>
-                <div><span className="text-slate-500">Username</span><p className="font-medium">{user?.username}</p></div>
+                <div><span className="text-slate-500">{t("Username")}</span><p className="font-medium">{user?.username}</p></div>
                 <div className="flex items-center gap-2"><LockKeyhole className="size-4 text-slate-400" /><Badge variant="outline">{user ? formatRole(user.role) : "—"}</Badge></div>
                 {user?.role === "VIEWER" && <p className="rounded-lg bg-cyan-50 p-3 text-cyan-800">{t("Demo records are read-only. Your threat simulations run in a private, temporary sandbox.")}</p>}
               </CardContent>

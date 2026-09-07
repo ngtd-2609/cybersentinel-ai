@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LoaderCircle, LockKeyhole, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_REGISTRATION_ENABLED === "true";
   const router = useRouter();
   const { setUser } = useAuth();
+  const { locale, setLocale, t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -169,6 +171,7 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-5 py-12 text-white">
+      <div className="absolute right-5 top-5 z-10 flex rounded-lg border border-white/20 p-1 text-xs"><button className={`rounded px-3 py-1 ${locale === "en" ? "bg-white text-slate-950" : ""}`} onClick={() => setLocale("en")}>EN</button><button className={`rounded px-3 py-1 ${locale === "vi" ? "bg-white text-slate-950" : ""}`} onClick={() => setLocale("vi")}>VI</button></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.16),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(14,116,144,0.12),transparent_32%)]" />
       <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:42px_42px]" />
 
@@ -181,15 +184,14 @@ export default function LoginPage() {
             CyberSentinel AI
           </p>
           <h1 className="mt-4 max-w-xl text-5xl font-semibold leading-tight tracking-tight">
-            Secure access to your SOC command center.
+            {t("Secure access to your SOC command center.")}
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">
-            Authenticate to investigate detections, coordinate incident response,
-            and use AI-assisted security analysis.
+            {t("Authenticate to investigate detections, coordinate incident response, and use AI-assisted security analysis.")}
           </p>
           <div className="mt-9 flex items-center gap-3 text-sm text-emerald-300">
             <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.8)]" />
-            Security services operational
+            {t("Portfolio security workspace")}
           </div>
         </section>
 
@@ -200,17 +202,17 @@ export default function LoginPage() {
             </div>
             <CardTitle className="text-2xl">
               {mfaToken
-                ? "Verify administrator access"
+                ? t("Verify administrator access")
                 : authMode === "register"
-                  ? "Create your CyberSentinel account"
-                  : "Sign in to CyberSentinel"}
+                  ? t("Create your CyberSentinel account")
+                  : t("Sign in to CyberSentinel")}
             </CardTitle>
             <CardDescription>
               {mfaToken
-                ? "Enter a current authenticator code or a one-time recovery code."
+                ? t("Enter a current authenticator code or a one-time recovery code.")
                 : authMode === "register"
-                  ? "Create a viewer account with a private threat-simulation sandbox."
-                  : "Use your authorized SOC account to continue."}
+                  ? t("Create a viewer account with a private threat-simulation sandbox.")
+                  : t("Use your authorized SOC account to continue.")}
             </CardDescription>
             {demoLoginEnabled && !mfaToken && authMode === "login" && (
               <div
@@ -227,8 +229,8 @@ export default function LoginPage() {
                   <LoaderCircle className="size-3.5 animate-spin" />
                 )}
                 {serviceStatus === "ready"
-                  ? "Portfolio demo services are ready."
-                  : "Waking free-tier demo services. This can take about a minute."}
+                  ? t("Portfolio demo services are ready.")
+                  : t("Waking free-tier demo services. This can take about a minute.")}
               </div>
             )}
           </CardHeader>
@@ -237,16 +239,16 @@ export default function LoginPage() {
             <form className="space-y-5" onSubmit={handleSubmit}>
               {!mfaToken ? <>
               {authMode === "register" && <><div className="space-y-2">
-                <label htmlFor="full-name" className="text-sm font-medium">Full name <span className="text-slate-400">(optional)</span></label>
-                <Input id="full-name" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Your name" maxLength={255} />
+                <label htmlFor="full-name" className="text-sm font-medium">{t("Full name")} <span className="text-slate-400">{t("(optional)")}</span></label>
+                <Input id="full-name" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder={t("Your name")} maxLength={255} />
               </div>
               <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium">Username</label>
+                <label htmlFor="username" className="text-sm font-medium">{t("Username")}</label>
                 <Input id="username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="security-viewer" minLength={3} maxLength={64} pattern="[A-Za-z0-9_.-]+" required />
               </div></>}
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
-                  Email address
+                  {t("Email address")}
                 </label>
                 <Input
                   id="email"
@@ -262,7 +264,7 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium">
-                  Password
+                  {t("Password")}
                 </label>
                 <Input
                   id="password"
@@ -270,18 +272,18 @@ export default function LoginPage() {
                   autoComplete={authMode === "register" ? "new-password" : "current-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder={authMode === "register" ? "At least 12 characters" : "Enter your password"}
+                  placeholder={authMode === "register" ? t("At least 12 characters") : t("Enter your password")}
                   minLength={authMode === "register" ? 12 : undefined}
                   required
                 />
-                {authMode === "register" && <p className="text-xs leading-5 text-slate-500">Use at least 12 characters with uppercase, lowercase, number and special character.</p>}
+                {authMode === "register" && <p className="text-xs leading-5 text-slate-500">{t("Use at least 12 characters with uppercase, lowercase, number and special character.")}</p>}
               </div>
               {authMode === "register" && <div className="space-y-2">
-                <label htmlFor="confirm-password" className="text-sm font-medium">Confirm password</label>
-                <Input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat your password" minLength={12} required />
+                <label htmlFor="confirm-password" className="text-sm font-medium">{t("Confirm password")}</label>
+                <Input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t("Repeat your password")} minLength={12} required />
               </div>}</> : <div className="space-y-2">
                 <label htmlFor="mfa-code" className="text-sm font-medium">
-                  Authenticator or recovery code
+                  {t("Authenticator or recovery code")}
                 </label>
                 <Input
                   id="mfa-code"
@@ -298,7 +300,7 @@ export default function LoginPage() {
 
               {error && (
                 <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
+                  {t(error)}
                 </div>
               )}
 
@@ -309,17 +311,17 @@ export default function LoginPage() {
               >
                 {authMode === "register" ? <UserPlus className="size-4" /> : <LockKeyhole className="size-4" />}
                 {isSubmitting
-                  ? authMode === "register" ? "Creating account..." : "Verifying..."
+                  ? authMode === "register" ? t("Creating account...") : t("Verifying...")
                   : mfaToken
-                    ? "Verify MFA"
+                    ? t("Verify MFA")
                     : authMode === "register"
-                      ? "Create account"
-                      : "Sign in securely"}
+                      ? t("Create account")
+                      : t("Sign in securely")}
               </Button>
             </form>
             {registrationEnabled && !mfaToken && (
               <div className="mt-4 text-center text-sm text-slate-600">
-                {authMode === "register" ? "Already have an account?" : "New to CyberSentinel?"}{" "}
+                {authMode === "register" ? t("Already have an account?") : t("New to CyberSentinel?")}{" "}
                 <button
                   type="button"
                   className="font-semibold text-cyan-700 hover:underline"
@@ -328,7 +330,7 @@ export default function LoginPage() {
                     setError(null);
                   }}
                 >
-                  {authMode === "register" ? "Sign in" : "Create account"}
+                  {authMode === "register" ? t("Sign in") : t("Create account")}
                 </button>
               </div>
             )}
@@ -342,10 +344,10 @@ export default function LoginPage() {
                   onClick={handleDemoLogin}
                 >
                   <Sparkles className="size-4" />
-                  Explore with the safe demo account
+                  {t("Explore with the safe demo account")}
                 </Button>
                 <p className="text-center text-xs leading-5 text-slate-500">
-                  Uses synthetic security data. Demo records stay read-only, while your private sandbox remains interactive.
+                  {t("Uses synthetic security data. Demo records stay read-only, while your private sandbox remains interactive.")}
                 </p>
               </div>
             )}

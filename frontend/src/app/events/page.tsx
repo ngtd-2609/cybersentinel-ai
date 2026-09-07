@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { createIncident } from "@/lib/api/incidents";
 import { apiFetch } from "@/lib/api/client";
 
 import { FlaskConical, RefreshCw, Search, Siren, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -40,9 +40,11 @@ interface DetectionEventPage {
 
 const PAGE_SIZE = 25;
 
-async function getEvents(page: number, search: string): Promise<DetectionEventPage> {
+async function getEvents(page: number, filters: Record<string, string>): Promise<DetectionEventPage> {
   const parameters = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
-  if (search.trim()) parameters.set("q", search.trim());
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== "ALL") parameters.set(key, value.trim());
+  });
   const response = await apiFetch(
     `/events/page?${parameters}`,
   );
@@ -67,23 +69,34 @@ function severityStyle(severity: string) {
   }
 }
 
-export default function EventsPage() {
+function EventsContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
   const { user } = useAuth();
   const mayWrite = user ? canWrite(user.role) : false;
   const realtimeConnected = useSocStream();
-  const [page, setPage] = useState(0);
+  const page = Math.max(0, Number(searchParams.get("page") ?? "1") - 1);
+  const search = searchParams.get("q") ?? "";
+  const severity = searchParams.get("severity") ?? "ALL";
+  const attackType = searchParams.get("attack_type") ?? "";
+  const filterSourceIp = searchParams.get("source_ip") ?? "";
+  const minRisk = searchParams.get("min_risk") ?? "";
+  const maxRisk = searchParams.get("max_risk") ?? "";
+  const updateFilter = (key: string, value: string) => {
+    const parameters = new URLSearchParams(searchParams.toString());
+    if (!value || value === "ALL" || (key === "page" && value === "1")) parameters.delete(key);
+    else parameters.set(key, value);
+    if (key !== "page") parameters.delete("page");
+    const query = parameters.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+  };
   const [scenario, setScenario] = useState<SimulationScenario>("PORT-SCAN");
   const [sourceIp, setSourceIp] = useState("");
   const [hostname, setHostname] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [search, setSearch] = useState(() =>
-    typeof window === "undefined"
-      ? ""
-      : new URLSearchParams(window.location.search).get("search") ?? "",
-  );
   async function handleCreateIncident(event: DetectionEvent) {
     const incident = await createIncident({
       title: `${event.predicted_label} - EVT-${String(event.id).padStart(5, "0")}`,
@@ -103,8 +116,8 @@ export default function EventsPage() {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["detection-events", page, search],
-    queryFn: () => getEvents(page, search),
+    queryKey: ["detection-events", page, search, severity, attackType, filterSourceIp, minRisk, maxRisk],
+    queryFn: () => getEvents(page, { q: search, severity, attack_type: attackType, source_ip: filterSourceIp, min_risk: minRisk, max_risk: maxRisk }),
     refetchInterval: 30_000,
   });
   const visibleEvents = data?.items ?? [];
@@ -112,7 +125,7 @@ export default function EventsPage() {
     mutationFn: () => simulateEvent({ scenario, source_ip: sourceIp || undefined, hostname: hostname || undefined }),
     onSuccess: async (result) => {
       setFeedback(result.incident_id ? `Created EVT-${result.event.id} and INC-${result.incident_id}.` : `Created EVT-${result.event.id}.`);
-      setPage(0);
+      updateFilter("page", "1");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["detection-events"] }),
         queryClient.invalidateQueries({ queryKey: ["incidents"] }),
@@ -124,7 +137,7 @@ export default function EventsPage() {
     mutationFn: resetSandbox,
     onSuccess: async (result) => {
       setFeedback(`Reset complete: ${result.events_deleted} events and ${result.incidents_deleted} incidents removed.`);
-      setPage(0);
+      updateFilter("page", "1");
       await queryClient.invalidateQueries();
     },
   });
@@ -191,18 +204,22 @@ export default function EventsPage() {
           </Card>
 
           <Card className="mb-6 border-slate-200 bg-white shadow-sm">
-            <CardContent className="p-4">
-              <div className="relative max-w-md">
+            <CardContent className="grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-6">
+              <div className="relative xl:col-span-2">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
 
                 <Input
-                  placeholder="Search IP or attack type..."
+                  placeholder={t("Search IP, asset or attack type...")}
                   aria-label="Search detection events"
                   value={search}
-                  onChange={(event) => { setSearch(event.target.value); setPage(0); }}
+                  onChange={(event) => updateFilter("q", event.target.value)}
                   className="pl-10"
                 />
               </div>
+              <Select value={severity} onValueChange={(value) => updateFilter("severity", value ?? "ALL")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">{t("All severities")}</SelectItem><SelectItem value="CRITICAL">CRITICAL</SelectItem><SelectItem value="HIGH">HIGH</SelectItem><SelectItem value="MEDIUM">MEDIUM</SelectItem><SelectItem value="LOW">LOW</SelectItem></SelectContent></Select>
+              <Input value={attackType} onChange={(event) => updateFilter("attack_type", event.target.value)} placeholder={t("Attack type")} />
+              <Input value={filterSourceIp} onChange={(event) => updateFilter("source_ip", event.target.value)} placeholder={t("Source IP")} />
+              <div className="grid grid-cols-2 gap-2"><Input type="number" min={0} max={100} value={minRisk} onChange={(event) => updateFilter("min_risk", event.target.value)} placeholder={t("Min risk")} /><Input type="number" min={0} max={100} value={maxRisk} onChange={(event) => updateFilter("max_risk", event.target.value)} placeholder={t("Max risk")} /></div>
             </CardContent>
           </Card>
 
@@ -226,17 +243,17 @@ export default function EventsPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Event ID</TableHead>
-                          <TableHead>Workspace</TableHead>
-                          <TableHead>Attack Type</TableHead>
-                          <TableHead>Source IP</TableHead>
-                          <TableHead>Asset / IOC</TableHead>
-                          <TableHead>Destination</TableHead>
-                          <TableHead>Port</TableHead>
-                          <TableHead>Confidence</TableHead>
-                          <TableHead>Risk</TableHead>
-                          <TableHead>Severity</TableHead>
-                          <TableHead>Review</TableHead>
+                          <TableHead>{t("Event ID")}</TableHead>
+                          <TableHead>{t("Workspace")}</TableHead>
+                          <TableHead>{t("Attack Type")}</TableHead>
+                          <TableHead>{t("Source IP")}</TableHead>
+                          <TableHead>{t("Asset / IOC")}</TableHead>
+                          <TableHead>{t("Destination")}</TableHead>
+                          <TableHead>{t("Port")}</TableHead>
+                          <TableHead>{t("Confidence")}</TableHead>
+                          <TableHead>{t("Risk")}</TableHead>
+                          <TableHead>{t("Severity")}</TableHead>
+                          <TableHead>{t("Review")}</TableHead>
                         </TableRow>
                       </TableHeader>
 
@@ -324,7 +341,7 @@ export default function EventsPage() {
 
                   <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4 text-sm text-slate-500">
                     <span>Showing {visibleEvents.length} of {data.total} events</span>
-                    <div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0 || isFetching} onClick={() => setPage((value) => Math.max(0, value - 1))}>Previous</Button><Button variant="outline" size="sm" disabled={(page + 1) * PAGE_SIZE >= data.total || isFetching} onClick={() => setPage((value) => value + 1)}>Next</Button></div>
+                    <div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0 || isFetching} onClick={() => updateFilter("page", String(page))}>{t("Previous")}</Button><Button variant="outline" size="sm" disabled={(page + 1) * PAGE_SIZE >= data.total || isFetching} onClick={() => updateFilter("page", String(page + 2))}>{t("Next")}</Button></div>
                   </div>
                 </>
               )}
@@ -334,4 +351,8 @@ export default function EventsPage() {
       </div>
     </div>
   );
+}
+
+export default function EventsPage() {
+  return <Suspense><EventsContent /></Suspense>;
 }

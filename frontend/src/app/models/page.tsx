@@ -28,12 +28,12 @@ export default function ModelsPage() {
         <Topbar />
         <main className="mx-auto max-w-6xl p-5 md:p-8">
           <header className="mb-8">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><BrainCircuit className="size-4" />MLOps evidence</div>
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700"><BrainCircuit className="size-4" />{t("MLOps evidence")}</div>
             <h1 className="text-3xl font-semibold">{t("Model Monitor")}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">Canonical locked-test evidence for the released portfolio classifier. Runtime service health is reported separately in System Monitoring.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{t("Canonical locked-test evidence for the released portfolio classifier. Runtime service health is reported separately in System Monitoring.")}</p>
           </header>
-          {query.isLoading ? <p className="py-16 text-center text-slate-500">Loading model evidence...</p> : query.isError || !evidence ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-800"><p>Model evidence is unavailable. No evaluation result can be confirmed right now.</p><Button className="mt-3" variant="outline" onClick={() => query.refetch()}><RefreshCw />Retry</Button></div>
+          {query.isLoading ? <p className="py-16 text-center text-slate-500">{t("Loading model evidence...")}</p> : query.isError || !evidence ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-800"><p>{t("Model evidence is unavailable. No evaluation result can be confirmed right now.")}</p><Button className="mt-3" variant="outline" onClick={() => query.refetch()}><RefreshCw />{t("Retry")}</Button></div>
           ) : (
             <section className="space-y-5">
               <Card>
@@ -43,15 +43,15 @@ export default function ModelsPage() {
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="grid grid-cols-2 gap-2 text-center text-xs md:grid-cols-3 xl:grid-cols-6">
-                    {[["Precision", percent(evidence.metrics.precision, 4)], ["Recall", percent(evidence.metrics.recall, 4)], ["F1", percent(evidence.metrics.f1, 4)], ["FPR", percent(evidence.metrics.false_positive_rate, 6)], ["ROC-AUC", evidence.metrics.roc_auc.toFixed(6)], ["PR-AUC", evidence.metrics.pr_auc.toFixed(6)]].map(([label, value]) => <div key={label} className="rounded-lg bg-slate-50 p-3"><p className="text-slate-500">{label}</p><p className="mt-1 font-semibold text-slate-900">{value}</p></div>)}
+                    {[["Precision", percent(evidence.metrics.precision, 4)], ["Recall", percent(evidence.metrics.recall, 4)], ["F1", percent(evidence.metrics.f1, 4)], ["FPR", percent(evidence.metrics.false_positive_rate, 6)], ["ROC-AUC", evidence.metrics.roc_auc.toFixed(6)], ["PR-AUC", evidence.metrics.pr_auc.toFixed(6)]].map(([label, value]) => <div key={label} className="rounded-lg bg-slate-50 p-3"><p className="text-slate-500">{t(label)}</p><p className="mt-1 font-semibold text-slate-900">{value}</p></div>)}
                   </div>
                   <div className="grid gap-3 text-xs text-slate-600 md:grid-cols-2">
-                    <p className="flex items-start gap-2"><Database className="mt-0.5 size-4 shrink-0" /><span><strong>Dataset:</strong> {evidence.dataset_name}<br /><strong>Split:</strong> {evidence.split}</span></p>
-                    <p className="flex items-start gap-2"><GitCommit className="mt-0.5 size-4 shrink-0" /><span><strong>Evaluation:</strong> {evidence.evaluation}<br /><strong>Threshold:</strong> {evidence.selected_threshold} · <strong>Evidence:</strong> {evidence.source}</span></p>
+                    <p className="flex items-start gap-2"><Database className="mt-0.5 size-4 shrink-0" /><span><strong>{t("Dataset")}:</strong> {evidence.dataset_name}<br /><strong>{t("Split")}:</strong> {evidence.split}</span></p>
+                    <p className="flex items-start gap-2"><GitCommit className="mt-0.5 size-4 shrink-0" /><span><strong>{t("Evaluation")}:</strong> {evidence.evaluation}<br /><strong>{t("Threshold")}:</strong> {evidence.selected_threshold} · <strong>{t("Evidence")}:</strong> {evidence.source}</span></p>
                   </div>
                 </CardContent>
               </Card>
-              <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Interpretation:</strong> this locked temporal test has very high precision and a low false-positive rate, but recall drops under temporal shift. The classifier is one signal in the detection pipeline—not the only detection engine.</p>
+              <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">{t("This locked temporal test has very high precision and a low false-positive rate, but recall drops under temporal shift. The classifier is one signal in the detection pipeline—not the only detection engine.")}</p>
             </section>
           )}
         </main>

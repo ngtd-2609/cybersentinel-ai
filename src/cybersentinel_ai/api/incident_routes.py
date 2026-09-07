@@ -15,6 +15,7 @@ from cybersentinel_ai.api.schemas import (
 )
 from cybersentinel_ai.audit.service import log_action
 from cybersentinel_ai.db.database import atomic, get_db
+from cybersentinel_ai.db.models import User
 from cybersentinel_ai.db.repository import (
     create_incident,
     create_incident_timeline,
@@ -200,6 +201,25 @@ def update_status(
         raise HTTPException(status_code=403, detail="Incident update is not permitted")
     if incident.workspace == "DEMO" and current_user.role != UserRole.ADMIN.value:
         raise HTTPException(status_code=403, detail="Demo incidents are read-only")
+    if payload.status == "RESOLVED" and not (
+        payload.resolution_reason or incident.resolution_reason
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="A resolution reason is required to resolve an incident",
+        )
+    if payload.assignee_user_id is not None:
+        assignee = database.get(User, payload.assignee_user_id)
+        if assignee is None or not assignee.is_active:
+            raise HTTPException(status_code=422, detail="Assignee is not active")
+        if current_user.role not in {
+            UserRole.ADMIN.value,
+            UserRole.SENIOR_ANALYST.value,
+        } and payload.assignee_user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only senior analysts may assign another user",
+            )
     with atomic(database):
         incident = update_incident_status(
             database,

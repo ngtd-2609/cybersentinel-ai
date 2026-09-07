@@ -4,11 +4,12 @@ from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from cybersentinel_ai.api.schemas import (
     AssetCreate,
+    AssetOverviewRead,
     AssetRead,
     ResponseActionCreate,
     ResponseActionRead,
@@ -19,11 +20,14 @@ from cybersentinel_ai.core.config import get_settings
 from cybersentinel_ai.db.database import atomic, get_db
 from cybersentinel_ai.db.models import (
     Asset,
+    DetectionEvent,
+    Incident,
+    IncidentAsset,
     IncidentTimeline,
     ResponseAction,
     ThreatIntelCache,
 )
-from cybersentinel_ai.db.repository import get_incident
+from cybersentinel_ai.db.repository import event_visibility, get_incident, incident_visibility
 from cybersentinel_ai.security.dependencies import get_current_user
 from cybersentinel_ai.security.rbac import UserRole, require_role
 from cybersentinel_ai.threat_intel.providers import AbuseIPDBProvider
@@ -56,6 +60,49 @@ def list_assets(
             | Asset.id.ilike(f"%{query.strip()}%")
         )
     return list(database.scalars(statement.limit(200)).all())
+
+
+@router.get("/assets/overview", response_model=list[AssetOverviewRead])
+def asset_overview(
+    database: DatabaseSession,
+    current_user=Depends(get_current_user),
+    query: str | None = Query(default=None, max_length=255),
+) -> list[AssetOverviewRead]:
+    statement = select(Asset).order_by(Asset.criticality, Asset.hostname)
+    if query:
+        pattern = f"%{query.strip()}%"
+        statement = statement.where(
+            Asset.hostname.ilike(pattern)
+            | Asset.primary_ip.ilike(pattern)
+            | Asset.id.ilike(pattern)
+        )
+    results = []
+    for asset in database.scalars(statement.limit(200)).all():
+        event_filters = [DetectionEvent.asset_id == asset.id]
+        incident_filters = [
+            IncidentAsset.asset_id == asset.id,
+            Incident.status.in_(("OPEN", "INVESTIGATING", "IN_PROGRESS", "CONTAINED")),
+        ]
+        if current_user.role != UserRole.ADMIN.value:
+            event_filters.append(event_visibility(current_user.id, current_user.role))
+            incident_filters.append(incident_visibility(current_user.id, current_user.role))
+        detections = database.scalar(
+            select(func.count(DetectionEvent.id)).where(*event_filters)
+        )
+        active_incidents = database.scalar(
+            select(func.count(IncidentAsset.incident_id))
+            .join(Incident, Incident.id == IncidentAsset.incident_id)
+            .where(*incident_filters)
+        )
+        results.append(
+            AssetOverviewRead.model_validate(asset).model_copy(
+                update={
+                    "detections_count": int(detections or 0),
+                    "active_incidents_count": int(active_incidents or 0),
+                }
+            )
+        )
+    return results
 
 
 @router.get("/assets/{asset_id}", response_model=AssetRead)

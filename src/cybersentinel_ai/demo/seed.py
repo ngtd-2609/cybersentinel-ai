@@ -345,22 +345,35 @@ def seed_demo_data(
             if event.asset_id and database.get(IncidentAsset, (incident.id, event.asset_id)) is None:
                 database.add(IncidentAsset(incident_id=incident.id, asset_id=event.asset_id))
 
-        rule = database.scalar(
-            select(AlertRule).where(AlertRule.name == "Portfolio critical detections")
+        rule_templates = (
+            ("Ransomware containment", 10, 85, "CRITICAL,HIGH", "RANSOMWARE", True, True),
+            ("C2 traffic escalation", 20, 85, "CRITICAL,HIGH", "C2-TRAFFIC", True, True),
+            ("Data exfiltration review", 30, 85, "CRITICAL,HIGH", "DATA-EXFILTRATION", True, True),
+            ("Privilege escalation", 40, 80, "CRITICAL,HIGH", "PRIVILEGE-ESCALATION", True, True),
+            ("SSH credential brute force", 50, 75, "CRITICAL,HIGH", "SSH-BRUTE-FORCE", True, True),
+            ("Web attack", 60, 75, "CRITICAL,HIGH", "WEB-ATTACK", True, True),
+            ("Malicious process", 70, 75, "CRITICAL,HIGH", "MALICIOUS-PROCESS", True, True),
+            ("Port scanning reconnaissance", 80, 60, "HIGH,MEDIUM", "PORT-SCAN", True, False),
+            ("Suspicious login review", 90, 60, "HIGH,MEDIUM", "SUSPICIOUS-LOGIN", True, False),
+            ("High-risk generic detection", 100, 90, "CRITICAL,HIGH", None, True, True),
         )
-        if rule is None:
-            database.add(
-                AlertRule(
-                    name="Portfolio critical detections",
-                    enabled=True,
-                    priority=10,
-                    min_risk_score=85,
-                    severities="CRITICAL,HIGH",
-                    require_review=True,
-                    auto_create_incident=True,
-                    notification_channels="webhook",
-                )
-            )
+        for name, priority, risk, severities, label, review, auto_incident in rule_templates:
+            rule = database.scalar(select(AlertRule).where(AlertRule.name == name))
+            values = {
+                "enabled": True,
+                "priority": priority,
+                "min_risk_score": risk,
+                "severities": severities,
+                "label_pattern": label,
+                "require_review": review,
+                "auto_create_incident": auto_incident,
+                "notification_channels": "",
+            }
+            if rule is None:
+                database.add(AlertRule(name=name, **values))
+            elif reset:
+                for field, value in values.items():
+                    setattr(rule, field, value)
 
     return DemoSeedResult(
         user_id=user.id,

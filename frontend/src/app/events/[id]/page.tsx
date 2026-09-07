@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createIncident, getIpThreatIntel } from "@/lib/api/incidents";
@@ -97,6 +98,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const mayWrite = user ? canWrite(user.role) : false;
 
   const id = String(params.id);
@@ -145,19 +147,19 @@ export default function EventDetailPage() {
               className="mb-6"
             >
               <ArrowLeft className="size-4" />
-              Back to Events
+              {t("Back to Events")}
             </Button>
           </Link>
 
           {isLoading && (
             <p className="text-sm text-slate-500">
-              Loading event...
+              {t("Loading event...")}
             </p>
           )}
 
           {isError && (
             <p className="text-sm text-red-600">
-              Event not found.
+              {t("Event could not be loaded. Try again.")}
             </p>
           )}
 
@@ -167,7 +169,7 @@ export default function EventDetailPage() {
                 <div>
                   <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cyan-700">
                     <Siren className="size-4" />
-                    Security Investigation
+                    {t("Security Investigation")}
                   </div>
 
                   <h1 className="text-3xl font-semibold">
@@ -175,7 +177,7 @@ export default function EventDetailPage() {
                   </h1>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Detected at{" "}
+                    {t("Detected at")}{" "}
                     {new Date(
                       event.created_at,
                     ).toLocaleString()}
@@ -198,7 +200,7 @@ export default function EventDetailPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <ShieldAlert className="size-5" />
-                      Threat
+                      {t("Threat")}
                     </CardTitle>
                   </CardHeader>
 
@@ -208,7 +210,7 @@ export default function EventDetailPage() {
                     </p>
 
                     <p className="mt-2 text-sm text-slate-500">
-                      Risk Score
+                      {t("Risk score")}
                     </p>
 
                     <p className="text-4xl font-bold text-red-600">
@@ -222,20 +224,20 @@ export default function EventDetailPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Network className="size-5" />
-                      Network Flow
+                      {t("Network Flow")}
                     </CardTitle>
                   </CardHeader>
 
                   <CardContent className="space-y-2 text-sm">
                     <p>
-                      Source:
+                      {t("Source")}:
                       <span className="ml-2 font-mono">
                         {event.source_ip}
                       </span>
                     </p>
 
                     <p>
-                      Destination:
+                      {t("Destination")}:
                       <span className="ml-2 font-mono">
                         {event.destination_ip}
                       </span>
@@ -255,27 +257,27 @@ export default function EventDetailPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Brain className="size-5" />
-                      AI Analysis
+                      {t("AI Analysis")}
                     </CardTitle>
                   </CardHeader>
 
                   <CardContent className="space-y-3">
                     <ScoreCard
-                      title="Classifier Confidence"
+                      title={t("Classifier confidence")}
                       value={
                         event.classifier_confidence
                       }
                     />
 
                     <ScoreCard
-                      title="Anomaly Score"
+                      title={t("Anomaly score")}
                       value={
                         event.anomaly_score
                       }
                     />
 
                     <ScoreCard
-                      title="Rule Score"
+                      title={t("Rule score")}
                       value={
                         event.rule_score
                       }
@@ -286,12 +288,12 @@ export default function EventDetailPage() {
 
               {event.asset && (
                 <Card className="mt-5">
-                  <CardHeader><CardTitle>Affected asset context</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>{t("Affected asset context")}</CardTitle></CardHeader>
                   <CardContent className="grid gap-4 text-sm md:grid-cols-4">
-                    <div><p className="text-slate-400">Hostname</p><p className="font-semibold">{event.asset.hostname}</p></div>
-                    <div><p className="text-slate-400">System</p><p>{event.asset.operating_system ?? "Unknown"}</p></div>
-                    <div><p className="text-slate-400">Environment</p><p>{event.asset.environment} · {event.asset.criticality}</p></div>
-                    <div><p className="text-slate-400">Ownership</p><p>{event.asset.owner_team ?? "Unassigned"} · {event.asset.internet_facing ? "Internet-facing" : "Internal"}</p></div>
+                    <div><p className="text-slate-400">{t("Hostname")}</p><p className="font-semibold">{event.asset.hostname}</p></div>
+                    <div><p className="text-slate-400">{t("System")}</p><p>{event.asset.operating_system ?? t("Unknown")}</p></div>
+                    <div><p className="text-slate-400">{t("Environment")}</p><p>{event.asset.environment} · {event.asset.criticality}</p></div>
+                    <div><p className="text-slate-400">{t("Ownership")}</p><p>{event.asset.owner_team ?? t("Unassigned")} · {event.asset.internet_facing ? t("Internet-facing") : t("Internal")}</p></div>
                   </CardContent>
                 </Card>
               )}
@@ -303,18 +305,18 @@ export default function EventDetailPage() {
                   </CardHeader>
                   <CardContent className="text-sm">
                     {threatIntelQuery.isLoading ? (
-                      <p className="text-slate-500">Checking AbuseIPDB…</p>
+                      <p className="text-slate-500">{t("Checking AbuseIPDB...")}</p>
                     ) : threatIntelQuery.isError ? (
-                      <p className="text-amber-700">Threat intelligence could not be loaded. Local detection evidence remains available.</p>
+                      <p className="text-amber-700">{t("Threat intelligence could not be loaded. Local detection evidence remains available.")}</p>
                     ) : threatIntelQuery.data?.available ? (
                       <div className="grid gap-4 sm:grid-cols-4">
-                        <div><p className="text-slate-400">Reputation</p><p className="font-semibold">{threatIntelQuery.data.reputation}</p></div>
-                        <div><p className="text-slate-400">Abuse confidence</p><p className="font-semibold">{threatIntelQuery.data.abuse_confidence ?? 0}%</p></div>
-                        <div><p className="text-slate-400">Reports</p><p>{threatIntelQuery.data.reports ?? 0}</p></div>
-                        <div><p className="text-slate-400">Country / source</p><p>{threatIntelQuery.data.country ?? "Unknown"} · AbuseIPDB{threatIntelQuery.data.cached ? " (cached)" : " (live)"}</p></div>
+                        <div><p className="text-slate-400">{t("Reputation")}</p><p className="font-semibold">{threatIntelQuery.data.reputation}</p></div>
+                        <div><p className="text-slate-400">{t("Abuse confidence")}</p><p className="font-semibold">{threatIntelQuery.data.abuse_confidence ?? 0}%</p></div>
+                        <div><p className="text-slate-400">{t("Reports")}</p><p>{threatIntelQuery.data.reports ?? 0}</p></div>
+                        <div><p className="text-slate-400">{t("Country / source")}</p><p>{threatIntelQuery.data.country ?? t("Unknown")} · AbuseIPDB{threatIntelQuery.data.cached ? ` (${t("Cached")})` : ` (${t("Live")})`}</p></div>
                       </div>
                     ) : (
-                      <p className="text-slate-500">AbuseIPDB is not configured or this indicator cannot be enriched. Local detection evidence remains usable.</p>
+                      <p className="text-slate-500">{t("AbuseIPDB is not configured or this indicator cannot be enriched. Local detection evidence remains usable.")}</p>
                     )}
                   </CardContent>
                 </Card>
@@ -324,7 +326,7 @@ export default function EventDetailPage() {
               <Card className="mt-6">
                 <CardHeader>
                   <CardTitle>
-                    Recommended Response
+                    {t("Recommended response")}
                   </CardTitle>
                 </CardHeader>
 
@@ -336,14 +338,14 @@ export default function EventDetailPage() {
                       onClick={() => createIncidentMutation.mutate(event)}
                     >
                       {createIncidentMutation.isPending
-                        ? "Creating..."
-                        : "Create Incident"}
+                        ? t("Creating...")
+                        : t("Create Incident")}
                     </Button>
                   )}
 
                   {event.requires_review && (
                     <Badge className="bg-violet-100 text-violet-700">
-                      Analyst Review Required
+                      {t("Analyst review required")}
                     </Badge>
                   )}
                 </CardContent>

@@ -7,6 +7,7 @@ import { FileClock, FilterX, RefreshCw, ScrollText } from "lucide-react";
 import { AdminGuard } from "@/components/auth/admin-guard";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,6 +55,7 @@ function formatAction(action: string): string {
 }
 
 function AuditLogsPanel() {
+  const { t } = useLanguage();
   const [page, setPage] = useState(0);
   const [action, setAction] = useState("ALL");
   const [targetType, setTargetType] = useState("ALL");
@@ -90,7 +92,7 @@ function AuditLogsPanel() {
             <ScrollText className="size-4" />
             Security accountability
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">Audit Logs</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("Audit Logs")}</h1>
           <p className="mt-2 text-sm text-slate-500">
             Review authentication, administration and incident activity.
           </p>
@@ -164,10 +166,10 @@ function AuditLogsPanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All target types</SelectItem>
-              <SelectItem value="USER">User</SelectItem>
-              <SelectItem value="DETECTION_EVENT">Detection event</SelectItem>
-              <SelectItem value="INCIDENT">Incident</SelectItem>
+              <SelectItem value="ALL">{t("All target types")}</SelectItem>
+              <SelectItem value="USER">{t("User")}</SelectItem>
+              <SelectItem value="DETECTION_EVENT">{t("Detection event")}</SelectItem>
+              <SelectItem value="INCIDENT">{t("Incident")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -210,11 +212,11 @@ function AuditLogsPanel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-5">Timestamp</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead className="pr-5">Description</TableHead>
+                  <TableHead className="px-5">{t("Timestamp")}</TableHead>
+                  <TableHead>{t("Action")}</TableHead>
+                  <TableHead>{t("Actor")}</TableHead>
+                  <TableHead>{t("Target")}</TableHead>
+                  <TableHead className="pr-5">{t("Description")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

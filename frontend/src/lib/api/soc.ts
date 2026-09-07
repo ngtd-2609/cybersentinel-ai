@@ -48,6 +48,37 @@ export interface HealthStatus {
   service?: string;
 }
 
+export interface ComponentStatus {
+  components: { name: string; state: string; basis: string }[];
+  queues: Record<string, number>;
+}
+
+export async function getComponentStatus(): Promise<ComponentStatus> {
+  const response = await apiFetch("/status/components");
+  return jsonResponse<ComponentStatus>(response, "Unable to load component status");
+}
+
+export interface AssetOverview {
+  id: string;
+  hostname: string;
+  primary_ip: string | null;
+  operating_system: string | null;
+  environment: string;
+  criticality: string;
+  owner_team: string | null;
+  internet_facing: boolean;
+  status: string;
+  last_seen_at: string | null;
+  detections_count: number;
+  active_incidents_count: number;
+}
+
+export async function getAssetOverview(query = ""): Promise<AssetOverview[]> {
+  const params = query.trim() ? `?query=${encodeURIComponent(query.trim())}` : "";
+  const response = await apiFetch(`/assets/overview${params}`);
+  return jsonResponse<AssetOverview[]>(response, "Unable to load assets");
+}
+
 async function jsonResponse<T>(response: Response, message: string): Promise<T> {
   if (!response.ok) {
     throw new Error(`${message} (${response.status})`);

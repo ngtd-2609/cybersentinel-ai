@@ -82,7 +82,17 @@ def _derive_correlation_key(payload: IngestionEventCreate) -> str:
         or payload.source_ip
         or "unknown"
     )
-    return f"{asset.lower()}:{payload.predicted_label.lower()}"[:255]
+    label = payload.predicted_label.upper()
+    intrusion_chain = {
+        "SSH-BRUTE-FORCE",
+        "SUSPICIOUS-LOGIN",
+        "PRIVILEGE-ESCALATION",
+        "MALICIOUS-PROCESS",
+        "C2-TRAFFIC",
+        "DATA-EXFILTRATION",
+    }
+    family = "intrusion-chain" if label in intrusion_chain else label.lower()
+    return f"{asset.lower()}:{family}"[:255]
 
 
 def _correlate_incident(
@@ -97,7 +107,7 @@ def _correlate_incident(
         select(Incident)
         .where(
             Incident.correlation_key == event.correlation_key,
-            Incident.status.in_(("OPEN", "IN_PROGRESS")),
+            Incident.status.in_(("OPEN", "INVESTIGATING", "IN_PROGRESS", "CONTAINED")),
             or_(Incident.last_event_at.is_(None), Incident.last_event_at >= cutoff),
         )
         .order_by(Incident.created_at.desc())

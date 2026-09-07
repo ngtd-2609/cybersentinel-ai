@@ -31,3 +31,22 @@ def test_benign_has_no_attack_mapping():
 
 def test_unknown_label_has_no_attack_mapping():
     assert map_attack_label("Unknown Attack") == ()
+
+
+def test_portfolio_labels_are_mapped_only_when_specific_enough():
+    expected = {
+        "RANSOMWARE": "T1486",
+        "SSH-BRUTE-FORCE": "T1110",
+        "PORT-SCAN": "T1046",
+        "PHISHING": "T1566",
+        "DATA-EXFILTRATION": "T1041",
+        "C2-TRAFFIC": "T1071",
+        "WEB-ATTACK": "T1190",
+    }
+    for label, technique_id in expected.items():
+        mapping = map_attack_label(label)
+        assert mapping[0].technique_id == technique_id
+        assert mapping[0].mapping_basis == "contextual"
+
+    for ambiguous in ("SUSPICIOUS-LOGIN", "PRIVILEGE-ESCALATION", "MALICIOUS-PROCESS"):
+        assert map_attack_label(ambiguous) == ()

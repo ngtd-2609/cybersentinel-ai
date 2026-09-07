@@ -142,6 +142,55 @@ def test_job_and_notification_reach_dead_letter(database: Session, monkeypatch) 
     assert deliver_notification(database, delivery.id, transport=transport) == "DEAD_LETTER"
 
 
+def test_cross_label_intrusion_chain_correlates_on_same_asset(database: Session) -> None:
+    database.add_all(
+        [
+            AlertRule(
+                name="ssh-chain",
+                enabled=True,
+                priority=1,
+                min_risk_score=70,
+                severities="CRITICAL,HIGH",
+                label_pattern="SSH-BRUTE-FORCE",
+                require_review=True,
+                auto_create_incident=True,
+                notification_channels="",
+            ),
+            AlertRule(
+                name="privilege-chain",
+                enabled=True,
+                priority=2,
+                min_risk_score=70,
+                severities="CRITICAL,HIGH",
+                label_pattern="PRIVILEGE-ESCALATION",
+                require_review=True,
+                auto_create_incident=True,
+                notification_channels="",
+            ),
+        ]
+    )
+    database.commit()
+    first_payload = event("chain-1").model_copy(
+        update={"correlation_key": None, "predicted_label": "SSH-BRUTE-FORCE"}
+    )
+    second_payload = event("chain-2").model_copy(
+        update={"correlation_key": None, "predicted_label": "PRIVILEGE-ESCALATION"}
+    )
+    first_job, _ = create_ingestion_job(database, first_payload, max_attempts=3)
+    second_job, _ = create_ingestion_job(database, second_payload, max_attempts=3)
+    database.commit()
+
+    first = process_ingestion_job(database, first_job.id)
+    second = process_ingestion_job(database, second_job.id)
+    database.commit()
+
+    assert first["incident_id"] == second["incident_id"]
+    incident = database.get(Incident, first["incident_id"])
+    assert incident is not None
+    assert incident.correlation_key == "asset-42:intrusion-chain"
+    assert incident.event_count == 2
+
+
 def test_notification_success_and_rule_schema(database: Session, monkeypatch) -> None:
     stored_event = DetectionEvent(
         predicted_label="Credential Theft",

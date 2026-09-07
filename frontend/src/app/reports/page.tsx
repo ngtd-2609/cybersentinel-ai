@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getIncidents } from "@/lib/api/incidents";
 import { downloadCsv, getDetectionEvents, summaryToRows } from "@/lib/api/soc";
@@ -14,6 +15,7 @@ import { downloadCsv, getDetectionEvents, summaryToRows } from "@/lib/api/soc";
 const stamp = () => new Date().toISOString().slice(0, 10);
 
 export default function ReportsPage() {
+  const { t } = useLanguage();
   const summary = useQuery({ queryKey: ["dashboard-summary"], queryFn: getDashboardSummary });
   const events = useQuery({ queryKey: ["report-events"], queryFn: () => getDetectionEvents(100) });
   const incidents = useQuery({ queryKey: ["report-incidents"], queryFn: () => getIncidents(100, 0) });
@@ -58,12 +60,12 @@ export default function ReportsPage() {
       <div className="min-w-0 flex-1">
         <Topbar />
         <main className="mx-auto max-w-6xl p-5 md:p-8">
-          <header className="mb-8"><p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700">Operational exports</p><h1 className="text-3xl font-semibold tracking-tight">Reports</h1><p className="mt-2 text-sm text-slate-500">Generate CSV reports directly from current CyberSentinel API data.</p></header>
-          {hasError && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">One or more report datasets could not be loaded.</p>}
+          <header className="mb-8"><p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700">{t("Operational exports")}</p><h1 className="text-3xl font-semibold tracking-tight">{t("Reports")}</h1><p className="mt-2 text-sm text-slate-500">{t("Generate CSV reports directly from current CyberSentinel API data.")}</p></header>
+          {hasError && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{t("One or more report datasets could not be loaded. Try again before exporting.")}</p>}
           <section className="grid gap-5 lg:grid-cols-3">
-            {reports.map((report) => <Card key={report.title} className="flex flex-col"><CardHeader><div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-cyan-50"><report.icon className="size-5 text-cyan-600" /></div><CardTitle className="text-lg">{report.title}</CardTitle><p className="text-sm leading-6 text-slate-500">{report.description}</p></CardHeader><CardContent className="mt-auto"><div className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{report.count}</div><Button className="w-full" disabled={report.disabled} onClick={report.download}><Download />Download CSV</Button></CardContent></Card>)}
+            {reports.map((report) => <Card key={report.title} className="flex flex-col"><CardHeader><div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-cyan-50"><report.icon className="size-5 text-cyan-600" /></div><CardTitle className="text-lg">{t(report.title)}</CardTitle><p className="text-sm leading-6 text-slate-500">{t(report.description)}</p></CardHeader><CardContent className="mt-auto"><div className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{report.count}</div><Button className="w-full" disabled={report.disabled} onClick={report.download}><Download />{t("Download CSV")}</Button></CardContent></Card>)}
           </section>
-          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">Exports are generated in your browser from authorized API responses. No report data is sent to another service.</div>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">{t("Exports are generated in your browser from authorized API responses. No report data is sent to another service.")}</div>
         </main>
       </div>
     </div>

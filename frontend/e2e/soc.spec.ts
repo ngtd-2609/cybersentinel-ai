@@ -99,8 +99,15 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
       return fulfillJson(route, currentIncident);
     }
     if (url.pathname === "/api/backend/incidents/7" && method === "PATCH") {
-      expect(route.request().postDataJSON()).toEqual({ status: "RESOLVED" });
-      currentIncident = { ...currentIncident, status: "RESOLVED" };
+      expect(route.request().postDataJSON()).toEqual({
+        status: "RESOLVED",
+        resolution_reason: "Validated evidence and completed simulated containment.",
+      });
+      currentIncident = {
+        ...currentIncident,
+        status: "RESOLVED",
+        resolution_reason: "Validated evidence and completed simulated containment.",
+      };
       return fulfillJson(route, currentIncident);
     }
     if (url.pathname === "/api/backend/incidents/7/timeline" && method === "POST") {
@@ -208,8 +215,10 @@ test("analyst promotes a detection, investigates it, and resolves the incident",
   await page.getByRole("button", { name: "Simulate" }).click();
   await expect(page.getByText(/no external system was modified/i)).toBeVisible();
 
-  await page.getByRole("combobox").first().click();
-  await page.getByRole("option", { name: "Resolved" }).click();
+  await page.getByPlaceholder("Describe what was verified, contained or remediated...").fill(
+    "Validated evidence and completed simulated containment.",
+  );
+  await page.getByRole("button", { name: "Confirm resolution" }).click();
   await expect(page.getByText("RESOLVED").first()).toBeVisible();
 });
 

@@ -19,6 +19,7 @@ from cybersentinel_ai.api.metrics import configure_metrics
 from cybersentinel_ai.api.realtime_routes import router as realtime_router
 from cybersentinel_ai.api.routes import router
 from cybersentinel_ai.api.rule_routes import router as rule_router
+from cybersentinel_ai.api.status_routes import router as status_router
 from cybersentinel_ai.api.user_admin_routes import router as user_admin_router
 from cybersentinel_ai.api.user_status_routes import router as user_status_router
 from cybersentinel_ai.audit.context import (
@@ -196,6 +197,7 @@ app.include_router(investigation_router)
 app.include_router(mlops_router)
 app.include_router(realtime_router)
 app.include_router(rule_router)
+app.include_router(status_router)
 app.include_router(user_admin_router)
 app.include_router(user_status_router)
 app.include_router(dashboard_router)

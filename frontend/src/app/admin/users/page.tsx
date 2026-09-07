@@ -16,6 +16,7 @@ import { AdminGuard } from "@/components/auth/admin-guard";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,6 +50,7 @@ import { formatRole } from "@/lib/auth";
 const EMPTY_USERS: AdminUser[] = [];
 
 function UsersPanel() {
+  const { t } = useLanguage();
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -119,12 +121,12 @@ function UsersPanel() {
             <ShieldCheck className="size-4" />
             Access governance
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">Users & Roles</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("Users & Roles")}</h1>
           <p className="mt-2 text-sm text-slate-500">
             Manage SOC access levels and account availability.
           </p>
         </div>
-        <div className="flex gap-2"><Button onClick={() => setCreateOpen(true)}><Plus />Create user</Button><Button variant="outline" onClick={() => usersQuery.refetch()} disabled={usersQuery.isFetching}>
+        <div className="flex gap-2"><Button onClick={() => setCreateOpen(true)}><Plus />{t("Create user")}</Button><Button variant="outline" onClick={() => usersQuery.refetch()} disabled={usersQuery.isFetching}>
           <RefreshCw
             className={`size-4 ${usersQuery.isFetching ? "animate-spin" : ""}`}
           />
@@ -206,7 +208,7 @@ function UsersPanel() {
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="p-0">
           {usersQuery.isLoading ? (
-            <p className="p-10 text-center text-sm text-slate-500">Loading users...</p>
+            <p className="p-10 text-center text-sm text-slate-500">{t("Loading users...")}</p>
           ) : usersQuery.isError ? (
             <p className="p-10 text-center text-sm text-red-600">
               {usersQuery.error.message}
@@ -219,11 +221,11 @@ function UsersPanel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-5">User</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="pr-5 text-right">Account control</TableHead>
+                  <TableHead className="px-5">{t("User")}</TableHead>
+                  <TableHead>{t("Username")}</TableHead>
+                  <TableHead>{t("Role")}</TableHead>
+                  <TableHead>{t("Status")}</TableHead>
+                  <TableHead className="pr-5 text-right">{t("Account control")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

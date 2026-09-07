@@ -6,6 +6,7 @@ class AttackTechnique:
     technique_id: str
     technique_name: str
     tactic: str
+    mapping_basis: str = "contextual"
 
 
 ATTACK_MAPPING: dict[str, tuple[AttackTechnique, ...]] = {
@@ -64,6 +65,21 @@ ATTACK_MAPPING: dict[str, tuple[AttackTechnique, ...]] = {
             technique_name="Network Service Discovery",
             tactic="Discovery",
         ),
+    ),
+    "PORT-SCAN": (
+        AttackTechnique("T1046", "Network Service Discovery", "Discovery"),
+    ),
+    "PHISHING": (
+        AttackTechnique("T1566", "Phishing", "Initial Access"),
+    ),
+    "DATA-EXFILTRATION": (
+        AttackTechnique("T1041", "Exfiltration Over C2 Channel", "Exfiltration"),
+    ),
+    "C2-TRAFFIC": (
+        AttackTechnique("T1071", "Application Layer Protocol", "Command and Control"),
+    ),
+    "WEB-ATTACK": (
+        AttackTechnique("T1190", "Exploit Public-Facing Application", "Initial Access"),
     ),
     "FTP-Patator": (
         AttackTechnique(

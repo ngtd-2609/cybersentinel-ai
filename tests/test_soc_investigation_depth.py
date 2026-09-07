@@ -130,6 +130,10 @@ def test_asset_relation_case_filters_and_correlated_detections() -> None:
     assert detail.json()["display_id"].startswith("CS-")
     assert detail.json()["affected_assets"][0]["hostname"] == "PROD-WEB-01"
     assert len(detail.json()["related_detections"]) == 2
+    overview = client.get("/assets/overview")
+    assert overview.status_code == 200
+    assert overview.json()[0]["detections_count"] == 2
+    assert overview.json()[0]["active_incidents_count"] == 1
 
 
 def test_viewer_can_simulate_response_only_in_own_sandbox() -> None:

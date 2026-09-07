@@ -84,6 +84,11 @@ class AssetRead(AssetBase):
     updated_at: datetime
 
 
+class AssetOverviewRead(AssetRead):
+    detections_count: int = 0
+    active_incidents_count: int = 0
+
+
 class DetectionEventRead(DetectionEventCreate):
     model_config = ConfigDict(from_attributes=True)
 
@@ -210,7 +215,12 @@ class IncidentUpdate(BaseModel):
     priority: str | None = Field(default=None, pattern="^P[1-4]$")
     assignee_user_id: int | None = Field(default=None, ge=1)
     tags: list[str] | None = Field(default=None, max_length=12)
-    resolution_reason: str | None = Field(default=None, max_length=1000)
+    resolution_reason: str | None = Field(default=None, min_length=3, max_length=1000)
+
+    @field_validator("resolution_reason", mode="before")
+    @classmethod
+    def normalize_resolution_reason(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None else None
 
 
 class IncidentPage(BaseModel):
