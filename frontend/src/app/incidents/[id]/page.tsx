@@ -99,12 +99,12 @@ export default function IncidentDetailPage() {
   });
   const copilotMutation = useMutation({
     mutationFn: () => askCopilot(question.trim(), JSON.stringify({
-      incident: incidentQuery.data,
       threat_intelligence: threatIntelQuery.data ?? {
         provider: "AbuseIPDB",
         indicator: sourceIp ?? null,
         available: false,
       },
+      incident: incidentQuery.data,
       timeline: timelineQuery.data ?? [],
       response_actions: responsesQuery.data ?? [],
     })),
